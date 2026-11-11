@@ -506,6 +506,12 @@ impl SettingsPage {
     /// Andrew's work board (see crate::valley). Empty fields fall back to the
     /// ANDRUIDE_VALLEY_* environment variables.
     fn valley_section(&self, theme: &Theme, cx: &mut Context<Self>) -> impl IntoElement {
+        // A TextInput's own `.w_full()` only resolves against definite space:
+        // a `flex_1` wrapper that isn't a flex container collapsed the field to
+        // its padding (~15px, can't type). The checked settings rows never hit
+        // this because their wrapper is fixed-width `.flex().flex_col()`
+        // (settings.rs `checks_section`); the same shape here, with the label
+        // side taking the slack. (Father's report, 11 Nov 2026.)
         let row = |label: &'static str, input: &Entity<TextInput>| {
             div()
                 .flex()
@@ -513,8 +519,8 @@ impl SettingsPage {
                 .gap(px(12.))
                 .px(px(14.))
                 .py(px(10.))
-                .child(div().w(px(110.)).flex_none().text_size(px(13.)).child(label))
-                .child(div().flex_1().min_w(px(0.)).child(input.clone()))
+                .child(div().flex_1().text_size(px(13.)).child(label))
+                .child(div().w(px(300.)).flex_none().flex().flex_col().child(input.clone()))
         };
         div()
             .flex()
