@@ -287,6 +287,8 @@ pub enum Route {
     Github,
     GithubRepo(String),
     GithubItem(String, u64),
+    /// A conversation with Andrew about a GitHub item.
+    Andrew(String, u64),
     /// What the agents used, and what it'd cost.
     Usage,
     /// Andrew's work board, read live from his valley.
@@ -3891,6 +3893,7 @@ impl Root {
             Route::About => self.render_about(cx),
             Route::Shared(id) => self.render_joined(&id, cx),
             Route::Github | Route::GithubRepo(_) | Route::GithubItem(..) => self.render_github(window, cx),
+            Route::Andrew(repo, n) => self.render_andrew(&repo, n, cx),
             Route::Settings => match &self.settings {
                 Some(page) => page.clone().into_any_element(),
                 None => {
@@ -4136,6 +4139,7 @@ fn route_title(s: &Snapshot, route: &Route) -> (Option<&'static str>, String) {
         Route::Github => (None, "GitHub".into()),
         Route::GithubRepo(name) => (Some("GitHub"), name.clone()),
         Route::GithubItem(repo, n) => (Some("GitHub"), format!("{repo} #{n}")),
+        Route::Andrew(repo, n) => (Some("GitHub"), format!("Andrew · {repo} #{n}")),
         Route::Machine(id) => (Some("Machines"), s.machines.iter().find(|m| &m.id == id).map(|m| m.name.clone()).unwrap_or_else(|| id.clone())),
         Route::Session(id) => {
             let x = s.sessions.iter().find(|x| &x.id == id);

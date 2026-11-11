@@ -1,9 +1,9 @@
 //! The valley: Andrew's work board, read live over his REST API.
 //!
 //! Andrew (the orchestrator behind Campfire Valley) publishes his board on a
-//! Basic-auth'd HTTP API. This module is the read-only client for it — the
-//! Valley page in the UI fronts this the way the Usage page fronts
-//! fleet::usage.
+//! Basic-auth'd HTTP API. This module is the client for it — the Valley page
+//! in the UI fronts the board reads the way the Usage page fronts
+//! fleet::usage, and the "Review with Andrew" conversations ride `chat()`.
 //!
 //! Configuration: `[settings.valley]` in config.toml (Settings › Valley)
 //! first, then the environment, so no valley credentials are ever baked
@@ -130,4 +130,45 @@ impl Valley {
         };
         Ok(ValleyStatus { items, ready })
     }
+
+    /// One conversational turn with Andrew: POST /chat with
+    /// `{session_id, message, mode}`. On an nginx-backed valley the base ends
+    /// in `/api`, so this reaches his core's chat route either way.
+    pub async fn chat(&self, session_id: &str, message: &str) -> Result<String, String> {
+        if !self.configured() {
+            return Err("The valley isn't configured — set it in Settings › Valley.".into());
+        }
+        let body = ChatIn { session_id: session_id.to_string(), message: message.to_string(), mode: "plan".into() };
+        let url = format!("{}{}", self.base.trim_end_matches('/'), "/chat");
+        let mut req = self.http.post(&url).json(&body);
+        if let (Some(user), Some(password)) = (&self.user, &self.password) {
+            req = req.basic_auth(user, Some(password));
+        }
+        let out: ChatOut = req
+            .send()
+            .await
+            .map_err(|e| format!("Couldn't reach Andrew at {url}: {e}"))?
+            .error_for_status()
+            .map_err(|e| format!("The valley answered {e}"))?
+            .json()
+            .await
+            .map_err(|e| format!("Andrew's reply isn't the shape we expect: {e}"))?;
+        let reply = out.reply.trim().to_string();
+        Ok(if reply.is_empty() { "Andrew didn't answer.".to_string() } else { reply })
+    }
+}
+
+/// The body of a chat turn.
+#[derive(serde::Serialize)]
+pub struct ChatIn {
+    pub session_id: String,
+    pub message: String,
+    pub mode: String,
+}
+
+/// Andrew's chat reply.
+#[derive(Debug, Deserialize)]
+pub struct ChatOut {
+    #[serde(default)]
+    pub reply: String,
 }
