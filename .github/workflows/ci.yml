@@ -1,6 +1,8 @@
-# Tests on every push to main and every pull request: the app and the agent on
-# macOS and Linux, and a build on Windows (GPUI's Windows backend only builds
-# there, so this is where Windows breakage shows up).
+# Tests on every push to main and every pull request: the app and the agent
+# on Linux, and a build on Windows (GPUI's Windows backend only builds
+# there, so this is where Windows breakage shows up). A macOS job used to run
+# the same tests on macos-15; it's disabled for now — Windows and Linux only
+# (see the why-comment on the job).
 name: ci
 
 on:
@@ -17,7 +19,13 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  # Disabled for now (Father, 11 Nov 2026: only want windows and linux atm):
+  # the mac-arm64 hosted runners starved three release dispatches in a row
+  # (43063214910, 43085613467, 43088155073 — queued ~15 min, then cancelled),
+  # and a per-PR job has no budget for those waits. The Unix tests still run
+  # in the linux job. Re-enable by deleting the if.
   macos:
+    if: false
     runs-on: macos-15
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
