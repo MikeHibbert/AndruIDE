@@ -289,6 +289,8 @@ pub enum Route {
     GithubItem(String, u64),
     /// What the agents used, and what it'd cost.
     Usage,
+    /// Andrew's work board, read live from his valley.
+    Valley,
     /// One command on several machines.
     Run,
     /// Commands and agent sessions that run on machines at set times.
@@ -489,6 +491,9 @@ pub struct Root {
     pub(super) usage_days: u32,
     pub(super) usage_data: Option<super::github::Load<super::usage::UsageData>>,
     pub(super) usage_at: Option<Instant>,
+    /// The Valley page: Andrew's board as last read.
+    pub(super) valley_data: Option<super::github::Load<crate::valley::ValleyStatus>>,
+    pub(super) valley_at: Option<Instant>,
     /// The Run page: the command field, the machines picked (None: all
     /// online), the last command run and the ones before it.
     pub(super) run_input: Entity<TextInput>,
@@ -700,6 +705,8 @@ impl Root {
             usage_days: 7,
             usage_data: None,
             usage_at: None,
+            valley_data: None,
+            valley_at: None,
             ports_more: Default::default(),
             machine_gpus: Default::default(),
             forward_seen: Default::default(),
@@ -1030,6 +1037,7 @@ impl Root {
         match kind {
             "jobs" => self.navigate(Route::Jobs, window, cx),
             "usage" => self.navigate(Route::Usage, window, cx),
+            "valley" => self.navigate(Route::Valley, window, cx),
             // "schedules", or "schedules:<machine>/<id>" with that one's runs open.
             "schedules" => {
                 self.navigate(Route::Schedules, window, cx);
@@ -2561,6 +2569,7 @@ impl Root {
                     .child(self.nav_item("nav-boxes", "box", super::boxes::TILE, "Boxes", Some(s.boxes.iter().filter(|b| b.state != "paused").count()), Route::Boxes, "boxes", cx))
                     .child(self.nav_item("nav-github", "agent-github", super::github::TILE, "GitHub", self.gh.waiting(), Route::Github, "github", cx))
                     .child(self.nav_item("nav-usage", "gauge", kit::tiles::USAGE, "Usage", None, Route::Usage, "usage", cx))
+                    .child(self.nav_item("nav-valley", "flame", super::valley::TILE, "Valley", self.valley_badge(), Route::Valley, "valley", cx))
                     .child(self.nav_item("nav-run", "zap", kit::tiles::RUN, "Run", None, Route::Run, "run", cx))
                     .child(self.nav_item("nav-schedules", "clock", super::schedules::TILE, "Schedules", None, Route::Schedules, "schedules", cx))
                     .child(self.activity_nav(&theme, running_ops, cx)),
@@ -3777,6 +3786,7 @@ impl Root {
             Route::Workspace(id) => self.render_workspace(&id, cx),
             Route::Activity => self.render_activity(cx).into_any_element(),
             Route::Usage => self.render_usage(cx),
+            Route::Valley => self.render_valley(cx),
             Route::Run => self.render_run(window, cx),
             Route::Schedules => self.render_schedules(window, cx),
             Route::Machine(id) => self.render_machine(&id, cx),
@@ -4035,6 +4045,7 @@ fn route_title(s: &Snapshot, route: &Route) -> (Option<&'static str>, String) {
         Route::Boxes => (None, "Boxes".into()),
         Route::Activity => (None, "Activity".into()),
         Route::Usage => (None, "Usage".into()),
+        Route::Valley => (None, "Valley".into()),
         Route::Run => (None, "Run".into()),
         Route::Schedules => (None, "Schedules".into()),
         Route::Workspace(id) => (Some("Agents' workspaces"), s.workspaces.iter().find(|w| &w.id == id).map(|w| w.name.clone()).unwrap_or_else(|| id.clone())),

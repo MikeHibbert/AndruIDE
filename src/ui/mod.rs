@@ -40,6 +40,7 @@ mod schedule_dialog;
 mod schedules;
 mod updates;
 mod usage;
+mod valley;
 mod vm_dialog;
 mod themes;
 mod workspaces;
