@@ -494,6 +494,13 @@ pub struct Root {
     /// The Valley page: Andrew's board as last read.
     pub(super) valley_data: Option<super::github::Load<crate::valley::ValleyStatus>>,
     pub(super) valley_at: Option<Instant>,
+    /// Valleys on the local network, as last heard over mDNS.
+    pub(super) valleys: Vec<crate::fleet::discover::ValleyHost>,
+    pub(super) valleys_scanning: bool,
+    pub(super) valleys_at: Option<Instant>,
+    /// A valley picked from the network, shown while it's open in the Valley
+    /// page (Settings › Valley is still the for-keeps place: it holds the URL).
+    pub(super) valley_view: Option<String>,
     /// The Run page: the command field, the machines picked (None: all
     /// online), the last command run and the ones before it.
     pub(super) run_input: Entity<TextInput>,
@@ -707,6 +714,10 @@ impl Root {
             usage_at: None,
             valley_data: None,
             valley_at: None,
+            valleys: Vec::new(),
+            valleys_scanning: false,
+            valleys_at: None,
+            valley_view: None,
             ports_more: Default::default(),
             machine_gpus: Default::default(),
             forward_seen: Default::default(),
@@ -2510,6 +2521,76 @@ impl Root {
                 let line = div().absolute().left(px(left)).right(px(10.)).h(px(2.)).rounded_full().bg(theme.accent);
                 let row = std::mem::replace(&mut rows[at], div().into_any_element());
                 rows[at] = div().relative().child(row).child(if after { line.bottom_0() } else { line.top_0() }).into_any_element();
+            }
+        }
+        // Valleys on the local network (Father, 11 Nov 2026): Andrew and
+        // friends announce themselves over mDNS; a row opens the valley in
+        // the Valley page for this session. Re-listened every few minutes.
+        self.maybe_scan_valleys(cx);
+        {
+            let n = self.valleys.len();
+            rows.push(self.section_header("Valleys on the network", (n > 0).then_some(n), None, cx).into_any_element());
+            if self.valleys_scanning {
+                rows.push(
+                    div()
+                        .mx(px(18.))
+                        .my(px(8.))
+                        .text_size(px(12.5))
+                        .text_color(theme.text_placeholder)
+                        .child("Listening on the local network…")
+                        .into_any_element(),
+                );
+            } else if self.valleys.is_empty() {
+                rows.push(
+                    div()
+                        .mx(px(18.))
+                        .my(px(8.))
+                        .text_size(px(12.5))
+                        .text_color(theme.text_placeholder)
+                        .child("No valleys heard. A valley running on this network shows up here.")
+                        .into_any_element(),
+                );
+                rows.push(
+                    div()
+                        .id("valleys-search-again")
+                        .mx(px(18.))
+                        .my(px(8.))
+                        .w_full()
+                        .text_size(px(12.5))
+                        .text_color(theme.text_muted)
+                        .cursor_pointer()
+                        .hover(|st| st.text_color(theme.text))
+                        .child("Search again")
+                        .on_click(cx.listener(|this, _, _, cx| {
+                            this.valleys_at = None;
+                            this.maybe_scan_valleys(cx);
+                        }))
+                        .into_any_element(),
+                );
+            } else {
+                for v in &self.valleys {
+                    let base = v.base.clone();
+                    rows.push(
+                        div()
+                            .id(SharedString::from(format!("valley-row-{}", v.name)))
+                            .mx(px(18.))
+                            .my(px(1.))
+                            .flex()
+                            .items_center()
+                            .gap(px(8.))
+                            .h(px(26.))
+                            .px(px(10.))
+                            .rounded(kit::corner(7.))
+                            .cursor_pointer()
+                            .hover(|st| st.bg(theme.ghost_hover))
+                            .child(kit::tile("network", super::valley::TILE.0, super::valley::TILE.1, 16.))
+                            .child(div().flex_none().text_size(px(12.5)).child(v.name.clone()))
+                            .child(div().flex_1())
+                            .child(div().flex_none().min_w(px(0.)).text_size(px(11.)).text_color(theme.text_muted).truncate().child(v.product.clone()))
+                            .on_click(cx.listener(move |this, _, window, cx| this.open_valley(base.clone(), window, cx)))
+                            .into_any_element(),
+                    );
+                }
             }
         }
         // Always there (but in the demo), so joining a share is easy to find.

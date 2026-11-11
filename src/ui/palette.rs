@@ -81,6 +81,8 @@ enum Run {
     Connect(String),
     /// A theme, by id.
     Theme(&'static str),
+    /// A valley found on the network, open it in the Valley page (by base URL).
+    ValleyConnect(String),
 }
 
 enum Glyph {
@@ -166,6 +168,11 @@ impl Root {
             }
         }
         let input = cx.new(|cx| TextInput::new(cx, "Go to a machine, session or desktop   (> for commands)").bare().with_text(if commands { ">" } else { "" }));
+        if !commands {
+            // Opening the places palette is the natural moment to freshen the
+            // network-valley list (idle-scan keeps it no more than 5 min old).
+            self.maybe_scan_valleys(cx);
+        }
         let changes = cx.subscribe_in(&input, window, |this, _, e: &InputEvent, window, cx| match e {
             InputEvent::Changed => {
                 let Some(p) = &this.palette else { return };
@@ -287,6 +294,7 @@ impl Root {
             Run::Go(route) => self.navigate(route, window, cx),
             Run::Screen(machine, display) => self.show_display(machine, display, window, cx),
             Run::Connect(machine) => self.set_machine_connected(&machine, true, cx),
+            Run::ValleyConnect(base) => self.open_valley(base, window, cx),
             Run::Do(c) => match c {
                 Command::AddMachine => self.show_add_machine(window, cx),
                 Command::NewCloudMachine => self.show_cloud_dialog(window, cx),
@@ -393,6 +401,22 @@ impl Root {
             item
         };
         let mut out = Vec::new();
+        // Valleys on the network lead the places list (Father's ask, 11 Nov
+        // 2026: the field under search should surface valleys on the
+        // network). Each carries its own group so it matches independently
+        // and stays in front of the machines below.
+        for v in &self.valleys {
+            let mut item = Item::new(
+                v.name.clone(),
+                v.product.clone(),
+                "Valley",
+                Glyph::Icon("network"),
+                Run::ValleyConnect(v.base.clone()),
+            );
+            item.group = Some(v.name.to_ascii_lowercase());
+            item.also = "valley campfire network andrew timberwolf mDNS".to_string();
+            out.push(item);
+        }
         for m in &machines {
             let mut head = Item::new(m.name.clone(), format::machine_subtitle(m).0, "Machine", Glyph::Machine(format::machine_icon(m), format::machine_tile(m)), Run::Go(Route::Machine(m.id.clone())));
             head.group = Some(m.id.clone());
