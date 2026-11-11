@@ -22,8 +22,8 @@ use crate::probe::{self, ProbeResult, Shell};
 /// code page, and "…" would turn into letters that join a variable's name), and
 /// written out as UTF-8: PowerShell's own output, and through the console's code
 /// page, programs it runs that honor it.
-pub(crate) const PS_END: &str = "#muxen-end";
-const PS_READ_STDIN: &str = "$ProgressPreference = 'SilentlyContinue'; $or_utf8 = New-Object Text.UTF8Encoding $false; try { [Console]::OutputEncoding = $or_utf8 } catch {}; $or_in = New-Object IO.StreamReader -ArgumentList ([Console]::OpenStandardInput()), $or_utf8; $b = New-Object Text.StringBuilder; while ((($l = $or_in.ReadLine()) -ne $null) -and ($l -ne '#muxen-end')) { [void]$b.AppendLine($l) }; $b.ToString() | Invoke-Expression";
+pub(crate) const PS_END: &str = "#andruide-end";
+const PS_READ_STDIN: &str = "$ProgressPreference = 'SilentlyContinue'; $or_utf8 = New-Object Text.UTF8Encoding $false; try { [Console]::OutputEncoding = $or_utf8 } catch {}; $or_in = New-Object IO.StreamReader -ArgumentList ([Console]::OpenStandardInput()), $or_utf8; $b = New-Object Text.StringBuilder; while ((($l = $or_in.ReadLine()) -ne $null) -and ($l -ne '#andruide-end')) { [void]$b.AppendLine($l) }; $b.ToString() | Invoke-Expression";
 
 /// PowerShell's arguments to run a script sent on stdin (see `ps_sendable`),
 /// encoded so no shell on the way changes them.
@@ -300,7 +300,7 @@ pub fn clixml_text(text: &str) -> String {
     out
 }
 
-/// PowerShell 5.1 starts an error record with the command it ran, Muxin's stdin
+/// PowerShell 5.1 starts an error record with the command it ran, AndruIDE's stdin
 /// reader, wrapped to the console's width: "$ProgressPreference = ...", ...,
 /// "}; $b.ToString() | Invoke-Expression : <the message>". Keeps the message.
 fn without_reader(line: &str) -> Option<&str> {
@@ -375,7 +375,7 @@ pub async fn output(spec: &MachineSpec, shell: Shell, script: String, timeout: D
     Err(reason.get().unwrap_or_else(|| format!("It exited with status {}.", out.status.code().unwrap_or(-1))))
 }
 
-/// Muxin on an iPad can't run ssh: a script goes over the machine's direct
+/// AndruIDE on an iPad can't run ssh: a script goes over the machine's direct
 /// link instead, and its output comes when it's done, not line by line. Its
 /// stdout, its stderr, and its exit status (None: terminated). The agent runs
 /// it as ssh would (`sh -s`, PowerShell on Windows), not in the user's login
@@ -559,8 +559,8 @@ mod tests {
 
     #[tokio::test]
     async fn powershell_errors_are_their_message() {
-        // What Muxin 0.5.8 got from a failing script on Windows 11 (its reader).
-        let seen = "#< CLIXML\r\n<Objs Version=\"1.1.0.1\" xmlns=\"http://schemas.microsoft.com/powershell/2004/04\"><S S=\"Error\">$ProgressPreference = 'SilentlyContinue'; $b = New-Object Text.StringBuilder; while ((($l = _x000D__x000A_</S><S S=\"Error\">[Console]::In.ReadLine()) -ne $null) -and ($l -ne '#muxen-end')) { [void]$b.AppendLine($l) }; _x000D__x000A_</S><S S=\"Error\">$b.ToString() | Invoke-Expression : error: the folder doesn't exist &amp; &lt;stuff&gt;_x000D__x000A_</S><S S=\"Error\">At line:3 char:8_x000D__x000A_</S><S S=\"Error\">+ trap { Write-Error (\"error: \" + $_.Exception.Message); exit 1 }_x000D__x000A_</S><S S=\"Error\">+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~_x000D__x000A_</S><S S=\"Error\">    + CategoryInfo          : NotSpecified: (:) [Write-Error], WriteErrorException_x000D__x000A_</S><S S=\"Error\">    + FullyQualifiedErrorId : Microsoft.PowerShell.Commands.WriteErrorException_x000D__x000A_</S><S S=\"Error\"> _x000D__x000A_</S></Objs>\r\n";
+        // What AndruIDE 0.5.8 got from a failing script on Windows 11 (its reader).
+        let seen = "#< CLIXML\r\n<Objs Version=\"1.1.0.1\" xmlns=\"http://schemas.microsoft.com/powershell/2004/04\"><S S=\"Error\">$ProgressPreference = 'SilentlyContinue'; $b = New-Object Text.StringBuilder; while ((($l = _x000D__x000A_</S><S S=\"Error\">[Console]::In.ReadLine()) -ne $null) -and ($l -ne '#andruide-end')) { [void]$b.AppendLine($l) }; _x000D__x000A_</S><S S=\"Error\">$b.ToString() | Invoke-Expression : error: the folder doesn't exist &amp; &lt;stuff&gt;_x000D__x000A_</S><S S=\"Error\">At line:3 char:8_x000D__x000A_</S><S S=\"Error\">+ trap { Write-Error (\"error: \" + $_.Exception.Message); exit 1 }_x000D__x000A_</S><S S=\"Error\">+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~_x000D__x000A_</S><S S=\"Error\">    + CategoryInfo          : NotSpecified: (:) [Write-Error], WriteErrorException_x000D__x000A_</S><S S=\"Error\">    + FullyQualifiedErrorId : Microsoft.PowerShell.Commands.WriteErrorException_x000D__x000A_</S><S S=\"Error\"> _x000D__x000A_</S></Objs>\r\n";
         let (_, logged, reason) = read(Shell::Powershell, b"", seen.as_bytes()).await;
         assert_eq!(reason.as_deref(), Some("the folder doesn't exist & <stuff>"));
         assert!(logged.iter().all(|l| !l.contains("<Objs") && !l.contains("CLIXML")), "{logged:?}");

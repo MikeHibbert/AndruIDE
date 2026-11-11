@@ -230,11 +230,11 @@ pub fn serve() -> i32 {
     let listener = match sys::Listener::bind() {
         Ok(l) => Arc::new(l),
         Err(e) => {
-            eprintln!("muxen-agent: can't listen for sessions: {e}");
+            eprintln!("andruide-agent: can't listen for sessions: {e}");
             return 1;
         }
     };
-    eprintln!("muxen-agent {} serving sessions", crate::VERSION);
+    eprintln!("andruide-agent {} serving sessions", crate::VERSION);
     let state = Arc::new(State {
         sessions: Mutex::new(Vec::new()),
         events: Mutex::new(VecDeque::new()),
@@ -460,12 +460,12 @@ fn launch(state: &Arc<State>, s: &Arc<Session>) -> anyhow::Result<()> {
     }
     cmd.cwd(&s.cwd);
     cmd.env("COLORTERM", "truecolor");
-    // Which session this is, for hooks and helpers (states.rs). MUXEN_ is
-    // what older session servers set, and what Muxin's hooks look for.
-    cmd.env("MUXEN_SESSION", &s.name);
-    cmd.env("MUXIN_SESSION", &s.name);
+    // Which session this is, for hooks and helpers (states.rs). ANDRUIDE_ is
+    // what older session servers set, and what AndruIDE's hooks look for.
+    cmd.env("ANDRUIDE_SESSION", &s.name);
+    cmd.env("ANDRUIDE_SESSION", &s.name);
     cmd.env_remove("TMUX");
-    // Started from inside an agent (Muxin's CLI run by Claude Code, say), the
+    // Started from inside an agent (AndruIDE's CLI run by Claude Code, say), the
     // server has that agent's session in its environment: a session here isn't
     // its child (Claude Code wouldn't save its transcript).
     for (name, _) in std::env::vars_os() {
@@ -732,7 +732,7 @@ fn new_run(name: &str, continues: bool) {
 }
 
 /// Whether agents continue their conversations after a restart (Settings ›
-/// Agents in the user's Muxins, kept here by settings.rs). On unless turned off.
+/// Agents in the user's AndruIDEs, kept here by settings.rs). On unless turned off.
 fn resume_on() -> bool {
     crate::settings::on(&crate::settings::kept(), "resume", true)
 }
@@ -1000,7 +1000,7 @@ fn answers(term: &Term<Listener>, listener: &Listener, tail: &[u8], bytes: &[u8]
         out.push_str(&format(term.colors()[index].unwrap_or_else(|| default_color(index))));
     }
     if asks_version(tail, bytes) {
-        out.push_str(&format!("\x1bP>|Muxin {}\x1b\\", env!("CARGO_PKG_VERSION")));
+        out.push_str(&format!("\x1bP>|AndruIDE {}\x1b\\", env!("CARGO_PKG_VERSION")));
     }
     for r in std::mem::take(&mut *listener.replies.lock().unwrap()) {
         out.push_str(&r);
@@ -1162,7 +1162,7 @@ mod tests {
     #[test]
     fn a_session_comes_back_after_its_server_stops_with_its_screen_and_without_its_task() {
         let store = crate::saved::scratch("restore");
-        let dir = std::env::temp_dir().join(format!("muxen-restore-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("andruide-restore-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let cwd = dir.canonicalize().unwrap().display().to_string();
         let a = saving_state(&store);
@@ -1241,7 +1241,7 @@ mod tests {
     #[test]
     fn a_folder_thats_gone_or_a_box_doesnt_start_anything() {
         let store = crate::saved::scratch("gone");
-        store.write_meta("claude-gone", &json!({ "v": 1, "name": "claude-gone", "agent": "claude", "cwd": "/nonexistent/muxen-test", "run": "claude", "created": 5 })).unwrap();
+        store.write_meta("claude-gone", &json!({ "v": 1, "name": "claude-gone", "agent": "claude", "cwd": "/nonexistent/andruide-test", "run": "claude", "created": 5 })).unwrap();
         store.write_meta("box-7k2m9q", &json!({ "v": 1, "name": "box-7k2m9q", "agent": "claude", "cwd": "/tmp", "run": "docker start c", "created": 6 })).unwrap();
         let b = saving_state(&store);
         restore(&b, true, |_, _| Some("abc".into()));
@@ -1269,7 +1269,7 @@ mod tests {
         // What Gemini CLI asks at start: keyboard mode, background color, name, device attributes.
         let got = answer(b"\x1b[?u\x1b]11;?\x1b\\\x1b[>q\x1b[c");
         assert!(got.starts_with("\x1b]11;rgb:1515/1616/1a1a"), "{got:?}");
-        assert!(got.contains("\x1bP>|Muxin "), "{got:?}");
+        assert!(got.contains("\x1bP>|AndruIDE "), "{got:?}");
         // The kitty keyboard protocol is off in sessions, so that one has no answer, as in a terminal without it.
         assert!(!got.contains("u\x1b"), "{got:?}");
         assert!(got.ends_with("\x1b[?6c"), "{got:?}");

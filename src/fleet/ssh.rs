@@ -1,4 +1,4 @@
-//! Muxin's own ssh client, for where no `ssh` program can run: Muxin for
+//! AndruIDE's own ssh client, for where no `ssh` program can run: AndruIDE for
 //! iPad adding a machine. It installs the agent and sets up the direct
 //! connection the way the Mac does over ssh; from then on the iPad reaches
 //! the machine directly, as one paired from a Mac.
@@ -11,7 +11,7 @@
 //! Errors read like OpenSSH's, so a check that fails says why in the same
 //! words (`build::unreachable_kind`).
 //!
-//! Built for the iPad, and for its tests here (where the rest of Muxin uses
+//! Built for the iPad, and for its tests here (where the rest of AndruIDE uses
 //! the `ssh` program, so some of it is only the iPad's).
 #![cfg_attr(not(target_os = "ios"), allow(dead_code))]
 
@@ -60,7 +60,7 @@ pub fn route(spec: &MachineSpec) -> Result<Route, String> {
 // MARK: This app's key, and the machines'
 
 fn dir() -> Result<PathBuf, String> {
-    super::direct::config_dir().ok_or_else(|| "Muxin's config folder isn't set".to_string())
+    super::direct::config_dir().ok_or_else(|| "AndruIDE's config folder isn't set".to_string())
 }
 
 /// This app's ssh key, made on first use (ed25519, kept only here).
@@ -88,11 +88,11 @@ fn identity() -> Result<PrivateKey, String> {
     Ok(key)
 }
 
-/// "muxin@iPad": what the key says it is, in authorized_keys.
+/// "andruide@iPad": what the key says it is, in authorized_keys.
 fn comment() -> String {
     let device = crate::config::local_hostname();
     let device: String = device.chars().filter(|c| c.is_ascii_alphanumeric() || *c == '-').collect();
-    format!("muxin@{}", if device.is_empty() { "ipad".to_string() } else { device })
+    format!("andruide@{}", if device.is_empty() { "ipad".to_string() } else { device })
 }
 
 fn write_private(path: &std::path::Path, bytes: &[u8]) -> Result<(), String> {
@@ -106,7 +106,7 @@ fn write_private(path: &std::path::Path, bytes: &[u8]) -> Result<(), String> {
     opts.open(path).and_then(|mut f| f.write_all(bytes)).map_err(|e| e.to_string())
 }
 
-/// This app's public key, as authorized_keys takes it: `ssh-ed25519 AAAA… muxin@iPad`.
+/// This app's public key, as authorized_keys takes it: `ssh-ed25519 AAAA… andruide@iPad`.
 pub fn public_key_line() -> Result<String, String> {
     identity()?.public_key().to_openssh().map_err(|e| e.to_string())
 }
@@ -191,7 +191,7 @@ impl client::Handler for Checker {
 
     async fn check_server_key(&mut self, key: &PublicKeyOrCertificate) -> Result<bool, Self::Error> {
         let PublicKeyOrCertificate::PublicKey { key, .. } = key else {
-            *self.seen.lock().unwrap() = Some(Refusal::Other(format!("{} offers a host certificate, which Muxin doesn't check yet.", self.route.host)));
+            *self.seen.lock().unwrap() = Some(Refusal::Other(format!("{} offers a host certificate, which AndruIDE doesn't check yet.", self.route.host)));
             return Ok(false);
         };
         Ok(self.check(key))
@@ -545,7 +545,7 @@ pub async fn authorize(spec: &MachineSpec, windows: bool) -> Result<(), String> 
     run(spec, &command).await.map(drop).map_err(|e| format!("Couldn't let this {} in on {}: {e}", crate::config::this_device(), spec.name))
 }
 
-/// Takes this app's key off the machine again (removing it from Muxin).
+/// Takes this app's key off the machine again (removing it from AndruIDE).
 pub fn deauthorize_script(windows: bool) -> Result<String, String> {
     let line = public_key_line()?;
     let key = line.split_whitespace().take(2).collect::<Vec<_>>().join(" ");
@@ -562,7 +562,7 @@ fn authorize_sh(line: &str) -> String {
 
 fn deauthorize_sh(key: &str) -> String {
     let q = crate::ops::remote::sh_quote(key);
-    format!("f=\"$HOME/.ssh/authorized_keys\"; [ -f \"$f\" ] || exit 0; grep -vF {q} \"$f\" > \"$f.muxin\" || true; cat \"$f.muxin\" > \"$f\"; rm -f \"$f.muxin\"")
+    format!("f=\"$HOME/.ssh/authorized_keys\"; [ -f \"$f\" ] || exit 0; grep -vF {q} \"$f\" > \"$f.andruide\" || true; cat \"$f.andruide\" > \"$f\"; rm -f \"$f.andruide\"")
 }
 
 /// Administrators sign in with C:\ProgramData\ssh\administrators_authorized_keys,

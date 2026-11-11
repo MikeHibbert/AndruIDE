@@ -284,7 +284,7 @@ mod tests {
 
     #[test]
     fn finds_the_github_cli_on_the_path() {
-        let tmp = std::env::temp_dir().join(format!("muxen-gh-{}", std::process::id()));
+        let tmp = std::env::temp_dir().join(format!("andruide-gh-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&tmp);
         std::fs::create_dir_all(tmp.join("bin")).unwrap();
         // On Windows the program is gh.exe; a plain "gh" there isn't it.
@@ -309,7 +309,7 @@ mod tests {
     #[test]
     fn looking_at_a_checkout_runs_nothing_from_its_config() {
         use std::os::unix::fs::PermissionsExt;
-        let tmp = std::env::temp_dir().join(format!("muxen-fsmonitor-{}", std::process::id()));
+        let tmp = std::env::temp_dir().join(format!("andruide-fsmonitor-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&tmp);
         let repo = tmp.join("repo");
         std::fs::create_dir_all(&repo).unwrap();
@@ -332,7 +332,7 @@ mod tests {
     /// A clone of a repository with two commits, then a branch with work on it.
     #[test]
     fn info_counts_what_a_branch_changed_since_the_default_branch() {
-        let tmp = std::env::temp_dir().join(format!("muxen-repos-{}", std::process::id()));
+        let tmp = std::env::temp_dir().join(format!("andruide-repos-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&tmp);
         let (origin, work) = (tmp.join("origin"), tmp.join("work"));
         std::fs::create_dir_all(&origin).unwrap();

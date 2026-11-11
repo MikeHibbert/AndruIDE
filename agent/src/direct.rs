@@ -1,5 +1,5 @@
-//! Direct connections: `muxen-agent listen` accepts QUIC connections from
-//! Muxen and serves the same link protocol over them, so the app needn't
+//! Direct connections: `andruide-agent listen` accepts QUIC connections from
+//! AndruIDE and serves the same link protocol over them, so the app needn't
 //! go through ssh once a machine is set up (and video can stream later).
 //!
 //! Both sides use self-signed certificates and accept only each other's, by
@@ -8,7 +8,7 @@
 //! (systemd on Linux, launchd on macOS) so it survives reboots. Other apps
 //! (an iPad, paired from a Mac) are added with `{"op": "trust"}` once it runs.
 //!
-//! Files, in ~/.muxen/direct: `cert.der` and `key.der` (this machine's
+//! Files, in ~/.andruide/direct: `cert.der` and `key.der` (this machine's
 //! identity), `trusted` (one app fingerprint per line), `port`.
 
 use std::collections::HashSet;
@@ -29,9 +29,9 @@ use serde_json::{Value, json};
 use crate::home_dir;
 
 pub const DEFAULT_PORT: u16 = 47821;
-const ALPN: &[u8] = b"muxen/1";
-const SERVICE: &str = "muxen-agent";
-const LAUNCHD_LABEL: &str = "com.lumarylabs.muxen-agent";
+const ALPN: &[u8] = b"andruide/1";
+const SERVICE: &str = "andruide-agent";
+const LAUNCHD_LABEL: &str = "com.lumarylabs.andruide-agent";
 
 fn dir() -> PathBuf {
     let d = home_dir().join("direct");
@@ -49,7 +49,7 @@ fn identity() -> Result<(CertificateDer<'static>, PrivateKeyDer<'static>), Strin
     if let (Ok(cert), Ok(key)) = (std::fs::read(&cert_path), std::fs::read(&key_path)) {
         return Ok((CertificateDer::from(cert), PrivateKeyDer::Pkcs8(PrivatePkcs8KeyDer::from(key))));
     }
-    let made = rcgen::generate_simple_self_signed(vec!["muxen-agent".to_string()]).map_err(|e| e.to_string())?;
+    let made = rcgen::generate_simple_self_signed(vec!["andruide-agent".to_string()]).map_err(|e| e.to_string())?;
     let cert = made.cert.der().to_vec();
     let key = made.key_pair.serialize_der();
     write_private(&key_path, &key)?;
@@ -113,7 +113,7 @@ impl ClientCertVerifier for PairedApps {
     }
 }
 
-/// `muxen-agent listen`: serves links over QUIC until stopped.
+/// `andruide-agent listen`: serves links over QUIC until stopped.
 pub fn listen() -> i32 {
     // Programs that need the logged-in session start here (see gui.rs).
     #[cfg(unix)]
@@ -123,14 +123,14 @@ pub fn listen() -> i32 {
     let runtime = match tokio::runtime::Builder::new_multi_thread().worker_threads(2).enable_all().build() {
         Ok(r) => r,
         Err(e) => {
-            eprintln!("muxen-agent: {e}");
+            eprintln!("andruide-agent: {e}");
             return 1;
         }
     };
     match runtime.block_on(accept_loop()) {
         Ok(()) => 0,
         Err(e) => {
-            eprintln!("muxen-agent listen: {e}");
+            eprintln!("andruide-agent listen: {e}");
             1
         }
     }
@@ -163,7 +163,7 @@ async fn accept_loop() -> Result<(), String> {
     let socket = udp_socket(addr).map_err(|e| format!("can't listen on UDP port {}: {e}", addr.port()))?;
     let endpoint = quinn::Endpoint::new(quinn::EndpointConfig::default(), Some(config), socket, Arc::new(quinn::TokioRuntime))
         .map_err(|e| format!("can't listen on UDP port {}: {e}", addr.port()))?;
-    eprintln!("muxen-agent {} listening on UDP {}", crate::VERSION, addr.port());
+    eprintln!("andruide-agent {} listening on UDP {}", crate::VERSION, addr.port());
     // Stopped (an update, a restart): tell connected apps right away, so they
     // reconnect instead of waiting for silence.
     let closing = endpoint.clone();
@@ -214,7 +214,7 @@ async fn accept_loop() -> Result<(), String> {
     Ok(())
 }
 
-/// Runs a link (the same code as `muxen-agent link`) over a QUIC stream.
+/// Runs a link (the same code as `andruide-agent link`) over a QUIC stream.
 /// The listener's UDP socket: IPv6 and IPv4 both, with big buffers (Linux's
 /// default receive buffer drops a copy's bursts).
 fn udp_socket(addr: SocketAddr) -> std::io::Result<std::net::UdpSocket> {
@@ -451,8 +451,8 @@ fn is_tailnet(ip: std::net::IpAddr) -> bool {
     }
 }
 
-/// `muxen-agent migrate`, run after an update: the direct-connection service
-/// from before the rename (OpenRunner) becomes Muxen's, and an installed one
+/// `andruide-agent migrate`, run after an update: the direct-connection service
+/// from before the rename (OpenRunner) becomes AndruIDE's, and an installed one
 /// is brought up to date. A running `listen` that no service restarts (see
 /// `restart_listener`) starts again from the new build.
 pub fn migrate() -> i32 {
@@ -511,8 +511,8 @@ fn restart_listener() {
         } else {
             run("systemctl", &["--user", "is-enabled", &format!("{SERVICE}.service")])
         };
-        // Anchored: the update's own shell has "muxen-agent listen" in its command line too.
-        let listener = r"/\.muxen/bin/muxen-agent listen$";
+        // Anchored: the update's own shell has "andruide-agent listen" in its command line too.
+        let listener = r"/\.andruide/bin/andruide-agent listen$";
         if managed || !run("pkill", &["-f", listener]) {
             return;
         }
@@ -573,7 +573,7 @@ fn run(program: &str, args: &[&str]) -> bool {
 }
 
 fn exe() -> String {
-    std::env::current_exe().map(|p| p.display().to_string()).unwrap_or_else(|_| home_dir().join("bin/muxen-agent").display().to_string())
+    std::env::current_exe().map(|p| p.display().to_string()).unwrap_or_else(|_| home_dir().join("bin/andruide-agent").display().to_string())
 }
 
 /// The systemd unit for `listen`. KillMode=process: restarting it (an update,
@@ -581,7 +581,7 @@ fn exe() -> String {
 /// started, and every session in it, keeps running.
 fn systemd_unit() -> String {
     format!(
-        "[Unit]\nDescription=Muxen agent (direct connections)\n\n[Service]\nExecStart={} listen\nRestart=always\nRestartSec=3\nKillMode=process\n\n[Install]\nWantedBy=default.target\n",
+        "[Unit]\nDescription=AndruIDE agent (direct connections)\n\n[Service]\nExecStart={} listen\nRestart=always\nRestartSec=3\nKillMode=process\n\n[Install]\nWantedBy=default.target\n",
         exe()
     )
 }
@@ -628,7 +628,7 @@ pub fn start_service() {
 
 /// The scheduled task that runs `listen` on Windows.
 #[cfg(windows)]
-const TASK: &str = "Muxen agent";
+const TASK: &str = "AndruIDE agent";
 
 /// Where Windows' firewall lets apps in from (a PowerShell list): the
 /// machine's own subnets, and Tailscale's addresses (see `is_tailnet`).
@@ -637,7 +637,7 @@ const FIREWALL_REMOTE: &str = "'LocalSubnet', '100.64.0.0/10', 'fd7a:115c:a1e0::
 
 /// PowerShell: the running `listen` processes.
 #[cfg(windows)]
-const LISTENERS: &str = "Get-CimInstance Win32_Process -Filter \"Name='muxen-agent.exe'\" | Where-Object { $_.CommandLine -match ' listen' }";
+const LISTENERS: &str = "Get-CimInstance Win32_Process -Filter \"Name='andruide-agent.exe'\" | Where-Object { $_.CommandLine -match ' listen' }";
 
 /// PowerShell that stops every `listen` and starts the task again, so the
 /// listener runs the build in place; `$running` says whether one came up.
@@ -678,7 +678,7 @@ fn install_service() -> (&'static str, Option<String>) {
             restart = restart_task_ps()
         );
         return match crate::win::ps(&script) {
-            Ok(out) if out.contains("running=True") => ("task", (!out.contains("fw=yes")).then(|| "Windows' firewall may block it: allow muxen-agent.exe, or pair as an administrator".to_string())),
+            Ok(out) if out.contains("running=True") => ("task", (!out.contains("fw=yes")).then(|| "Windows' firewall may block it: allow andruide-agent.exe, or pair as an administrator".to_string())),
             // Nobody signed in to the desktop: the task waits for that; meanwhile, run it until restart.
             Ok(_) => match crate::sys::spawn_background(&["listen"], dir().join("listen.log")) {
                 Ok(()) => ("task", Some("starts when you sign in to Windows; running now until then".into())),
@@ -753,7 +753,7 @@ fn remove_service() {
         let _ = std::fs::remove_file(PathBuf::from(&home).join(format!(".config/systemd/user/{SERVICE}.service")));
         let _ = run("systemctl", &["--user", "daemon-reload"]);
     }
-    let _ = run("pkill", &["-f", "muxen-agent listen"]);
+    let _ = run("pkill", &["-f", "andruide-agent listen"]);
 }
 
 #[cfg(test)]

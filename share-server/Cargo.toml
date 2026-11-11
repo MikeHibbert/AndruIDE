@@ -1,8 +1,8 @@
 [package]
-name = "muxin-share-server"
+name = "andruide-share-server"
 version = "0.1.0"
 edition = "2024"
-description = "Introduces the two sides of a Muxin share (signaling) and serves the page that joins one from a browser"
+description = "Introduces the two sides of a AndruIDE share (signaling) and serves the page that joins one from a browser"
 license = "Apache-2.0"
 publish = false
 

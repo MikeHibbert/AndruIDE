@@ -1,5 +1,5 @@
 #!/bin/sh
-# Builds Muxin for Linux and packs it: dist/Muxin-<version>-linux-<arch>.tar.gz,
+# Builds AndruIDE for Linux and packs it: dist/AndruIDE-<version>-linux-<arch>.tar.gz,
 # with the app, the agent builds it sets up on each machine (agents/, made by
 # scripts/build-agents.sh), a desktop entry and an install.sh that puts it in
 # ~/.local for the user. scripts/linux-packages.sh then makes the .deb, .rpm,
@@ -21,18 +21,18 @@ arch=$(uname -m)
 
 cargo build --release --locked
 [ -n "$skip_agents" ] || ./scripts/build-agents.sh >/dev/null
-ls dist/agents/muxen-agent-* >/dev/null 2>&1 || { echo "error: no agent builds in dist/agents" >&2; exit 1; }
+ls dist/agents/andruide-agent-* >/dev/null 2>&1 || { echo "error: no agent builds in dist/agents" >&2; exit 1; }
 
 root=dist/linux
-out=$root/Muxin
+out=$root/AndruIDE
 rm -rf "$root"
 mkdir -p "$out/agents"
-cp target/release/muxin "$out/"
-cp dist/agents/muxen-agent-* "$out/agents/"
-cp assets/brand/icon-512.png "$out/muxin.png"
-cp assets/linux/muxin.desktop assets/linux/install.sh "$out/"
+cp target/release/andruide "$out/"
+cp dist/agents/andruide-agent-* "$out/agents/"
+cp assets/brand/icon-512.png "$out/andruide.png"
+cp assets/linux/andruide.desktop assets/linux/install.sh "$out/"
 cp README.md LICENSE NOTICE THIRD_PARTY_NOTICES.md "$out/"
 
-tarball=dist/Muxin-$version-linux-$arch.tar.gz
-tar -czf "$tarball" -C "$root" Muxin
+tarball=dist/AndruIDE-$version-linux-$arch.tar.gz
+tar -czf "$tarball" -C "$root" AndruIDE
 echo "Built $tarball ($(du -h "$tarball" | cut -f1))"

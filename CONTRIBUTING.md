@@ -1,4 +1,4 @@
-# Contributing to Muxin
+# Contributing to AndruIDE
 
 Thanks for helping. Bug reports, fixes and new features are all welcome.
 
@@ -6,7 +6,7 @@ Thanks for helping. Bug reports, fixes and new features are all welcome.
 
 - **Bugs:** open an issue with what you did, what you expected and what
   happened. Say which OS the app runs on and which OS the machine runs on.
-  `muxin status --json` and the app's log help.
+  `andruide status --json` and the app's log help.
 - **Bigger changes:** open an issue first, so we can agree on the approach
   before you spend time on it.
 - **Security problems:** don't open an issue; see [SECURITY.md](SECURITY.md).
@@ -46,6 +46,6 @@ README's "Develop" section).
 
 ## License
 
-Muxin is under the [Apache License 2.0](LICENSE). By sending a contribution,
+AndruIDE is under the [Apache License 2.0](LICENSE). By sending a contribution,
 you agree that it's under the same license (as its section 5 says), and that
 you have the right to send it.

@@ -1,4 +1,4 @@
-//! `muxen-agent link`: one long-lived connection between Muxen and
+//! `andruide-agent link`: one long-lived connection between AndruIDE and
 //! this machine, so the app doesn't pay for a new ssh connection on every
 //! request. Today it runs over ssh's stdin/stdout; the same protocol can run
 //! over any byte stream.
@@ -141,7 +141,7 @@ enum Stop {
 }
 
 impl Program {
-    /// Starts `muxen-agent <args>`; returns it and what it prints.
+    /// Starts `andruide-agent <args>`; returns it and what it prints.
     fn start(args: &[String], env: Vec<(String, String)>) -> Result<(Program, Box<dyn Read + Send>), String> {
         #[cfg(unix)]
         let elsewhere = crate::gui::needed().then(|| crate::gui::connect(args));
@@ -310,7 +310,7 @@ fn handle(req: &Value, out: &Out, attached: &Attached, app: Option<&str>) -> Val
         "trust" => crate::direct::trust(req),
         "unpair" => crate::direct::unpair(req),
         "push" => crate::push::op(req, app),
-        // Everything `muxen-agent ctl` does.
+        // Everything `andruide-agent ctl` does.
         _ => client::handle(req),
     }
 }
@@ -393,7 +393,7 @@ fn run_script(req: &Value) -> Value {
     json!({ "ok": true, "status": status, "stdout": text(stdout), "stderr": text(stderr), "timed_out": timed_out })
 }
 
-/// Connects a channel to a session, as `muxen-agent attach` does for a
+/// Connects a channel to a session, as `andruide-agent attach` does for a
 /// terminal (`watch_only` and `sizes` as the session server takes them).
 fn attach(req: &Value, out: &Out, attached: &Attached) -> Value {
     let channel = req["channel"].as_u64().unwrap_or(0) as u32;

@@ -1,5 +1,5 @@
 //! Pairing an iPad with this computer's machines, by a one-off link that
-//! Muxin shows as a QR code: `muxin://pair?server=<server>#1.<ticket>`.
+//! AndruIDE shows as a QR code: `andruide://pair?server=<server>#1.<ticket>`.
 //!
 //! The iPad reaches this app the way a share's guest does (mod.rs): through
 //! the share server, then straight over WebRTC. It proves it has the link's
@@ -435,7 +435,7 @@ pub enum Update {
 
 /// Pairs with the Mac behind `link`, as `name`, for this app's key: the
 /// machines that trust it now, and those that couldn't. (The iPad's side;
-/// muxinipad's core calls it.)
+/// andruideipad's core calls it.)
 #[cfg_attr(not(target_os = "ios"), allow(dead_code))]
 pub async fn join(link: &str, name: &str, updates: impl Fn(Update)) -> Result<(Vec<Machine>, Vec<Failed>), String> {
     let key = direct::app_fingerprint()?;
@@ -465,7 +465,7 @@ async fn paired_with(
     name: &str,
     updates: &impl Fn(Update),
 ) -> Result<(Vec<Machine>, Vec<Failed>), String> {
-    const NO_MAC: &str = "Couldn't connect to your Mac. Check that Muxin is open there, then try again.";
+    const NO_MAC: &str = "Couldn't connect to your Mac. Check that AndruIDE is open there, then try again.";
     let dc = pc.create_data_channel(rtc::LABEL, None).await.map_err(|e| e.to_string())?;
     let offer = pc.create_offer(None).await.map_err(|e| e.to_string())?;
     pc.set_local_description(offer).await.map_err(|e| e.to_string())?;

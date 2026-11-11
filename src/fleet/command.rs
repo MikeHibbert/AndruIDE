@@ -1,4 +1,4 @@
-//! Running one command on several machines at once (the Run page, `muxin
+//! Running one command on several machines at once (the Run page, `andruide
 //! run`): an operation per machine, in the user's login shell from their
 //! home folder, its output streamed into the operation's log.
 
@@ -29,7 +29,7 @@ fn sh_script(command: &str) -> String {
 fn ps_script(command: &str) -> String {
     format!(
         "$OR_CMD = {}\n\
-         $f = Join-Path ([IO.Path]::GetTempPath()) (\"muxen-run-$PID.ps1\")\n\
+         $f = Join-Path ([IO.Path]::GetTempPath()) (\"andruide-run-$PID.ps1\")\n\
          Set-Content -LiteralPath $f -Value $OR_CMD -Encoding UTF8\n\
          Set-Location $env:USERPROFILE\n\
          & powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $f\n\

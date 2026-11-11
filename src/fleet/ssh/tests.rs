@@ -106,7 +106,7 @@ async fn server(tag: &str) -> Running {
 }
 
 async fn server_with(tag: &str, passwords: bool) -> Running {
-    let home = std::env::temp_dir().join(format!("muxin-ssh-{tag}-{}", std::process::id()));
+    let home = std::env::temp_dir().join(format!("andruide-ssh-{tag}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&home);
     std::fs::create_dir_all(&home).unwrap();
     let key = fixed_key(tag);
@@ -129,7 +129,7 @@ fn fixed_key(tag: &str) -> PrivateKey {
 }
 
 fn app_home() {
-    let dir = std::env::temp_dir().join(format!("muxin-ssh-app-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("andruide-ssh-app-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     crate::fleet::direct::init(dir);
 }
@@ -221,7 +221,7 @@ async fn a_password_lets_this_app_in_with_its_key() {
     signed_in(&m, &s, None).await.unwrap();
     // And off again.
     run(&m, &format!("sh -c {}", crate::ops::remote::sh_quote(&deauthorize_script(false).unwrap()))).await.unwrap();
-    assert!(!std::fs::read_to_string(s.home.join(".ssh/authorized_keys")).unwrap().contains("muxin@"));
+    assert!(!std::fs::read_to_string(s.home.join(".ssh/authorized_keys")).unwrap().contains("andruide@"));
     disconnect(&m.id);
     assert!(matches!(signed_in(&m, &s, None).await, Err(Refusal::NeedsPassword { .. })));
 }
@@ -309,7 +309,7 @@ async fn a_machine_takes_the_connection_it_was_added_with() {
 fn this_apps_key_is_kept() {
     app_home();
     let line = public_key_line().unwrap();
-    assert!(line.starts_with("ssh-ed25519 AAAA") && line.contains(" muxin@"), "{line}");
+    assert!(line.starts_with("ssh-ed25519 AAAA") && line.contains(" andruide@"), "{line}");
     assert_eq!(public_key_line().unwrap(), line);
     let saved = std::fs::read_to_string(crate::fleet::direct::config_dir().unwrap().join("identity/ssh_ed25519")).unwrap();
     assert!(saved.contains("OPENSSH PRIVATE KEY"));
@@ -323,7 +323,7 @@ fn this_apps_key_is_kept() {
 
 #[test]
 fn windows_scripts_name_the_right_file() {
-    let s = authorize_ps("ssh-ed25519 AAAA muxin@ipad");
+    let s = authorize_ps("ssh-ed25519 AAAA andruide@ipad");
     assert!(s.contains("administrators_authorized_keys") && s.contains("icacls") && s.contains("authorized_keys"));
     assert!(deauthorize_ps("ssh-ed25519 AAAA").contains("StartsWith($key)"));
     let _ = Path::new("");
@@ -331,14 +331,14 @@ fn windows_scripts_name_the_right_file() {
 
 /// The Windows scripts on a real Windows machine, as an administrator, with
 /// ProgramData pointed at a scratch folder there so the machine's own keys
-/// stay as they are. `MUXIN_TEST_WINDOWS=<ssh host> cargo test
+/// stay as they are. `ANDRUIDE_TEST_WINDOWS=<ssh host> cargo test
 /// windows_scripts_on_windows -- --ignored`, from a computer with ssh.
 #[test]
 #[ignore]
 fn windows_scripts_on_windows() {
-    let host = std::env::var("MUXIN_TEST_WINDOWS").expect("MUXIN_TEST_WINDOWS=<ssh host of a Windows machine>");
+    let host = std::env::var("ANDRUIDE_TEST_WINDOWS").expect("ANDRUIDE_TEST_WINDOWS=<ssh host of a Windows machine>");
     let run = |script: &str| {
-        let pre = "$ErrorActionPreference = 'Stop'\n$env:ProgramData = Join-Path $env:TEMP 'muxin-keys-test'\n\
+        let pre = "$ErrorActionPreference = 'Stop'\n$env:ProgramData = Join-Path $env:TEMP 'andruide-keys-test'\n\
                    New-Item -ItemType Directory -Force (Join-Path $env:ProgramData 'ssh') | Out-Null\n\
                    $t = Join-Path $env:ProgramData 'ssh\\administrators_authorized_keys'\n";
         let out = std::process::Command::new("ssh").arg(&host).arg(powershell(&format!("{pre}{script}"))).output().unwrap();
@@ -346,7 +346,7 @@ fn windows_scripts_on_windows() {
         String::from_utf8_lossy(&out.stdout).replace("\r\n", "\n")
     };
     let show = "\"--\"; Get-Content $t; \"--\"; icacls $t | Select-Object -Skip 0 -First 3\n";
-    let ipad = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIipad muxin@ThisiPad";
+    let ipad = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIipad andruide@ThisiPad";
     run("Remove-Item -Recurse -Force $env:ProgramData\n");
 
     // A file another tool wrote, without a newline at its end.
@@ -361,7 +361,7 @@ fn windows_scripts_on_windows() {
 
     // Twice: once in the file.
     let got = run(&format!("{}{show}", authorize_ps(ipad)));
-    assert_eq!(got.matches("muxin@ThisiPad").count(), 1, "{got}");
+    assert_eq!(got.matches("andruide@ThisiPad").count(), 1, "{got}");
 
     // Taken off again, the other key stays; then the last key leaves an empty file.
     let key = ipad.split_whitespace().take(2).collect::<Vec<_>>().join(" ");

@@ -1,6 +1,6 @@
-# Muxin machine probe (Windows). Read-only.
+# AndruIDE machine probe (Windows). Read-only.
 # Prints key=value lines; runner N is reported as rN.<key>=<value>.
-# $OR_DIRS (array of glob patterns) is prepended by Muxin.
+# $OR_DIRS (array of glob patterns) is prepended by AndruIDE.
 
 $ErrorActionPreference = 'SilentlyContinue'
 $ProgressPreference = 'SilentlyContinue'

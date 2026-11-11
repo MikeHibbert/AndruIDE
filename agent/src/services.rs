@@ -359,7 +359,7 @@ pub fn compose_new(req: &Value) -> Value {
     }
     let file = format!("{folder}/compose.yaml");
     if !std::path::Path::new(&file).exists() {
-        let template = format!("# {name}: docker compose up -d (or Up in Muxen)\nname: {name}\nservices:\n  web:\n    image: nginx:alpine\n    ports:\n      - \"8080:80\"\n    restart: unless-stopped\n");
+        let template = format!("# {name}: docker compose up -d (or Up in AndruIDE)\nname: {name}\nservices:\n  web:\n    image: nginx:alpine\n    ports:\n      - \"8080:80\"\n    restart: unless-stopped\n");
         if let Err(e) = std::fs::write(&file, template) {
             return json!({ "ok": false, "error": format!("Couldn't write {file}: {e}") });
         }

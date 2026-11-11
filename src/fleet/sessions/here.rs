@@ -1,19 +1,19 @@
-//! Which of Muxin's sessions this process runs in, if any: Muxin's CLI or
+//! Which of AndruIDE's sessions this process runs in, if any: AndruIDE's CLI or
 //! MCP server run by an agent in a session (Codex in `beelink/codex-3f9a`
-//! runs `muxin mcp`). A session it starts from there is that session's helper.
+//! runs `andruide mcp`). A session it starts from there is that session's helper.
 //!
-//! The session server sets `MUXEN_SESSION` (and `MUXIN_SESSION`) in every
+//! The session server sets `ANDRUIDE_SESSION` in every
 //! session. Agent CLIs don't always pass it on: Codex gives MCP servers only a
 //! few variables of its own environment. So, failing that, this looks up the
 //! processes it runs under: one whose environment has it (Linux), or the
-//! agent CLI whose hooks reported to a session (`~/.muxen/state/<name>.json`
+//! agent CLI whose hooks reported to a session (`~/.andruide/state/<name>.json`
 //! holds its pid).
 
 use serde_json::Value;
 
 /// The name of the session this process runs in (on this computer).
 pub fn current() -> Option<String> {
-    let from_env = ["MUXIN_SESSION", "MUXEN_SESSION"].iter().find_map(|v| std::env::var(v).ok().filter(|n| valid(n)));
+    let from_env = ["ANDRUIDE_SESSION"].iter().find_map(|v| std::env::var(v).ok().filter(|n| valid(n)));
     from_env.or_else(|| by_ancestors(&ancestors(std::process::id())))
 }
 
@@ -40,7 +40,7 @@ fn owner(pids: &[u32], reports: &[(String, Value)]) -> Option<String> {
 
 /// What each session's agent last reported (agent/src/states.rs).
 fn reports() -> Vec<(String, Value)> {
-    let Some(dir) = dirs::home_dir().map(|h| h.join(".muxen").join("state")) else { return Vec::new() };
+    let Some(dir) = dirs::home_dir().map(|h| h.join(".andruide").join("state")) else { return Vec::new() };
     let Ok(entries) = std::fs::read_dir(dir) else { return Vec::new() };
     entries
         .flatten()
@@ -89,7 +89,7 @@ fn parent_of(_pid: u32) -> Option<u32> {
     None
 }
 
-/// `MUXEN_SESSION` in another process's environment (Linux: the user's own).
+/// `ANDRUIDE_SESSION` in another process's environment (Linux: the user's own).
 #[cfg(target_os = "linux")]
 fn env_of(pid: u32) -> Option<String> {
     let env = std::fs::read(format!("/proc/{pid}/environ")).ok()?;
@@ -105,7 +105,7 @@ fn env_of(_pid: u32) -> Option<String> {
 fn session_in_environ(env: &[u8]) -> Option<String> {
     env.split(|b| *b == 0).find_map(|var| {
         let var = std::str::from_utf8(var).ok()?;
-        let name = var.strip_prefix("MUXIN_SESSION=").or_else(|| var.strip_prefix("MUXEN_SESSION="))?;
+        let name = var.strip_prefix("ANDRUIDE_SESSION=")?;
         valid(name).then(|| name.to_string())
     })
 }
@@ -118,7 +118,7 @@ mod tests {
     #[test]
     fn the_session_is_the_one_its_agent_reported_to() {
         let reports = vec![("claude-aaaa".to_string(), json!({ "pid": 40 })), ("codex-bbbb".to_string(), json!({ "pid": 41 })), ("shell-cccc".to_string(), json!({}))];
-        // muxin mcp ← codex (41) ← the session's shell (12): the closest wins.
+        // andruide mcp ← codex (41) ← the session's shell (12): the closest wins.
         assert_eq!(owner(&[41, 12, 1], &reports).as_deref(), Some("codex-bbbb"));
         assert_eq!(owner(&[99, 40], &reports).as_deref(), Some("claude-aaaa"));
         assert_eq!(owner(&[99, 98], &reports), None);
@@ -126,9 +126,9 @@ mod tests {
 
     #[test]
     fn environments_name_the_session() {
-        assert_eq!(session_in_environ(b"HOME=/root\0MUXEN_SESSION=codex-3f9a\0TERM=xterm\0").as_deref(), Some("codex-3f9a"));
-        assert_eq!(session_in_environ(b"MUXEN_SESSION=\0").as_deref(), None);
-        assert_eq!(session_in_environ(b"MUXEN_SESSION=a/b\0").as_deref(), None);
+        assert_eq!(session_in_environ(b"HOME=/root\0ANDRUIDE_SESSION=codex-3f9a\0TERM=xterm\0").as_deref(), Some("codex-3f9a"));
+        assert_eq!(session_in_environ(b"ANDRUIDE_SESSION=\0").as_deref(), None);
+        assert_eq!(session_in_environ(b"ANDRUIDE_SESSION=a/b\0").as_deref(), None);
         assert_eq!(session_in_environ(b"PATH=/bin\0").as_deref(), None);
     }
 

@@ -164,7 +164,7 @@ impl TarFilter {
             // A pax header for the whole archive: not passed on (nothing here needs it).
             b'g' => self.state = if padded > 0 { State::Data { left: padded, keep: false } } else { State::Header },
             // Old GNU sparse files carry extra header blocks this doesn't follow.
-            b'S' => return Err("The files from the other machine use a tar format Muxin doesn't copy (GNU sparse files).".into()),
+            b'S' => return Err("The files from the other machine use a tar format AndruIDE doesn't copy (GNU sparse files).".into()),
             _ => {
                 let ustar = &block[257..263] == b"ustar\0";
                 let name = self.path.take().unwrap_or_else(|| match (ustar, field(&block[345..500])) {
@@ -439,7 +439,7 @@ mod tests {
 
     #[test]
     fn a_real_tar_stream_passes_unchanged() {
-        let dir = std::env::temp_dir().join(format!("muxen-tar-filter-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("andruide-tar-filter-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         let deep = dir.join("proj").join("a".repeat(60)).join("b".repeat(60));
         std::fs::create_dir_all(&deep).unwrap();

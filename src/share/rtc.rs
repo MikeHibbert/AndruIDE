@@ -16,7 +16,7 @@ use webrtc::peer_connection::{
 };
 
 /// The data channel's label.
-pub const LABEL: &str = "muxin";
+pub const LABEL: &str = "andruide";
 /// A guest that falls this far behind (bytes waiting to go out) is dropped
 /// rather than held in memory.
 pub const MAX_BUFFERED: usize = 16 << 20;
@@ -51,7 +51,7 @@ impl PeerConnectionEventHandler for Handler {
 /// A new share's certificate and its fingerprint.
 pub fn certificate() -> Result<(RTCCertificate, [u8; 32]), String> {
     let provider = crypto::default_provider().map_err(|e| e.to_string())?;
-    let params = CertificateParams::new(vec!["muxin-share".to_string()]).map_err(|e| e.to_string())?;
+    let params = CertificateParams::new(vec!["andruide-share".to_string()]).map_err(|e| e.to_string())?;
     let cert = RTCCertificate::generate(provider.crypto(), SignatureScheme::EcdsaP256Sha256, params).map_err(|e| e.to_string())?;
     let fp = cert.get_fingerprints(provider.crypto()).map_err(|e| e.to_string())?.into_iter().next().ok_or("no fingerprint")?;
     let bytes = super::ticket::fingerprint_bytes(&fp.value).ok_or("odd fingerprint")?;
@@ -384,11 +384,11 @@ mod relay_check {
     use super::*;
 
     /// Whether this WebRTC gets a relay address from the share server's
-    /// relay (`MUXIN_TEST_SHARE_SERVER`; makes one share's credentials).
+    /// relay (`ANDRUIDE_TEST_SHARE_SERVER`; makes one share's credentials).
     #[tokio::test(flavor = "multi_thread")]
     #[ignore]
     async fn gets_a_relay_address() {
-        let server = super::super::signal::Server::new(&std::env::var("MUXIN_TEST_SHARE_SERVER").expect("MUXIN_TEST_SHARE_SERVER"));
+        let server = super::super::signal::Server::new(&std::env::var("ANDRUIDE_TEST_SHARE_SERVER").expect("ANDRUIDE_TEST_SHARE_SERVER"));
         let room = "UkVMQVlDSEVDS1JFTEFZQw";
         let key = super::super::signal::host_key();
         let (ice, _) = server.check_in(room, &key).await.unwrap();

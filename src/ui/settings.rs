@@ -27,6 +27,7 @@ pub enum SettingsTab {
     Appearance,
     Terminal,
     GitHub,
+    Valley,
     Cloud,
     Ipads,
     Prompts,
@@ -34,7 +35,7 @@ pub enum SettingsTab {
 }
 
 impl SettingsTab {
-    const ALL: [SettingsTab; 8] = [SettingsTab::General, SettingsTab::Appearance, SettingsTab::Terminal, SettingsTab::GitHub, SettingsTab::Cloud, SettingsTab::Ipads, SettingsTab::Prompts, SettingsTab::Keyboard];
+    const ALL: [SettingsTab; 9] = [SettingsTab::General, SettingsTab::Appearance, SettingsTab::Terminal, SettingsTab::GitHub, SettingsTab::Valley, SettingsTab::Cloud, SettingsTab::Ipads, SettingsTab::Prompts, SettingsTab::Keyboard];
 
     fn label(self) -> &'static str {
         match self {
@@ -42,8 +43,9 @@ impl SettingsTab {
             SettingsTab::Appearance => "Appearance",
             SettingsTab::Terminal => "Terminal",
             SettingsTab::GitHub => "GitHub",
+            SettingsTab::Valley => "Valley",
             SettingsTab::Cloud => "Cloud",
-            // Muxin for iPhone and Muxin for iPad: "iPhone & iPad" doesn't fit the row.
+            // AndruIDE for iPhone and AndruIDE for iPad: "iPhone & iPad" doesn't fit the row.
             SettingsTab::Ipads => "Mobile",
             SettingsTab::Prompts => "Prompts",
             SettingsTab::Keyboard => "Keyboard",
@@ -56,6 +58,7 @@ impl SettingsTab {
             SettingsTab::Appearance => "palette",
             SettingsTab::Terminal => "terminal",
             SettingsTab::GitHub => "agent-github",
+            SettingsTab::Valley => "flame",
             SettingsTab::Cloud => "cloud",
             SettingsTab::Ipads => "smartphone",
             SettingsTab::Prompts => "message-square",
@@ -74,6 +77,10 @@ pub struct SettingsPage {
     poll: Entity<TextInput>,
     scan: Entity<TextInput>,
     interval: Entity<TextInput>,
+    /// The Valley connection (Settings › Valley; see crate::valley).
+    valley_url: Entity<TextInput>,
+    valley_user: Entity<TextInput>,
+    valley_password: Entity<TextInput>,
     testing: bool,
     add_result: Option<(bool, String, Option<String>)>,
     save_error: Option<String>,
@@ -85,7 +92,7 @@ pub struct SettingsPage {
     cloud: cloud::CloudState,
     /// Pairing an iPad, and the ones paired.
     ipad: ipads::IpadState,
-    /// The `muxin` command in the PATH.
+    /// The `andruide` command in the PATH.
     shell: shell::ShellState,
     /// A shortcut waiting for its new keys, and what catches them before
     /// they run anything.
@@ -107,6 +114,13 @@ impl SettingsPage {
         let poll = cx.new(|cx| TextInput::new(cx, "20").mono().with_text(s.github_poll_seconds.to_string()));
         let scan = cx.new(|cx| TextInput::new(cx, "10").mono().with_text(s.github.scan_repos.to_string()));
         let interval = cx.new(|cx| TextInput::new(cx, "15").mono().with_text(s.check_interval_minutes.to_string()));
+        // The Valley connection: starts from what config.toml already holds
+        // (the settings page writes back through engine.update_settings, so
+        // env-only setups that never save stay env-only — nothing is invented
+        // here and written behind the user's back).
+        let valley_url = cx.new(|cx| TextInput::new(cx, "http://localhost:8001").mono().with_text(s.valley.base_url.clone()));
+        let valley_user = cx.new(|cx| TextInput::new(cx, "user").mono().with_text(s.valley.user.clone()));
+        let valley_password = cx.new(|cx| TextInput::new(cx, "password").secret().with_text(s.valley.password.clone()));
 
         let mut subs = vec![cx.subscribe_in(&add, window, |this, _, e: &InputEvent, _, cx| match e {
             InputEvent::Submit => this.add_scope(None, cx),
@@ -163,6 +177,9 @@ impl SettingsPage {
             poll,
             scan,
             interval,
+            valley_url,
+            valley_user,
+            valley_password,
             testing: false,
             add_result: None,
             save_error: None,
@@ -416,14 +433,14 @@ impl SettingsPage {
                                 d.child(
                                     Button::new("code-folder-reset", "Usual folders")
                                         .style(ButtonStyle::Ghost)
-                                        .tooltip("Back to Muxin's own list: ~/Developer, ~/code, ~/src and the like")
+                                        .tooltip("Back to AndruIDE's own list: ~/Developer, ~/code, ~/src and the like")
                                         .on_click(cx.listener(|this, _, _, cx| this.reset_code_folders(cx))),
                                 )
                             }),
                     )
                     .children(self.code_note.as_ref().map(|(ok, text)| note(theme, if *ok { "circle-check" } else { "circle-alert" }, if *ok { theme.success } else { theme.error }, text.clone())))
                     .child(div().w_full().min_w(px(0.)).text_size(px(11.5)).text_color(theme.text_placeholder).child(
-                        "Muxin's agent on each machine looks for git checkouts in these folders, a few levels deep. Work on it with an agent and Review with agent then work in a new worktree of a checkout found there, on its own branch, instead of a fresh clone.",
+                        "AndruIDE's agent on each machine looks for git checkouts in these folders, a few levels deep. Work on it with an agent and Review with agent then work in a new worktree of a checkout found there, on its own branch, instead of a fresh clone.",
                     )),
             )
     }
@@ -459,6 +476,78 @@ impl SettingsPage {
             Err(e) => self.save_error = Some(e),
         }
         cx.notify();
+    }
+
+    /// The Valley connection: where the Valley page reads Andrew's board.
+    fn save_valley(&mut self, cx: &mut Context<Self>) {
+        let mut s = self.engine.settings();
+        s.valley.base_url = self.valley_url.read(cx).text().trim().to_string();
+        s.valley.user = self.valley_user.read(cx).text().trim().to_string();
+        s.valley.password = self.valley_password.read(cx).text().to_string();
+        match self.engine.update_settings(s) {
+            Ok(_) => {
+                self.save_error = None;
+                self.saved_at = Some(Instant::now());
+                let clear = cx.spawn(async move |this, cx| {
+                    cx.background_executor().timer(Duration::from_secs(3)).await;
+                    let _ = this.update(cx, |this, cx| {
+                        this.saved_at = None;
+                        cx.notify()
+                    });
+                });
+                self._tasks.push(clear);
+            }
+            Err(e) => self.save_error = Some(e),
+        }
+        cx.notify();
+    }
+
+    /// The Valley connection (Settings › Valley): where the Valley page reads
+    /// Andrew's work board (see crate::valley). Empty fields fall back to the
+    /// ANDRUIDE_VALLEY_* environment variables.
+    fn valley_section(&self, theme: &Theme, cx: &mut Context<Self>) -> impl IntoElement {
+        let row = |label: &'static str, input: &Entity<TextInput>| {
+            div()
+                .flex()
+                .items_center()
+                .gap(px(12.))
+                .px(px(14.))
+                .py(px(10.))
+                .child(div().w(px(110.)).flex_none().text_size(px(13.)).child(label))
+                .child(div().flex_1().min_w(px(0.)).child(input.clone()))
+        };
+        div()
+            .flex()
+            .flex_col()
+            .gap(px(10.))
+            .child(section_title(theme, "Valley", None))
+            .child(
+                card(theme)
+                    .child(
+                        div()
+                            .w_full()
+                            .min_w(px(0.))
+                            .text_size(px(12.))
+                            .text_color(theme.text_placeholder)
+                            .child("Where the Valley page reads Andrew's work board. A field left empty falls back to the ANDRUIDE_VALLEY_* environment variables (base default http://localhost:8001)."),
+                    )
+                    .child(row("Base URL", &self.valley_url))
+                    .child(row("User", &self.valley_user))
+                    .child(row("Password", &self.valley_password)),
+            )
+            .child(
+                div()
+                    .flex()
+                    .items_center()
+                    .gap(px(10.))
+                    .child(
+                        Button::new("save-valley", "Save")
+                            .style(ButtonStyle::Primary)
+                            .on_click(cx.listener(|this, _, _, cx| this.save_valley(cx))),
+                    )
+                    .when(self.saved_at.is_some(), |d| d.child(div().text_size(px(12.)).text_color(theme.success).child("Saved")))
+                    .children(self.save_error.clone().map(|e| div().text_size(px(12.)).text_color(theme.error).child(e))),
+            )
     }
 
     fn github_section(&self, theme: &Theme, cx: &mut Context<Self>) -> impl IntoElement {
@@ -971,7 +1060,7 @@ impl SettingsPage {
         div().flex().flex_wrap().gap(px(10.)).children(cards)
     }
 
-    /// Tailscale on this computer: whether it's on, and what Muxin uses it for.
+    /// Tailscale on this computer: whether it's on, and what AndruIDE uses it for.
     fn tailscale_section(&self, theme: &Theme) -> Option<impl IntoElement> {
         let t = self.snapshot.tailscale.clone()?;
         let here = if cfg!(target_os = "macos") { "this Mac" } else { "this computer" };
@@ -1068,7 +1157,7 @@ impl SettingsPage {
         let examples = super::desktop_keys::examples();
         // (Short lines: text here doesn't wrap.)
         let permission = match crate::capture::ready() {
-            crate::capture::Ready::NeedsPermission => Some("macOS asks to allow Muxin under Accessibility: click the desktop's toolbar."),
+            crate::capture::Ready::NeedsPermission => Some("macOS asks to allow AndruIDE under Accessibility: click the desktop's toolbar."),
             _ => None,
         };
         let engine = self.engine.clone();
@@ -1095,7 +1184,7 @@ impl SettingsPage {
     }
 
     /// What the agents on the machines may do (config::AgentSettings):
-    /// Muxin's hooks in the agent CLIs' settings (Claude Code, Codex, ...), so they say when
+    /// AndruIDE's hooks in the agent CLIs' settings (Claude Code, Codex, ...), so they say when
     /// they work, need you or are done (fleet::sessions), whether they
     /// continue their conversations when sessions come back after a restart,
     /// and whether they may start helper sessions.
@@ -1142,7 +1231,7 @@ impl SettingsPage {
                     }))
                     // Short lines: text in Settings doesn't wrap (GPUI measures it before the card has a width).
                     .child(div().text_size(px(11.5)).text_color(theme.text_placeholder).child("Claude Code, Codex, Copilot CLI, Qwen Code and Kimi Code."))
-                    .child(div().text_size(px(11.5)).text_color(theme.text_placeholder).child("Muxin adds a small hook to their settings on your machines. Turning this off takes it out."))
+                    .child(div().text_size(px(11.5)).text_color(theme.text_placeholder).child("AndruIDE adds a small hook to their settings on your machines. Turning this off takes it out."))
                     .child(div().text_size(px(11.5)).text_color(theme.text_muted).child(status))
                     .children(trouble.into_iter().take(3).map(|t| div().text_size(px(11.5)).text_color(theme.warning).child(t)))
                     .child(div().h(px(6.)))
@@ -1163,7 +1252,7 @@ impl SettingsPage {
                         cx.refresh_windows();
                     }))
                     .child(div().text_size(px(11.5)).text_color(theme.text_placeholder).child("An agent in a session can start another one to help with its task, and wait for its answer."))
-                    .child(div().text_size(px(11.5)).text_color(theme.text_placeholder).child("Helpers show under it and end when it does. Off, Muxin says no when an agent asks."))
+                    .child(div().text_size(px(11.5)).text_color(theme.text_placeholder).child("Helpers show under it and end when it does. Off, AndruIDE says no when an agent asks."))
                     .child(div().h(px(6.)))
                     .child(kit::checkbox(theme, "sidebar-agents", in_sidebar, "Show agents in the sidebar", move |on, _, cx| {
                         let on = *on;
@@ -1174,21 +1263,21 @@ impl SettingsPage {
             )
     }
 
-    /// Whether Muxin asks GitHub for its latest release (crate::update).
-    /// The icon. On a Mac it's only that; elsewhere it's what keeps Muxin running.
+    /// Whether AndruIDE asks GitHub for its latest release (crate::update).
+    /// The icon. On a Mac it's only that; elsewhere it's what keeps AndruIDE running.
     fn tray_section(&self, theme: &Theme, cx: &App) -> impl IntoElement {
         let on = cx.global::<Appearance>().tray;
         let notifications = cx.global::<Appearance>().notifications;
-        let (title, label) = if cfg!(target_os = "macos") { ("Menu bar", "Show Muxin in the menu bar") } else { ("Tray", "Keep running in the tray when the window closes") };
+        let (title, label) = if cfg!(target_os = "macos") { ("Menu bar", "Show AndruIDE in the menu bar") } else { ("Tray", "Keep running in the tray when the window closes") };
         let hint = if cfg!(target_os = "macos") {
             "A dot shows when a session needs you or is done. Its menu opens that session or brings the window back."
         } else if !on {
-            "Closing the window quits Muxin."
+            "Closing the window quits AndruIDE."
         } else if !super::tray::available() {
             if cfg!(target_os = "linux") {
-                "This desktop has no tray, so closing the window quits Muxin. On GNOME, the AppIndicator extension adds one."
+                "This desktop has no tray, so closing the window quits AndruIDE. On GNOME, the AppIndicator extension adds one."
             } else {
-                "The icon couldn't be added, so closing the window quits Muxin."
+                "The icon couldn't be added, so closing the window quits AndruIDE."
             }
         } else {
             "Machine checks, connections and port forwards carry on. The icon brings the window back, with a dot when a session needs you or is done."
@@ -1229,7 +1318,7 @@ impl SettingsPage {
                         cx.refresh_windows();
                     }))
                     .child(div().text_size(px(11.5)).text_color(theme.text_placeholder).child(if cfg!(target_os = "macos") {
-                        "Click one to open that session. System Settings › Notifications › Muxin sets how they show."
+                        "Click one to open that session. System Settings › Notifications › AndruIDE sets how they show."
                     } else {
                         "Click one to open that session."
                     })),
@@ -1256,7 +1345,7 @@ impl SettingsPage {
                         cx.refresh_windows();
                     }))
                     // Short lines: Settings text doesn't wrap.
-                    .children(["Without ssh in between, terminals and the desktop respond faster.", "Muxin's agent runs there as a service of yours, listening on UDP.", "Machines you already have are asked about once."].map(|line| {
+                    .children(["Without ssh in between, terminals and the desktop respond faster.", "AndruIDE's agent runs there as a service of yours, listening on UDP.", "Machines you already have are asked about once."].map(|line| {
                         div().text_size(px(11.5)).text_color(theme.text_placeholder).child(line)
                     })),
             )
@@ -1281,7 +1370,7 @@ impl SettingsPage {
                         let _ = engine.update_settings(s);
                         cx.refresh_windows();
                     }))
-                    .child(div().text_size(px(11.5)).text_color(theme.text_placeholder).child("Muxin asks GitHub for its latest release when it opens and twice a day. Nothing about you is sent.")),
+                    .child(div().text_size(px(11.5)).text_color(theme.text_placeholder).child("AndruIDE asks GitHub for its latest release when it opens and twice a day. Nothing about you is sent.")),
             )
     }
 
@@ -1292,9 +1381,9 @@ impl SettingsPage {
         let mut options: Vec<(String, String)> = vec![(String::new(), "First installed".into())];
         options.extend(installed.iter().map(|e| (e.id.to_string(), e.name.to_string())));
         let detail = if installed.is_empty() {
-            "No editor found: Muxin opens folders in Zed, Cursor or VS Code (with Remote - SSH).".to_string()
+            "No editor found: AndruIDE opens folders in Zed, Cursor or VS Code (with Remote - SSH).".to_string()
         } else {
-            "Open in editor opens a machine’s folder over ssh in the editor you pick from its list. The one chosen here comes first, and `muxin edit` uses it.".to_string()
+            "Open in editor opens a machine’s folder over ssh in the editor you pick from its list. The one chosen here comes first, and `andruide edit` uses it.".to_string()
         };
         // Full width, so its wrapped text is measured at that width (else the
         // section below starts a line too early).
@@ -1354,7 +1443,7 @@ impl SettingsPage {
                     .p(px(14.))
                     .gap(px(10.))
                     .child(div().w_full().min_w(px(0.)).text_size(px(12.5)).text_color(theme.text_muted).child(
-                        "Machines and the runners they should host live in config.toml. Muxin edits it when you add machines or install runners, and keeps your comments.",
+                        "Machines and the runners they should host live in config.toml. AndruIDE edits it when you add machines or install runners, and keeps your comments.",
                     ))
                     .child(
                         div()
@@ -1418,6 +1507,7 @@ impl Render for SettingsPage {
             SettingsTab::Appearance => body.child(self.appearance_section(&theme, cx)),
             SettingsTab::Terminal => body.child(self.terminal_section(&theme, super::terminal::font_family(window), super::terminal::monospace_families(window), cx)),
             SettingsTab::GitHub => body.child(self.github_section(&theme, cx)).child(self.checks_section(&theme, true, cx)),
+            SettingsTab::Valley => body.child(self.valley_section(&theme, cx)),
             SettingsTab::Cloud => body.child(self.cloud_usage_section(&theme, cx)).child(self.cloud_section(&theme, cx)),
             SettingsTab::Ipads => body.child(self.ipads_section(&theme, cx)),
             SettingsTab::Prompts => body.child(self.prompts_section(&theme, cx)),
@@ -1458,7 +1548,7 @@ impl SettingsPage {
                 .child(text)
         };
 
-        // Every key at once: Muxin's, or herdr's for people coming from it.
+        // Every key at once: AndruIDE's, or herdr's for people coming from it.
         let in_use = shortcuts::preset_in_use(cx).map(|p| p.name);
         let presets: Vec<AnyElement> = shortcuts::PRESETS
             .iter()
@@ -1554,7 +1644,7 @@ impl SettingsPage {
                             .pb(px(6.))
                             .text_size(px(12.))
                             .text_color(theme.text_placeholder)
-                            .child("herdr's keys where Muxin does the same: a space is a machine here, a tab a session.")
+                            .child("herdr's keys where AndruIDE does the same: a space is a machine here, a tab a session.")
                     }))
                     .child(div().h(px(1.)).my(px(4.)).bg(theme.border_variant))
                     .child(machines)
@@ -1707,7 +1797,7 @@ fn note(_theme: &Theme, icon_name: &'static str, color: gpui::Hsla, text: impl I
     div().flex().items_center().gap(px(8.)).text_size(px(12.5)).child(icon(icon_name, 14., color)).child(text.into())
 }
 
-/// A fix to run: copyable, and a button when it's a GitHub permission Muxin can ask for.
+/// A fix to run: copyable, and a button when it's a GitHub permission AndruIDE can ask for.
 fn hint_line(theme: &Theme, i: usize, hint: String) -> impl IntoElement {
     let copy = hint.clone();
     let grant = hint.contains("gh auth refresh") && hint.contains("admin:org");

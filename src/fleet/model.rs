@@ -67,7 +67,7 @@ pub struct TailnetDevice {
     pub path: String,
     /// The relay's region code (e.g. "mia"), when relayed.
     pub relay: Option<String>,
-    /// When Muxin read this from Tailscale.
+    /// When AndruIDE read this from Tailscale.
     pub read_at: DateTime<Utc>,
 }
 
@@ -130,7 +130,7 @@ pub struct GitHubInfo {
     /// The last sync reached GitHub for at least one scope.
     pub live: bool,
     pub syncing: bool,
-    /// "GITHUB_TOKEN", "GH_TOKEN", "MUXEN_GITHUB_TOKEN", "gh" or "" when no token was found.
+    /// "GITHUB_TOKEN", "GH_TOKEN", "ANDRUIDE_GITHUB_TOKEN", "gh" or "" when no token was found.
     pub token_source: String,
     pub login: Option<String>,
     pub last_sync_at: Option<DateTime<Utc>>,
@@ -191,7 +191,7 @@ pub struct Machine {
     /// "runner" when it hosts runners, otherwise "other".
     pub kind: String,
     /// "online" | "offline" | "unchecked" | "manual" | "disconnected" (on
-    /// purpose: Muxin leaves it alone until it's connected again)
+    /// purpose: AndruIDE leaves it alone until it's connected again)
     pub status: String,
     pub checking: bool,
     pub notes: Option<String>,
@@ -203,13 +203,13 @@ pub struct Machine {
     pub workspaces_allowed: bool,
     /// Agent CLIs found on the machine ("claude", "codex", ...), from the last session check.
     pub agents: Vec<String>,
-    /// The Muxin agent's version there (it runs agent sessions), once set up.
+    /// The AndruIDE agent's version there (it runs agent sessions), once set up.
     pub agent_version: Option<String>,
     /// Why sessions aren't available here, when they aren't.
     pub sessions_error: Option<String>,
     /// The GitHub CLI there, once looked up.
     pub gh: Option<GhCli>,
-    /// Muxin's hooks in the agent CLIs' settings there, per CLI: "on", "off",
+    /// AndruIDE's hooks in the agent CLIs' settings there, per CLI: "on", "off",
     /// "none" (not set up there) or what went wrong (see fleet::sessions).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub agent_hooks: Option<serde_json::Value>,
@@ -217,14 +217,14 @@ pub struct Machine {
     pub unreachable: Option<Unreachable>,
     /// It on the user's tailnet, as Tailscale last saw it.
     pub tailnet: Option<TailnetDevice>,
-    /// A cloud machine Muxin created: where it runs and what it costs.
+    /// A cloud machine AndruIDE created: where it runs and what it costs.
     pub cloud: Option<CloudInfo>,
     /// Its monitors, virtual ones included, as last listed (empty until then).
     pub displays: Vec<DisplayInfo>,
     /// Another of the user's machines it runs on (a VM or container there),
     /// or is reached through (a jump host).
     pub parent: Option<ParentMachine>,
-    /// A VM Muxin made (and can destroy): its host, system and container.
+    /// A VM AndruIDE made (and can destroy): its host, system and container.
     pub vm: Option<crate::config::VmRef>,
     /// Where a direct connection reaches it (a forwarded port), from config.toml.
     pub direct_address: Option<String>,
@@ -233,7 +233,7 @@ pub struct Machine {
     pub ignored_warnings: Vec<String>,
 }
 
-/// The machine another one runs on or is reached through, as Muxin worked it
+/// The machine another one runs on or is reached through, as AndruIDE worked it
 /// out from ~/.ssh/config, the machines' checks and their Docker containers.
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -274,7 +274,7 @@ impl Machine {
         !self.local && !(self.parent.as_ref().is_some_and(|p| p.inside()) && self.direct_address.is_none())
     }
 
-    /// Muxin can't use it now: it's offline, or disconnected on purpose.
+    /// AndruIDE can't use it now: it's offline, or disconnected on purpose.
     pub fn is_down(&self) -> bool {
         matches!(self.status.as_str(), "offline" | "disconnected")
     }
@@ -284,7 +284,7 @@ impl Machine {
     }
 }
 
-/// One of a machine's monitors: a real one, or a virtual one Muxin added.
+/// One of a machine's monitors: a real one, or a virtual one AndruIDE added.
 #[derive(Debug, Clone, Serialize, serde::Deserialize, PartialEq)]
 pub struct DisplayInfo {
     /// What to pass as `display`: a RandR monitor's name on Linux ("all": the
@@ -300,7 +300,7 @@ pub struct DisplayInfo {
     /// The main (primary) display.
     #[serde(default)]
     pub main: bool,
-    /// A virtual monitor Muxin added (and can remove).
+    /// A virtual monitor AndruIDE added (and can remove).
     #[serde(default, rename = "virtual")]
     pub is_virtual: bool,
     /// The sizes it can be set to, biggest first (empty: it can't be, or
@@ -310,7 +310,7 @@ pub struct DisplayInfo {
     /// Any size can be given to it, not only `modes` (Linux).
     #[serde(default)]
     pub any_size: bool,
-    /// Its size before Muxin first changed it, while it's at another one: the
+    /// Its size before AndruIDE first changed it, while it's at another one: the
     /// way back. Remembered by this app while it runs (see Engine::set_displays).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub before: Option<(u32, u32)>,
@@ -390,7 +390,7 @@ pub struct Probe {
     pub load: Vec<f64>,
     /// Docker server version, when the machine's user can use Docker.
     pub docker: Option<String>,
-    /// Linux: "root" | "passwordless" | "password" — whether Muxin can install systemd services.
+    /// Linux: "root" | "passwordless" | "password" — whether AndruIDE can install systemd services.
     pub sudo: Option<String>,
     /// The last time a check reached the machine.
     pub last_seen_at: Option<DateTime<Utc>>,
@@ -406,7 +406,7 @@ pub struct Unreachable {
     /// Tailscale is off or signed out, and the machine is on the tailnet) |
     /// "powered-off" (a cloud machine) | "host-down" (the machine it runs on or
     /// is reached through is off) | "stopped" (its container there isn't
-    /// running) | "installing" (a VM Muxin just made) | "error"
+    /// running) | "installing" (a VM AndruIDE just made) | "error"
     pub kind: String,
     /// e.g. "Beelink is offline".
     pub title: String,
@@ -428,7 +428,7 @@ pub struct Diagnostic {
     pub message: String,
     pub hint: Option<String>,
     pub runner_id: Option<String>,
-    /// What Muxin can do about it, the likely fix first. The apps show these
+    /// What AndruIDE can do about it, the likely fix first. The apps show these
     /// instead of the hint, which says how to do it by hand.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub actions: Vec<DiagnosticAction>,
@@ -639,7 +639,7 @@ pub struct WorkspaceInfo {
     pub commands: usize,
     /// Recent commands, oldest first (capped).
     pub history: Vec<WorkspaceCommand>,
-    /// For a human: opens a shell in the workspace, e.g. `ssh -t studio 'cd ~/muxen/workspaces/ws-7f3a2c && exec $SHELL -l'`.
+    /// For a human: opens a shell in the workspace, e.g. `ssh -t studio 'cd ~/andruide/workspaces/ws-7f3a2c && exec $SHELL -l'`.
     pub shell: String,
     /// "host" (commands run directly on the machine) or "docker" (inside a container).
     #[serde(default = "host_isolation")]
@@ -647,7 +647,7 @@ pub struct WorkspaceInfo {
     /// Docker workspaces: the image the container runs, e.g. "node:22".
     #[serde(default)]
     pub image: Option<String>,
-    /// Docker workspaces: the container's name, e.g. "muxen-ws-7f3a2c".
+    /// Docker workspaces: the container's name, e.g. "andruide-ws-7f3a2c".
     #[serde(default)]
     pub container: Option<String>,
     /// Worktree workspaces: the checkout on the same machine it's a git worktree of.

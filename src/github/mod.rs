@@ -433,7 +433,7 @@ impl Client {
                 .header(AUTHORIZATION, format!("Bearer {}", token.value))
                 .header(ACCEPT, "application/vnd.github+json")
                 .header("X-GitHub-Api-Version", "2022-11-28")
-                .header(USER_AGENT, concat!("muxen/", env!("CARGO_PKG_VERSION")));
+                .header(USER_AGENT, concat!("andruide/", env!("CARGO_PKG_VERSION")));
             if let Some(etag) = &cached_etag {
                 req = req.header(IF_NONE_MATCH, etag);
             }
@@ -810,7 +810,7 @@ impl Client {
                 .header(AUTHORIZATION, format!("Bearer {}", token.value))
                 .header(ACCEPT, "application/vnd.github+json")
                 .header("X-GitHub-Api-Version", "2022-11-28")
-                .header(USER_AGENT, concat!("muxen/", env!("CARGO_PKG_VERSION")))
+                .header(USER_AGENT, concat!("andruide/", env!("CARGO_PKG_VERSION")))
                 .send()
                 .await
                 .map_err(|e| ApiError { status: None, message: format!("Couldn't reach GitHub: {}", root_cause(&e)) })?;
@@ -946,13 +946,13 @@ fn scope_path(kind: ScopeKind, name: &str) -> String {
 }
 
 /// A token from the environment (`var` reads it), which wins over any login.
-/// By gh's rule: `MUXEN_GITHUB_TOKEN`, `GITHUB_TOKEN` and `GH_TOKEN` are
+/// By gh's rule: `ANDRUIDE_GITHUB_TOKEN`, `GITHUB_TOKEN` and `GH_TOKEN` are
 /// github.com's, so they go to api.github.com only; any other server gets
 /// `GH_ENTERPRISE_TOKEN` or `GITHUB_ENTERPRISE_TOKEN`. None over plain http.
 fn env_token(api_url: &str, var: impl Fn(&str) -> Option<String>) -> Option<Token> {
     let url = reqwest::Url::parse(api_url).ok().filter(|u| u.scheme() == "https")?;
     let names: &[&str] = if url.host_str() == Some("api.github.com") {
-        &["MUXEN_GITHUB_TOKEN", "OPENRUNNER_GITHUB_TOKEN", "GITHUB_TOKEN", "GH_TOKEN"]
+        &["ANDRUIDE_GITHUB_TOKEN", "OPENRUNNER_GITHUB_TOKEN", "GITHUB_TOKEN", "GH_TOKEN"]
     } else {
         &["GH_ENTERPRISE_TOKEN", "GITHUB_ENTERPRISE_TOKEN"]
     };

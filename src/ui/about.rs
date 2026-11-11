@@ -11,10 +11,10 @@ const WEBSITE: &str = "https://muxin.dev";
 const COMPANY: &str = "https://lumarylabs.com";
 const EMAIL: &str = "contact@lumarylabs.com";
 
-/// The version, and the build (set `MUXEN_BUILD` when building releases).
+/// The version, and the build (set `ANDRUIDE_BUILD` when building releases).
 fn version() -> String {
     let v = env!("CARGO_PKG_VERSION");
-    format!("Version {v} ({})", option_env!("MUXEN_BUILD").unwrap_or(v))
+    format!("Version {v} ({})", option_env!("ANDRUIDE_BUILD").unwrap_or(v))
 }
 
 /// What the last look at GitHub found: a newer version and how to get it, or
@@ -33,7 +33,7 @@ fn update_card(theme: &Theme, updates: &super::updates::Updates) -> Option<AnyEl
                 .flex()
                 .flex_col()
                 .gap(px(10.))
-                .child(div().text_size(px(15.)).font_weight(FontWeight::SEMIBOLD).text_color(theme.text).child(format!("Muxin {} is out", u.version)))
+                .child(div().text_size(px(15.)).font_weight(FontWeight::SEMIBOLD).text_color(theme.text).child(format!("AndruIDE {} is out", u.version)))
                 .child(line(how.into(), theme.text_muted))
                 .children(u.command.clone().map(|command| {
                     let copy = command.clone();
@@ -60,7 +60,7 @@ fn update_card(theme: &Theme, updates: &super::updates::Updates) -> Option<AnyEl
     Some(card(theme).px(px(24.)).py(px(18.)).child(body).into_any_element())
 }
 
-/// What Muxin includes from others, and under which license.
+/// What AndruIDE includes from others, and under which license.
 const COMPONENTS: &[(&str, &str, &str)] = &[
     ("GPUI", "Zed Industries", "Apache-2.0"),
     ("alacritty_terminal", "Alacritty", "Apache-2.0"),
@@ -92,7 +92,7 @@ impl Root {
                     .gap(px(4.))
                     .flex_1()
                     .min_w(px(0.))
-                    .child(div().text_size(px(20.)).font_weight(FontWeight::SEMIBOLD).text_color(theme.text).child("Muxin"))
+                    .child(div().text_size(px(20.)).font_weight(FontWeight::SEMIBOLD).text_color(theme.text).child("AndruIDE"))
                     .child(div().text_size(px(14.)).text_color(theme.text_muted).child(version())),
             )
             .child({
@@ -130,12 +130,12 @@ impl Root {
                 2,
                 "Feedback",
                 EMAIL,
-                Button::new("about-mail", "Send Email").on_click(|_, _, cx| cx.open_url(&format!("mailto:{EMAIL}?subject=Muxin%20feedback"))).into_any_element(),
+                Button::new("about-mail", "Send Email").on_click(|_, _, cx| cx.open_url(&format!("mailto:{EMAIL}?subject=AndruIDE%20feedback"))).into_any_element(),
             ))
             .child(row(
                 3,
                 "Licenses",
-                "Open-source software Muxin includes",
+                "Open-source software AndruIDE includes",
                 Button::new("about-licenses", "View")
                     .on_click(cx.listener(|this, _, window, cx| {
                         let dialog = cx.new(|cx| LicensesDialog { focus: cx.focus_handle() });
@@ -234,7 +234,7 @@ impl Render for LicensesDialog {
             .text_color(theme.text)
             .child(div().text_size(px(16.)).font_weight(FontWeight::SEMIBOLD).child("Licenses"))
             .child(div().text_size(px(12.5)).text_color(theme.text_muted).child(
-                "Muxin is open source under the Apache License 2.0, by Lumary Labs LLC. It includes these components under their own licenses; the full texts ship with the app.",
+                "AndruIDE is open source under the Apache License 2.0, by Lumary Labs LLC. It includes these components under their own licenses; the full texts ship with the app.",
             ))
             .child(card(&theme).children(rows))
             .child(

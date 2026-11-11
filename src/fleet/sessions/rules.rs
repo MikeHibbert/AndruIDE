@@ -1,9 +1,9 @@
 //! Newer prompt rules (question.rs) from muxin.dev, so a CLI that draws its
-//! prompts a new way is read right without a Muxin release. The site serves
-//! a copy of assets/prompt-rules.json (Muxin's own); to change what released
+//! prompts a new way is read right without a AndruIDE release. The site serves
+//! a copy of assets/prompt-rules.json (AndruIDE's own); to change what released
 //! copies read, raise its `version` and publish it there. At most once a
 //! day, a plain request for a static file (nothing about the user goes with
-//! it), kept in Muxin's folder. Anything wrong with it: the rules Muxin has.
+//! it), kept in AndruIDE's folder. Anything wrong with it: the rules AndruIDE has.
 
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
@@ -37,12 +37,12 @@ pub fn due(dir: &Path) -> bool {
 
 /// Fetches the rules and uses them when they're newer and sane. True when it did.
 pub async fn refresh(dir: &Path) -> Result<bool, String> {
-    let url = std::env::var("MUXIN_PROMPT_RULES_URL").ok().filter(|u| !u.is_empty()).unwrap_or_else(|| URL.to_string());
+    let url = std::env::var("ANDRUIDE_PROMPT_RULES_URL").ok().filter(|u| !u.is_empty()).unwrap_or_else(|| URL.to_string());
     refresh_from(&url, dir).await
 }
 
 async fn refresh_from(url: &str, dir: &Path) -> Result<bool, String> {
-    let client = crate::util::http_client(|| reqwest::Client::builder().timeout(Duration::from_secs(15)).user_agent(concat!("Muxin/", env!("CARGO_PKG_VERSION"))));
+    let client = crate::util::http_client(|| reqwest::Client::builder().timeout(Duration::from_secs(15)).user_agent(concat!("AndruIDE/", env!("CARGO_PKG_VERSION"))));
     let reply = client.get(url).send().await.map_err(|e| e.to_string())?;
     if !reply.status().is_success() {
         return Err(format!("{url} answered {}", reply.status()));
@@ -51,7 +51,7 @@ async fn refresh_from(url: &str, dir: &Path) -> Result<bool, String> {
     if text.len() > 64 * 1024 {
         return Err("the rules are too big".into());
     }
-    let Some(rules) = parse(&text) else { return Err("the rules aren't ones Muxin can use".into()) };
+    let Some(rules) = parse(&text) else { return Err("the rules aren't ones AndruIDE can use".into()) };
     // Keep it (its time says when it was fetched), even when it changes nothing.
     let _ = std::fs::create_dir_all(dir);
     let _ = std::fs::write(cache(dir), &text);
@@ -63,8 +63,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn a_rules_file_takes_what_it_says_and_the_rest_from_muxins() {
-        // Only one list given: the others are Muxin's own.
+    fn a_rules_file_takes_what_it_says_and_the_rest_from_andruides() {
+        // Only one list given: the others are AndruIDE's own.
         let r = parse(r#"{ "version": 2, "menu_marks": ["❯", "›", "▸"] }"#).unwrap();
         assert_eq!(r.version, 2);
         assert_eq!(r.menu_marks, ["❯", "›", "▸"]);
@@ -82,9 +82,9 @@ mod tests {
     }
 
     /// The copy muxin.dev serves (public/prompt-rules.json in the website's
-    /// repo) starts as this file: Muxin's own rules, as data.
+    /// repo) starts as this file: AndruIDE's own rules, as data.
     #[test]
-    fn the_published_rules_are_muxins_own() {
+    fn the_published_rules_are_andruides_own() {
         assert_eq!(parse(include_str!("../../../assets/prompt-rules.json")), Some(Rules::default()));
     }
 
@@ -104,10 +104,10 @@ mod tests {
                 let _ = write!(c, "HTTP/1.1 {status}\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{text}", text.len());
             }
         });
-        let dir = std::env::temp_dir().join(format!("muxin-rules-fetch-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("andruide-rules-fetch-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         let url = format!("http://127.0.0.1:{port}/prompt-rules.json");
-        // Muxin's own rules again: taken (they're no older), and kept.
+        // AndruIDE's own rules again: taken (they're no older), and kept.
         assert_eq!(refresh_from(&url, &dir).await, Ok(true));
         assert!(!due(&dir));
         assert_eq!(std::fs::read_to_string(cache(&dir)).unwrap(), body);
@@ -121,7 +121,7 @@ mod tests {
 
     #[test]
     fn an_old_copy_is_due() {
-        let dir = std::env::temp_dir().join(format!("muxin-rules-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("andruide-rules-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         assert!(due(&dir), "none yet");
         std::fs::create_dir_all(&dir).unwrap();

@@ -7,13 +7,13 @@
 //! what's typed. How long a key takes to come back is the number.
 //!
 //! ```text
-//! MUXIN_TEST_AGENT=target/release/muxen-agent cargo test --no-default-features \
+//! ANDRUIDE_TEST_AGENT=target/release/andruide-agent cargo test --no-default-features \
 //!     fleet::link_e2e -- --ignored --nocapture --test-threads=1
 //! ```
 //!
-//! For the bench, `MUXIN_BENCH_KBPS` (default 2000), `MUXIN_BENCH_DELAY_MS`
-//! (one way, default 25), `MUXIN_BENCH_QUEUE_MS` (default 150) shape the
-//! link and `MUXIN_BENCH_PROBES` (default 12) says how many keys to time.
+//! For the bench, `ANDRUIDE_BENCH_KBPS` (default 2000), `ANDRUIDE_BENCH_DELAY_MS`
+//! (one way, default 25), `ANDRUIDE_BENCH_QUEUE_MS` (default 150) shape the
+//! link and `ANDRUIDE_BENCH_PROBES` (default 12) says how many keys to time.
 
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
@@ -156,15 +156,15 @@ struct TestAgent {
 }
 
 impl TestAgent {
-    /// Starts `MUXIN_TEST_AGENT` and links to it directly, through a slow
+    /// Starts `ANDRUIDE_TEST_AGENT` and links to it directly, through a slow
     /// link (bytes a second, delay each way, queue) when asked.
     async fn start(tag: &str, slow: Option<(f64, Duration, Duration)>) -> (TestAgent, Arc<Link>) {
-        let agent = std::env::var("MUXIN_TEST_AGENT").expect("set MUXIN_TEST_AGENT");
-        let home = std::env::temp_dir().join(format!("muxin-e2e-{tag}-{}", std::process::id()));
-        let dir = home.join(".muxen/direct");
+        let agent = std::env::var("ANDRUIDE_TEST_AGENT").expect("set ANDRUIDE_TEST_AGENT");
+        let home = std::env::temp_dir().join(format!("andruide-e2e-{tag}-{}", std::process::id()));
+        let dir = home.join(".andruide/direct");
         std::fs::create_dir_all(&dir).unwrap();
         // This app's key, one for the whole run (`direct::init` takes one folder).
-        let app_dir = std::env::temp_dir().join(format!("muxin-e2e-app-{}", std::process::id()));
+        let app_dir = std::env::temp_dir().join(format!("andruide-e2e-app-{}", std::process::id()));
         std::fs::create_dir_all(&app_dir).unwrap();
         direct::init(app_dir);
         let app = direct::app_fingerprint().unwrap();
@@ -172,8 +172,8 @@ impl TestAgent {
         std::fs::write(dir.join("port"), port.to_string()).unwrap();
         std::fs::write(dir.join("trusted"), format!("{app}\n")).unwrap();
         // In its home, so what it starts can be found and stopped after.
-        std::fs::create_dir_all(home.join(".muxen/bin")).unwrap();
-        let agent_copy = home.join(".muxen/bin/muxen-agent");
+        std::fs::create_dir_all(home.join(".andruide/bin")).unwrap();
+        let agent_copy = home.join(".andruide/bin/andruide-agent");
         std::fs::copy(&agent, &agent_copy).unwrap();
         let listener = std::process::Command::new(&agent_copy).arg("listen").env("HOME", &home).stderr(std::process::Stdio::null()).spawn().unwrap();
         let mut agent_fp = None;
@@ -229,14 +229,14 @@ fn link_bench() {
 }
 
 async fn bench() {
-    let rate = env_num("MUXIN_BENCH_KBPS", 2000.) * 1000. / 8.;
-    let delay = Duration::from_millis(env_num("MUXIN_BENCH_DELAY_MS", 25.) as u64);
-    let queue = Duration::from_millis(env_num("MUXIN_BENCH_QUEUE_MS", 150.) as u64);
+    let rate = env_num("ANDRUIDE_BENCH_KBPS", 2000.) * 1000. / 8.;
+    let delay = Duration::from_millis(env_num("ANDRUIDE_BENCH_DELAY_MS", 25.) as u64);
+    let queue = Duration::from_millis(env_num("ANDRUIDE_BENCH_QUEUE_MS", 150.) as u64);
     let (machine, l) = TestAgent::start("bench", Some((rate, delay, queue))).await;
     eprintln!("agent {}, link {:.0} kB/s, {} ms each way, {} ms queue", l.version(), rate / 1000., delay.as_millis(), queue.as_millis());
     start_session(&l, &machine.home, "quiet", "stty raw -echo; exec cat").await;
     start_session(&l, &machine.home, "busy", "exec yes 'the quick brown fox jumps over the lazy dog, 0123456789, the quick brown fox jumps over'").await;
-    let probes = env_num("MUXIN_BENCH_PROBES", 12.) as usize;
+    let probes = env_num("ANDRUIDE_BENCH_PROBES", 12.) as usize;
 
     let (on, channel, mut frames) = attach(&l, "quiet", true).await;
     let mut alone = echoes(&on, channel, &mut frames, probes).await;

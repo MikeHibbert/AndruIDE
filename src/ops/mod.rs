@@ -3,7 +3,7 @@
 //! background, streams its output into `Snapshot::operations`, and refreshes the
 //! affected machine when it finishes.
 //!
-//! Operation log conventions: lines starting with "▸ " are Muxin's own
+//! Operation log conventions: lines starting with "▸ " are AndruIDE's own
 //! steps, "✓ " marks a success, "error: " and "warning: " are problems; anything
 //! else is output from the machine.
 //!
@@ -230,7 +230,7 @@ impl Engine {
     /// Starts an action on a runner (id as in `Runner::id`). Returns the operation id.
     pub fn runner_action(self: &Arc<Self>, runner_id: &str, action: RunnerAction) -> Result<u64, String> {
         let snap = self.current();
-        let runner = snap.runners.iter().find(|r| r.id == runner_id).cloned().ok_or("That runner isn't in Muxin anymore.")?;
+        let runner = snap.runners.iter().find(|r| r.id == runner_id).cloned().ok_or("That runner isn't in AndruIDE anymore.")?;
         let machine = runner.machine_id.as_deref().and_then(|id| self.machine(id));
         let reachable = runner
             .machine_id
@@ -253,7 +253,7 @@ impl Engine {
             RunnerAction::Remove { delete_files } => self.remove_plan(&runner, delete_files)?,
             _ => {
                 let (spec, probe) = machine.clone().ok_or_else(|| {
-                    format!("{} isn't on a machine in config.toml, so Muxin can't control it. It can only be removed from GitHub.", runner.name)
+                    format!("{} isn't on a machine in config.toml, so AndruIDE can't control it. It can only be removed from GitHub.", runner.name)
                 })?;
                 if !spec.is_checkable() {
                     return Err(format!("{} has no host in config.toml.", spec.name));
@@ -298,7 +298,7 @@ impl Engine {
         let on_machine = machine.filter(|(spec, _)| spec.is_checkable() && reachable && dir.is_some());
         Ok(match on_machine {
             Some((spec, probe)) => {
-                let scope = runner_scope(runner).ok_or_else(|| format!("Muxin doesn't know which GitHub org or repo {} is registered with.", runner.name))?;
+                let scope = runner_scope(runner).ok_or_else(|| format!("AndruIDE doesn't know which GitHub org or repo {} is registered with.", runner.name))?;
                 Plan::OnMachine {
                     spec,
                     probe,
@@ -422,7 +422,7 @@ impl Engine {
 
     /// Puts the machines in this order in config.toml, by id (ones it leaves
     /// out keep their order, after them). Ids don't change. Everything that
-    /// lists machines follows it: the sidebar, `muxin status`, the MCP tools.
+    /// lists machines follows it: the sidebar, `andruide status`, the MCP tools.
     pub fn order_machines(self: &Arc<Self>, ids: &[String]) -> Result<(), String> {
         let edit = |text: &str| inventory_edit::reorder_machines(text, ids);
         match self.demo_world() {
@@ -462,7 +462,7 @@ impl Engine {
     fn validate_install(&self, mut req: InstallRequest) -> Result<InstallRequest, String> {
         let (spec, _) = self.machine(&req.machine_id).ok_or("That machine isn't in config.toml anymore.")?;
         if !spec.is_checkable() {
-            return Err(format!("{} has no host in config.toml, so Muxin can't reach it.", spec.name));
+            return Err(format!("{} has no host in config.toml, so AndruIDE can't reach it.", spec.name));
         }
         if self.machine_busy(&spec.id) {
             return Err(format!("Another operation is already changing {}. Wait for it to finish.", spec.name));
@@ -609,7 +609,7 @@ fn validate_machine(name: &str, host: &str) -> Result<(), String> {
     }
     // A leading '-' would be read by ssh as an option.
     if host.starts_with('-') || host.len() > 255 || !host.chars().all(|c| c.is_ascii_alphanumeric() || "@._-:[]%".contains(c)) {
-        return Err(format!("\"{host}\" isn't an ssh destination Muxin can use."));
+        return Err(format!("\"{host}\" isn't an ssh destination AndruIDE can use."));
     }
     Ok(())
 }
@@ -788,7 +788,7 @@ async fn record_installed(engine: &Arc<Engine>, op: u64, req: &InstallRequest, s
         step(engine, op, format!("Adding {} to config.toml", done.join(", ")));
         let edit = inventory_edit::edit_file(engine.inventory_path(), |t| inventory_edit::add_runners(t, &spec.id, &done));
         if let Err(e) = edit {
-            engine.op_log(op, format!("warning: {e} The runners still show up because Muxin discovers them."));
+            engine.op_log(op, format!("warning: {e} The runners still show up because AndruIDE discovers them."));
         }
         engine.reload_inventory_now();
     }
@@ -831,7 +831,7 @@ async fn run_action(engine: &Arc<Engine>, op: u64, runner: &Runner, action: Runn
             let release = match action {
                 RunnerAction::Update => {
                     step(engine, op, "Looking up the latest runner release");
-                    let release = engine.github().latest_runner_release(&settings.github).await.ok_or("Muxin couldn't look up the latest runner release on GitHub. Try again.")?;
+                    let release = engine.github().latest_runner_release(&settings.github).await.ok_or("AndruIDE couldn't look up the latest runner release on GitHub. Try again.")?;
                     if runner.local.as_ref().and_then(|l| l.version.as_deref()) == Some(release.version.as_str()) {
                         engine.op_log(op, format!("✓ {} already runs {}", runner.name, release.version));
                         return Ok(());
@@ -1047,7 +1047,7 @@ async fn demo_install_docker(engine: &Arc<Engine>, op: u64, req: &InstallRequest
         engine.op_log(op, "warning: the runners get this machine's Docker socket, which is root-equivalent access to the machine. Only run trusted workflows on them.");
     }
     for name in &req.names {
-        engine.op_log(op, format!("Setting up {name} (container muxen-{name}, volume muxen-{name})"));
+        engine.op_log(op, format!("Setting up {name} (container andruide-{name}, volume andruide-{name})"));
         pause(300).await;
         for l in [
             "# Authentication".to_string(),
@@ -1158,11 +1158,11 @@ mod tests {
     use super::*;
 
     /// A move rewrites config.toml's order, so it outlives a restart and
-    /// what lists machines (`muxin status`, the MCP tools) follows it. A new
+    /// what lists machines (`andruide status`, the MCP tools) follows it. A new
     /// machine goes at the end.
     #[tokio::test(flavor = "multi_thread")]
     async fn ordering_machines_sticks_and_new_ones_go_last() {
-        let dir = std::env::temp_dir().join(format!("muxen-order-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("andruide-order-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         let text = "# mine\n\n[[machine]]\nname = \"A\"\nhost = \"a.invalid\"\n\n[[machine]]\nname = \"B\"\nhost = \"b.invalid\"\n\n[[machine]]\nname = \"C\"\nhost = \"c.invalid\"\n";
@@ -1369,7 +1369,7 @@ mod engine_tests {
         use std::io::Write;
         use std::process::{Command, Stdio};
 
-        let tmp = std::env::temp_dir().join(format!("muxen-install-{}", std::process::id()));
+        let tmp = std::env::temp_dir().join(format!("andruide-install-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&tmp);
         let (pkg, base, bin) = (tmp.join("pkg"), tmp.join("runners"), tmp.join("bin"));
         let cache = base.join(".cache");
@@ -1385,8 +1385,8 @@ mod engine_tests {
         let bad = tmp.join("bad.tar.gz");
         std::fs::write(&bad, "not a runner").unwrap();
         let sha: String = ring::digest::digest(&ring::digest::SHA256, &std::fs::read(&good).unwrap()).as_ref().iter().map(|b| format!("{b:02x}")).collect();
-        // Stands in for curl: "downloads" whatever MUXEN_TEST_DOWNLOAD names.
-        write_exec(&bin.join("curl"), "#!/bin/sh\nwhile [ $# -gt 0 ]; do [ \"$1\" = -o ] && out=$2; shift; done\ncp \"$MUXEN_TEST_DOWNLOAD\" \"$out\"\n");
+        // Stands in for curl: "downloads" whatever ANDRUIDE_TEST_DOWNLOAD names.
+        write_exec(&bin.join("curl"), "#!/bin/sh\nwhile [ $# -gt 0 ]; do [ \"$1\" = -o ] && out=$2; shift; done\ncp \"$ANDRUIDE_TEST_DOWNLOAD\" \"$out\"\n");
 
         // Whichever of these this machine is, its package is in the cache under its own name.
         let platforms = ["osx-x64", "osx-arm64", "linux-x64", "linux-arm64", "linux-arm"];
@@ -1398,7 +1398,7 @@ mod engine_tests {
             let mut child = Command::new("/bin/sh")
                 .arg("-s")
                 .env("PATH", format!("{}:{}", bin.display(), std::env::var("PATH").unwrap_or_default()))
-                .env("MUXEN_TEST_DOWNLOAD", download)
+                .env("ANDRUIDE_TEST_DOWNLOAD", download)
                 .stdin(Stdio::piped())
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped())
@@ -1459,7 +1459,7 @@ mod engine_tests {
 
     #[tokio::test(flavor = "multi_thread")]
     async fn controls_a_local_runner() {
-        let tmp = std::env::temp_dir().join(format!("muxen-ops-{}", std::process::id()));
+        let tmp = std::env::temp_dir().join(format!("andruide-ops-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&tmp);
         let base = tmp.join("runners");
         stub_runner(&base.join("or-test-01"), "or-test-01");
@@ -1520,14 +1520,14 @@ mod engine_tests {
         let snap = engine.current();
         let r = snap.runners.iter().find(|r| r.id == "beacon/nuc-docker-01").expect("installed runner shows up");
         let local = r.local.as_ref().unwrap();
-        assert_eq!(local.container.as_deref(), Some("muxen-nuc-docker-01"));
-        assert_eq!(local.dir, "docker://muxen-nuc-docker-01");
+        assert_eq!(local.container.as_deref(), Some("andruide-nuc-docker-01"));
+        assert_eq!(local.dir, "docker://andruide-nuc-docker-01");
         assert!(r.labels.iter().any(|l| l == "docker"), "{:?}", r.labels);
         assert_eq!(snap.machines.iter().find(|m| m.id == "beacon").unwrap().probe.as_ref().unwrap().docker.as_deref(), Some("29.1.3"));
 
         let o = wait(&engine, engine.runner_action("beacon/nuc-docker-01", RunnerAction::Stop).unwrap()).await;
         assert_eq!(o.status, "succeeded");
-        assert!(o.log.iter().any(|l| l.contains("container muxen-nuc-docker-01")), "{:?}", o.log);
+        assert!(o.log.iter().any(|l| l.contains("container andruide-nuc-docker-01")), "{:?}", o.log);
         assert_eq!(state(&engine, "beacon/nuc-docker-01"), "offline");
     }
 
@@ -1539,12 +1539,12 @@ mod engine_tests {
 
     /// Real Docker on a real machine, without GitHub: registration is stubbed, and the one
     /// path that does reach GitHub uses a fake token that can't register anything.
-    /// Run with: MUXEN_TEST_DOCKER_HOST=<ssh host> cargo test docker_runner_lifecycle -- --ignored
+    /// Run with: ANDRUIDE_TEST_DOCKER_HOST=<ssh host> cargo test docker_runner_lifecycle -- --ignored
     #[tokio::test(flavor = "multi_thread")]
-    #[ignore = "needs a machine with Docker: MUXEN_TEST_DOCKER_HOST=<ssh host>"]
+    #[ignore = "needs a machine with Docker: ANDRUIDE_TEST_DOCKER_HOST=<ssh host>"]
     async fn docker_runner_lifecycle_on_real_host() {
-        let Ok(host) = std::env::var("MUXEN_TEST_DOCKER_HOST") else { return };
-        let tmp = std::env::temp_dir().join(format!("muxen-docker-{}", std::process::id()));
+        let Ok(host) = std::env::var("ANDRUIDE_TEST_DOCKER_HOST") else { return };
+        let tmp = std::env::temp_dir().join(format!("andruide-docker-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&tmp);
         std::fs::create_dir_all(&tmp).unwrap();
         std::fs::write(tmp.join("config.toml"), format!("[[machine]]\nname = \"Box\"\nhost = \"{host}\"\n")).unwrap();
@@ -1570,26 +1570,26 @@ mod engine_tests {
 
         // Leftovers from an earlier run of this test that panicked.
         let _ = run_script(
-            "docker ps -aq --filter name=muxen-ortest- | xargs -r docker rm -f; docker volume ls -q --filter name=muxen-ortest- | xargs -r docker volume rm".into(),
+            "docker ps -aq --filter name=andruide-ortest- | xargs -r docker rm -f; docker volume ls -q --filter name=andruide-ortest- | xargs -r docker volume rm".into(),
         )
         .await;
 
         // 1. A real registration attempt with a fake token fails cleanly: GitHub says no,
         //    and no volume or container is left behind.
-        let script = docker_install_script(image, "", "https://github.com/muxen-test-no-such-org-7f3a", "muxen-test-no-such-org-7f3a", "FAKE0TOKEN", &[name.clone()], "docker", "", false, false);
+        let script = docker_install_script(image, "", "https://github.com/andruide-test-no-such-org-7f3a", "andruide-test-no-such-org-7f3a", "FAKE0TOKEN", &[name.clone()], "docker", "", false, false);
         let (ran, log) = run_script(script).await;
         assert!(ran.is_err(), "{log:?}");
         assert!(log.iter().any(|l| l.contains("404") || l.contains("Not Found")), "{log:?}");
         assert!(log.iter().all(|l| !l.contains("FAKE0TOKEN")), "token leaked into the log: {log:?}");
-        let (_, leftovers) = run_script(format!("docker volume ls -q --filter name=muxen-{name}; docker ps -aq --filter name=muxen-{name}")).await;
+        let (_, leftovers) = run_script(format!("docker volume ls -q --filter name=andruide-{name}; docker ps -aq --filter name=andruide-{name}")).await;
         assert!(leftovers.is_empty(), "{leftovers:?}");
 
         // 2. Install with registration stubbed: a long-running container with a restart policy.
-        let script = docker_install_script(image, "", "https://github.com/muxen-test", "muxen-test", "FAKE0TOKEN", &[name.clone()], "docker", "", false, true);
+        let script = docker_install_script(image, "", "https://github.com/andruide-test", "andruide-test", "FAKE0TOKEN", &[name.clone()], "docker", "", false, true);
         let (ran, log) = run_script(script).await;
         assert!(ran.is_ok(), "{log:?}");
         assert!(log.iter().any(|l| l == &format!("✓ {name} is installed")), "{log:?}");
-        let (_, inspect) = run_script(format!("docker inspect -f '{{{{.HostConfig.RestartPolicy.Name}}}} {{{{index .Config.Labels \"muxen.runner\"}}}}' muxen-{name}; docker inspect muxen-{name} | grep -c FAKE0TOKEN")).await;
+        let (_, inspect) = run_script(format!("docker inspect -f '{{{{.HostConfig.RestartPolicy.Name}}}} {{{{index .Config.Labels \"andruide.runner\"}}}}' andruide-{name}; docker inspect andruide-{name} | grep -c FAKE0TOKEN")).await;
         assert_eq!(inspect, vec![format!("unless-stopped {name}"), "0".to_string()], "{inspect:?}");
 
         // 3. Machine checks find it as a container runner.
@@ -1597,9 +1597,9 @@ mod engine_tests {
         let snap = engine.current();
         let r = snap.runners.iter().find(|r| r.id == id).unwrap_or_else(|| panic!("{id} not found in {:?}", snap.runners.iter().map(|r| &r.id).collect::<Vec<_>>()));
         let local = r.local.clone().unwrap();
-        assert_eq!(local.container.as_deref(), Some(format!("muxen-{name}").as_str()));
+        assert_eq!(local.container.as_deref(), Some(format!("andruide-{name}").as_str()));
         assert_eq!(local.container_state.as_deref(), Some("running"));
-        assert_eq!(local.url.as_deref(), Some("https://github.com/muxen-test"));
+        assert_eq!(local.url.as_deref(), Some("https://github.com/andruide-test"));
         assert_eq!(r.state, "idle", "{local:?}");
 
         // 4. Stop / start / restart / logs through the engine (none of these talk to GitHub).
@@ -1614,7 +1614,7 @@ mod engine_tests {
         assert_eq!(state(&engine, &id), "idle");
         let o = wait(&engine, engine.runner_action(&id, RunnerAction::Logs).unwrap()).await;
         assert_eq!(o.status, "succeeded", "{:?}", o.log);
-        assert!(o.log.iter().any(|l| l.contains(&format!("docker logs muxen-{name}"))), "{:?}", o.log);
+        assert!(o.log.iter().any(|l| l.contains(&format!("docker logs andruide-{name}"))), "{:?}", o.log);
 
         // 5. Remove without a GitHub token (nothing registered), deleting the volume too.
         let runner = engine.current().runners.iter().find(|r| r.id == id).cloned().unwrap();
@@ -1625,21 +1625,21 @@ mod engine_tests {
         engine.op_finish(op, Ok(()));
         let log = op_log(&engine, op).await;
         assert!(removed.is_ok(), "{log:?}");
-        assert!(log.iter().any(|l| l == &format!("Deleted volume muxen-{name}")), "{log:?}");
+        assert!(log.iter().any(|l| l == &format!("Deleted volume andruide-{name}")), "{log:?}");
         assert!(!engine.current().runners.iter().any(|r| r.id == id));
 
         let _ = std::fs::remove_dir_all(&tmp);
     }
 
-    /// How Muxin reads what its PowerShell scripts print on a real Windows
+    /// How AndruIDE reads what its PowerShell scripts print on a real Windows
     /// machine, which keeps nothing: text both ways, output that isn't UTF-8,
     /// and errors as their message, not CLIXML.
-    /// Run with: MUXEN_TEST_WINDOWS_HOST=<ssh host> cargo test windows_script_output -- --ignored
+    /// Run with: ANDRUIDE_TEST_WINDOWS_HOST=<ssh host> cargo test windows_script_output -- --ignored
     #[tokio::test(flavor = "multi_thread")]
-    #[ignore = "needs a Windows machine: MUXEN_TEST_WINDOWS_HOST=<ssh host>"]
+    #[ignore = "needs a Windows machine: ANDRUIDE_TEST_WINDOWS_HOST=<ssh host>"]
     async fn windows_script_output_on_real_host() {
-        let Ok(host) = std::env::var("MUXEN_TEST_WINDOWS_HOST") else { return };
-        let tmp = std::env::temp_dir().join(format!("muxen-windows-{}", std::process::id()));
+        let Ok(host) = std::env::var("ANDRUIDE_TEST_WINDOWS_HOST") else { return };
+        let tmp = std::env::temp_dir().join(format!("andruide-windows-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&tmp);
         std::fs::create_dir_all(&tmp).unwrap();
         std::fs::write(tmp.join("config.toml"), format!("[[machine]]\nname = \"Box\"\nhost = \"{host}\"\n")).unwrap();
@@ -1674,7 +1674,7 @@ mod engine_tests {
         }
 
         // 2. control.ps1's trap: the error is the message.
-        let dir = format!("C:\\muxen-test-no-such-dir-{}", std::process::id());
+        let dir = format!("C:\\andruide-test-no-such-dir-{}", std::process::id());
         let params = [("OR_ACTION", Param::Str("logs")), ("OR_DIR", Param::Str(&dir)), ("OR_TOKEN", Param::Str("")), ("OR_DELETE", Param::Bool(false))];
         let (ran, log) = run_script(with_params(shell, &params, CONTROL_PS1)).await;
         assert_eq!(ran, Err(format!("{dir} doesn't exist.")), "{log:?}");

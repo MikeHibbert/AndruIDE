@@ -150,7 +150,7 @@ fn interactive_output() -> Option<String> {
     cmd.args(["-l", "-i", "-c", script.as_str()]).stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::null());
     // In a session of its own, without a terminal: an interactive shell takes
     // over the terminal it finds (and stops its process group with SIGTTIN when
-    // that's not in front), which is the one Muxin was started from when the
+    // that's not in front), which is the one AndruIDE was started from when the
     // agent runs for this computer.
     crate::sys::own_group(&mut cmd);
     let mut child = cmd.spawn().ok()?;

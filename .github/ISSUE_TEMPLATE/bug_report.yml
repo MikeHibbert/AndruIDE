@@ -1,5 +1,5 @@
 name: Bug report
-description: Something in Muxin doesn't work as it should.
+description: Something in AndruIDE doesn't work as it should.
 labels: [bug]
 body:
   - type: markdown
@@ -15,15 +15,15 @@ body:
   - type: input
     id: version
     attributes:
-      label: Muxin version
-      description: On the About page, or from `muxin --version`.
+      label: AndruIDE version
+      description: On the About page, or from `andruide --version`.
       placeholder: "0.5.3"
     validations:
       required: true
   - type: dropdown
     id: platform
     attributes:
-      label: Muxin runs on
+      label: AndruIDE runs on
       options:
         - macOS, Apple silicon
         - macOS, Intel
@@ -42,7 +42,7 @@ body:
     id: machines
     attributes:
       label: The machines it's about
-      description: Their systems (macOS 26, Ubuntu 24.04, Windows 11…) and how Muxin reaches them (local network, Tailscale, a jump host), if it's about a machine.
+      description: Their systems (macOS 26, Ubuntu 24.04, Windows 11…) and how AndruIDE reaches them (local network, Tailscale, a jump host), if it's about a machine.
   - type: textarea
     id: logs
     attributes:

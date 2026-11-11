@@ -1,8 +1,8 @@
 //! A share's link and what it proves: `https://<server>/s#1.<ticket>`, the
 //! ticket being base64url of the share's id (16 bytes), secret (32) and
-//! certificate fingerprint (32). Muxin also takes `muxin://join?server=
+//! certificate fingerprint (32). AndruIDE also takes `andruide://join?server=
 //! <server>#1.<ticket>` (the link's page opening the app), and pairing an
-//! iPad uses `muxin://pair?server=<server>#1.<ticket>` (`pair.rs`).
+//! iPad uses `andruide://pair?server=<server>#1.<ticket>` (`pair.rs`).
 
 use base64::Engine as _;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
@@ -46,9 +46,9 @@ impl Ticket {
     }
 
     /// The link an iPad opens to pair (shown as a QR code): the app's own
-    /// form, so the iPad's camera opens Muxin with it.
+    /// form, so the iPad's camera opens AndruIDE with it.
     pub fn pair_link(&self) -> String {
-        format!("muxin://pair?server={}#{}", self.server.replace(':', "%3A").replace('/', "%2F"), self.fragment())
+        format!("andruide://pair?server={}#{}", self.server.replace(':', "%3A").replace('/', "%2F"), self.fragment())
     }
 
     /// The part after `#`.
@@ -63,13 +63,13 @@ impl Ticket {
     /// Reads a link (or the app's own form of one).
     pub fn parse(link: &str) -> Result<Ticket, String> {
         let link = link.trim();
-        let (before, fragment) = link.split_once('#').ok_or("That isn't a Muxin share link.")?;
-        let server = if let Some(query) = before.strip_prefix("muxin://join").or_else(|| before.strip_prefix("muxin://pair")) {
+        let (before, fragment) = link.split_once('#').ok_or("That isn't a AndruIDE share link.")?;
+        let server = if let Some(query) = before.strip_prefix("andruide://join").or_else(|| before.strip_prefix("andruide://pair")) {
             let query = query.trim_start_matches('/').trim_start_matches('?');
             let value = query.split('&').find_map(|kv| kv.strip_prefix("server=")).ok_or("That link doesn't say where to connect.")?;
             percent_decode(value)
         } else {
-            let after_scheme = before.split_once("://").map(|(_, rest)| rest).ok_or("That isn't a Muxin share link.")?;
+            let after_scheme = before.split_once("://").map(|(_, rest)| rest).ok_or("That isn't a AndruIDE share link.")?;
             let host = after_scheme.split('/').next().unwrap_or("");
             let scheme = before.split_once("://").map(|(s, _)| s).unwrap_or("");
             format!("{scheme}://{host}")
@@ -77,7 +77,7 @@ impl Ticket {
         let server = origin(&server)?;
         let (version, data) = fragment.split_once('.').ok_or("That share link is cut short.")?;
         if version != VERSION {
-            return Err("That share link is from a newer Muxin. Update Muxin to open it.".into());
+            return Err("That share link is from a newer AndruIDE. Update AndruIDE to open it.".into());
         }
         let bytes = URL_SAFE_NO_PAD.decode(data.trim()).map_err(|_| "That share link is damaged.")?;
         if bytes.len() != 80 {
@@ -99,20 +99,20 @@ impl Ticket {
     /// two certificates (fingerprints as lowercase hex).
     pub fn proof(&self, host_fp: &str, guest_fp: &str) -> String {
         let key = hmac::Key::new(hmac::HMAC_SHA256, &self.secret);
-        hex(hmac::sign(&key, format!("muxin-share-v1\n{host_fp}\n{guest_fp}").as_bytes()).as_ref())
+        hex(hmac::sign(&key, format!("andruide-share-v1\n{host_fp}\n{guest_fp}").as_bytes()).as_ref())
     }
 
     /// Whether a guest's proof is right (in constant time).
     pub fn check_proof(&self, host_fp: &str, guest_fp: &str, proof: &str) -> bool {
         let Some(tag) = unhex(proof) else { return false };
         let key = hmac::Key::new(hmac::HMAC_SHA256, &self.secret);
-        hmac::verify(&key, format!("muxin-share-v1\n{host_fp}\n{guest_fp}").as_bytes(), &tag).is_ok()
+        hmac::verify(&key, format!("andruide-share-v1\n{host_fp}\n{guest_fp}").as_bytes(), &tag).is_ok()
     }
 
     /// The 6-digit code both sides show for a guest's connection.
     pub fn code(&self, guest_fp: &str) -> String {
         let key = hmac::Key::new(hmac::HMAC_SHA256, &self.secret);
-        let tag = hmac::sign(&key, format!("muxin-share-code-v1\n{guest_fp}").as_bytes());
+        let tag = hmac::sign(&key, format!("andruide-share-code-v1\n{guest_fp}").as_bytes());
         let n = u32::from_be_bytes([tag.as_ref()[0], tag.as_ref()[1], tag.as_ref()[2], tag.as_ref()[3]]) % 1_000_000;
         format!("{n:06}")
     }
@@ -120,7 +120,7 @@ impl Ticket {
 
 /// Whether a link is for pairing an iPad (not for joining a share).
 pub fn is_pair_link(link: &str) -> bool {
-    link.trim().starts_with("muxin://pair")
+    link.trim().starts_with("andruide://pair")
 }
 
 /// `scheme://host[:port]` of a server, refusing plain http except to this
@@ -192,10 +192,10 @@ mod tests {
         let link = t.link();
         assert!(link.starts_with("https://share.example.com/s#1."));
         assert_eq!(Ticket::parse(&link).unwrap(), t);
-        let app = format!("muxin://join?server=https%3A%2F%2Fshare.example.com#{}", t.fragment());
+        let app = format!("andruide://join?server=https%3A%2F%2Fshare.example.com#{}", t.fragment());
         assert_eq!(Ticket::parse(&app).unwrap(), t);
         let pair = t.pair_link();
-        assert!(pair.starts_with("muxin://pair?server=https%3A%2F%2Fshare.example.com#1."));
+        assert!(pair.starts_with("andruide://pair?server=https%3A%2F%2Fshare.example.com#1."));
         assert!(is_pair_link(&pair) && !is_pair_link(&link));
         assert_eq!(Ticket::parse(&pair).unwrap(), t);
     }

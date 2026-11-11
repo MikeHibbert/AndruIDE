@@ -6,7 +6,7 @@
 #   scripts/release.sh 0.2.0           # commit and tag here; push yourself
 #   scripts/release.sh 0.2.0 --push    # and push the branch and the tag
 #
-# Run on another branch that main follows (like muxen), --push moves main up to
+# Run on another branch that main follows (like andruide), --push moves main up to
 # it too, here and on GitHub, when main can fast-forward.
 #
 # See RELEASING.md.
@@ -38,10 +38,10 @@ if [ "$current" != "$version" ]; then
     mv Cargo.toml.new Cargo.toml
     cargo update --workspace --quiet
     git add Cargo.toml Cargo.lock
-    git commit --quiet -m "Muxin $version"
+    git commit --quiet -m "AndruIDE $version"
     echo "▸ version $current → $version"
 fi
-git tag -a "v$version" -m "Muxin $version"
+git tag -a "v$version" -m "AndruIDE $version"
 echo "▸ tagged v$version on $(git rev-parse --short HEAD)"
 
 if [ -n "$push" ]; then

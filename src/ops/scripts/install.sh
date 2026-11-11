@@ -1,5 +1,5 @@
-# Muxin: install GitHub Actions runners (macOS / Linux).
-# Muxin prepends these variables:
+# AndruIDE: install GitHub Actions runners (macOS / Linux).
+# AndruIDE prepends these variables:
 #   OR_VERSION  runner release, e.g. 2.329.0
 #   OR_SHA256   each package's SHA-256 from the release notes, space separated
 #               <platform>=<hex> (e.g. linux-x64=194f...)

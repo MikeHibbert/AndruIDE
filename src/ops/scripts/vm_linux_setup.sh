@@ -1,8 +1,8 @@
 # Runs as the container's command, as root, every time it starts: sshd with
-# the user and their key, then sshd in the foreground. MUXEN_USER, MUXEN_KEY
-# and MUXEN_NPM (agent CLIs to install, as npm packages) come from the
+# the user and their key, then sshd in the foreground. ANDRUIDE_USER, ANDRUIDE_KEY
+# and ANDRUIDE_NPM (agent CLIs to install, as npm packages) come from the
 # container's environment.
-u=$MUXEN_USER
+u=$ANDRUIDE_USER
 if [ ! -x /usr/sbin/sshd ]; then
   echo "Installing OpenSSH"
   if command -v apt-get >/dev/null 2>&1; then
@@ -28,19 +28,19 @@ if ! id "$u" >/dev/null 2>&1; then
   # Key-only logins: an account without a password can't be locked out of them.
   usermod -p '*' "$u" 2>/dev/null || sed -i "s/^$u:!*:/$u:*:/" /etc/shadow
   mkdir -p /etc/sudoers.d
-  echo "$u ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/muxen
-  chmod 440 /etc/sudoers.d/muxen
+  echo "$u ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/andruide
+  chmod 440 /etc/sudoers.d/andruide
 fi
 home=$(getent passwd "$u" 2>/dev/null | cut -d: -f6)
 home=${home:-/home/$u}
 mkdir -p "$home/.ssh"
-printf '%s\n' "$MUXEN_KEY" > "$home/.ssh/authorized_keys"
+printf '%s\n' "$ANDRUIDE_KEY" > "$home/.ssh/authorized_keys"
 chown -R "$u" "$home/.ssh"
 chmod 700 "$home/.ssh"
 chmod 600 "$home/.ssh/authorized_keys"
 # Agent CLIs, once: Node.js from the system's packages, then npm.
-if [ -n "${MUXEN_NPM:-}" ] && [ ! -f /var/lib/muxen-npm-done ]; then
-  echo "Installing Node.js and $MUXEN_NPM"
+if [ -n "${ANDRUIDE_NPM:-}" ] && [ ! -f /var/lib/andruide-npm-done ]; then
+  echo "Installing Node.js and $ANDRUIDE_NPM"
   if command -v apt-get >/dev/null 2>&1; then
     apt-get install -y -qq nodejs npm >/dev/null
   elif command -v dnf >/dev/null 2>&1; then
@@ -51,7 +51,7 @@ if [ -n "${MUXEN_NPM:-}" ] && [ ! -f /var/lib/muxen-npm-done ]; then
     pacman -S --noconfirm --needed nodejs npm >/dev/null
   fi
   # shellcheck disable=SC2086
-  npm install -g --no-fund --no-audit $MUXEN_NPM >/dev/null 2>&1 && mkdir -p /var/lib && touch /var/lib/muxen-npm-done
+  npm install -g --no-fund --no-audit $ANDRUIDE_NPM >/dev/null 2>&1 && mkdir -p /var/lib && touch /var/lib/andruide-npm-done
 fi
 ssh-keygen -A >/dev/null 2>&1
 # The locale a Mac sends (en_US.UTF-8) isn't installed here; UTF-8 is.
@@ -60,8 +60,8 @@ grep -q '^LANG=' /etc/environment 2>/dev/null || echo 'LANG=C.UTF-8' >> /etc/env
 mkdir -p /run/sshd /var/run/sshd
 # Paired for direct connections before it stopped: listen again (a
 # container has no service manager to do it).
-if [ -d "$home/.muxen/direct" ] && [ -x "$home/.muxen/bin/muxen-agent" ]; then
-  su -s /bin/sh "$u" -c "cd ~ && nohup ~/.muxen/bin/muxen-agent listen >/dev/null 2>&1 &" 2>/dev/null
+if [ -d "$home/.andruide/direct" ] && [ -x "$home/.andruide/bin/andruide-agent" ]; then
+  su -s /bin/sh "$u" -c "cd ~ && nohup ~/.andruide/bin/andruide-agent listen >/dev/null 2>&1 &" 2>/dev/null
 fi
 echo "Ready"
 exec /usr/sbin/sshd -D -e

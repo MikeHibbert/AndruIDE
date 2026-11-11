@@ -1,4 +1,4 @@
-//! A live connection to a machine's agent (`muxen-agent link`), kept open
+//! A live connection to a machine's agent (`andruide-agent link`), kept open
 //! and shared by everything that talks to that machine: agent requests,
 //! scripts, terminals, and the agent's own notices. One ssh connection per
 //! machine instead of one per request (~25 ms a request instead of ~400 ms).
@@ -245,7 +245,7 @@ impl Link {
         let _ = rx.wait_for(|down| *down).await;
     }
 
-    /// Whether Muxin dropped it on purpose, rather than losing the machine.
+    /// Whether AndruIDE dropped it on purpose, rather than losing the machine.
     pub fn retired(&self) -> bool {
         self.retired.load(Ordering::Relaxed)
     }
@@ -306,7 +306,7 @@ pub async fn get(spec: &MachineSpec) -> Option<Arc<Link>> {
         return None;
     }
     // An escape hatch: plain ssh for everything.
-    if std::env::var_os("MUXEN_NO_LINK").is_some() {
+    if std::env::var_os("ANDRUIDE_NO_LINK").is_some() {
         return None;
     }
     if let Some(l) = current(&spec.id) {
@@ -331,12 +331,12 @@ pub async fn get(spec: &MachineSpec) -> Option<Arc<Link>> {
 }
 
 /// The machine's live link, or a new direct one when it's paired; never a new
-/// ssh link. For checks: they don't start ssh links (a check is also how Muxin
+/// ssh link. For checks: they don't start ssh links (a check is also how AndruIDE
 /// first reaches a machine), but a paired machine's own way in costs nothing,
 /// and where ssh can't run (an iPad) it's the only way in. A failure here is
 /// left to the direct connection's own wait, so `get` still tries ssh.
 pub async fn current_or_direct(spec: &MachineSpec) -> Option<Arc<Link>> {
-    if spec.disconnected || spec.is_local() || std::env::var_os("MUXEN_NO_LINK").is_some() {
+    if spec.disconnected || spec.is_local() || std::env::var_os("ANDRUIDE_NO_LINK").is_some() {
         return None;
     }
     if let Some(l) = current(&spec.id) {
@@ -383,8 +383,8 @@ pub fn reset(machine_id: &str) {
 }
 
 fn local_agent() -> PathBuf {
-    let bin = dirs::home_dir().unwrap_or_default().join(".muxen").join("bin");
-    bin.join(if cfg!(windows) { "muxen-agent.exe" } else { "muxen-agent" })
+    let bin = dirs::home_dir().unwrap_or_default().join(".andruide").join("bin");
+    bin.join(if cfg!(windows) { "andruide-agent.exe" } else { "andruide-agent" })
 }
 
 /// Directly when the machine is paired and reachable, else over ssh.
@@ -392,7 +392,7 @@ async fn connect(spec: &MachineSpec) -> Result<Arc<Link>, String> {
     if let Some(paired) = super::direct::paired(&spec.id).filter(|_| !spec.is_local()) {
         match connect_direct(spec, &paired).await {
             Ok(link) => return Ok(link),
-            // Muxin on an iPad reaches a paired machine only directly. (One
+            // AndruIDE on an iPad reaches a paired machine only directly. (One
             // it's adding, not paired yet, over its own ssh, below.)
             Err(e) if cfg!(target_os = "ios") => return Err(e),
             Err(e) => tracing::debug!("no direct connection to {}: {e}; using ssh", spec.name),
@@ -431,7 +431,7 @@ async fn connect_direct(spec: &MachineSpec, paired: &super::direct::Paired) -> R
 
 async fn connect_ssh(spec: &MachineSpec) -> Result<Arc<Link>, String> {
     let mut child = if cfg!(target_os = "ios") && !spec.is_local() {
-        // Muxin's own ssh client: what the agent says on stderr is read and dropped.
+        // AndruIDE's own ssh client: what the agent says on stderr is read and dropped.
         let mut c = super::child::ssh(spec, &super::sessions::agent::command(spec, "link")).await?;
         if let Some(mut err) = c.take_stderr() {
             tokio::spawn(async move { tokio::io::copy(&mut err, &mut tokio::io::sink()).await });
@@ -441,7 +441,7 @@ async fn connect_ssh(spec: &MachineSpec) -> Result<Arc<Link>, String> {
         let mut cmd = if spec.is_local() {
             let mut c = Command::new(local_agent());
             c.arg("link");
-            // Without the terminal Muxin may have been started from: nothing the
+            // Without the terminal AndruIDE may have been started from: nothing the
             // agent runs (an interactive shell, say) can take it over and stop us.
             #[cfg(unix)]
             unsafe {

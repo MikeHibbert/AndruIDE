@@ -37,9 +37,9 @@ switch ($OR_ACTION) {
         git checkout -b $OR_BRANCH 2>&1 | ForEach-Object { "$_" }
         if ($LASTEXITCODE -ne 0) { [Console]::Error.WriteLine("error: couldn't create branch $OR_BRANCH"); exit 5 }
       }
-      Add-Content -Path '.git\info\exclude' -Value '.muxen/'
+      Add-Content -Path '.git\info\exclude' -Value '.andruide/'
     }
-    New-Item -ItemType Directory -Force -Path '.muxen\logs' | Out-Null
+    New-Item -ItemType Directory -Force -Path '.andruide\logs' | Out-Null
     Write-Output 'ready'
   }
   'worktree' {
@@ -77,9 +77,9 @@ switch ($OR_ACTION) {
     }
     if ($LASTEXITCODE -ne 0) { [Console]::Error.WriteLine("error: couldn't make the worktree"); exit 5 }
     Set-Location -LiteralPath $dir
-    New-Item -ItemType Directory -Force -Path '.muxen\logs' | Out-Null
+    New-Item -ItemType Directory -Force -Path '.andruide\logs' | Out-Null
     $exclude = Join-Path (git rev-parse --git-common-dir) 'info\exclude'
-    if (-not (Select-String -Path $exclude -Pattern '^\.muxen/$' -Quiet -ErrorAction SilentlyContinue)) { Add-Content -Path $exclude -Value '.muxen/' }
+    if (-not (Select-String -Path $exclude -Pattern '^\.andruide/$' -Quiet -ErrorAction SilentlyContinue)) { Add-Content -Path $exclude -Value '.andruide/' }
     Write-Output "Worktree of $OR_SRC on $(git rev-parse --abbrev-ref HEAD) at $(git rev-parse --short HEAD)"
     Write-Output 'ready'
   }

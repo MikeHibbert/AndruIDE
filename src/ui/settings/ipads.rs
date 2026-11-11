@@ -1,4 +1,4 @@
-//! Settings › iPads: pairing Muxin for iPad with your machines, by a QR
+//! Settings › iPads: pairing AndruIDE for iPad with your machines, by a QR
 //! code the iPad scans (share::pair, fleet::ipads), and the iPads paired so far.
 
 use std::collections::HashSet;
@@ -136,7 +136,7 @@ impl SettingsPage {
             .p(px(14.))
             .gap(px(12.))
             .child(div().w_full().min_w(px(0.)).text_size(px(12.5)).text_color(theme.text_muted).child(
-                "Muxin for iPhone and Muxin for iPad reach your machines directly, each with a key of its own. On the iPhone or iPad, tap Pair with your Mac and scan the code that shows here.",
+                "AndruIDE for iPhone and AndruIDE for iPad reach your machines directly, each with a key of its own. On the iPhone or iPad, tap Pair with your Mac and scan the code that shows here.",
             ))
             .child(match going {
                 Some(v) => self.pairing_now(v, theme),
@@ -292,9 +292,9 @@ impl SettingsPage {
                             .flex()
                             .flex_col()
                             .gap(px(10.))
-                            .child(div().text_size(px(13.)).child("Scan this with Muxin on your iPhone or iPad."))
+                            .child(div().text_size(px(13.)).child("Scan this with AndruIDE on your iPhone or iPad."))
                             .child(div().text_size(px(12.5)).text_color(theme.text_muted).child(format!("It gets {}. You'll see the same code on both screens before anything is paired.", v.machines.join(", "))))
-                            .child(div().text_size(px(12.)).text_color(theme.text_placeholder).child("No camera? Copy the link and paste it in Muxin there. It works for 10 minutes."))
+                            .child(div().text_size(px(12.)).text_color(theme.text_placeholder).child("No camera? Copy the link and paste it in AndruIDE there. It works for 10 minutes."))
                             .child(
                                 div()
                                     .flex()

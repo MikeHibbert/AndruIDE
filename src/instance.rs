@@ -1,6 +1,6 @@
-//! One running copy of the app per Muxin home. Opening it again brings that
+//! One running copy of the app per AndruIDE home. Opening it again brings that
 //! copy forward (and hands it a share link) instead of starting another. A
-//! Mac's Dock does this for the app, but not for `muxin` in a terminal, and
+//! Mac's Dock does this for the app, but not for `andruide` in a terminal, and
 //! Linux and Windows have nothing that would.
 //!
 //! The first copy holds a lock for as long as it runs (the system lets go when
@@ -18,7 +18,7 @@ use tokio::io::{AsyncBufReadExt, AsyncRead, AsyncReadExt, AsyncWrite, AsyncWrite
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Request {
     Show,
-    /// A share link opened with Muxin.
+    /// A share link opened with AndruIDE.
     Join(String),
     Quit,
 }
@@ -133,7 +133,7 @@ fn decode(line: &str) -> Option<(&str, Request)> {
     let request = match rest.split_once(' ') {
         None if rest == "show" => Request::Show,
         None if rest == "quit" => Request::Quit,
-        Some(("join", url)) if url.starts_with("muxin://join") => Request::Join(url.to_string()),
+        Some(("join", url)) if url.starts_with("andruide://join") => Request::Join(url.to_string()),
         _ => return None,
     };
     Some((version, request))
@@ -203,7 +203,7 @@ async fn connect(dir: &Path) -> std::io::Result<tokio::net::UnixStream> {
 fn pipe_name(dir: &Path) -> String {
     let digest = ring::digest::digest(&ring::digest::SHA256, dir.to_string_lossy().as_bytes());
     let hex: String = digest.as_ref()[..8].iter().map(|b| format!("{b:02x}")).collect();
-    format!(r"\\.\pipe\muxin-{hex}")
+    format!(r"\\.\pipe\andruide-{hex}")
 }
 
 #[cfg(windows)]
@@ -272,8 +272,8 @@ mod tests {
         assert!(matches!(claim(&dir), Claim::Taken));
         assert!(is_running(&dir));
         assert_eq!(tell(&dir, &Request::Show).await, Told::Done);
-        assert_eq!(tell(&dir, &Request::Join("muxin://join?server=x#y".into())).await, Told::Done);
-        assert_eq!(settled(&seen, 2).await, vec![Request::Show, Request::Join("muxin://join?server=x#y".into())]);
+        assert_eq!(tell(&dir, &Request::Join("andruide://join?server=x#y".into())).await, Told::Done);
+        assert_eq!(settled(&seen, 2).await, vec![Request::Show, Request::Join("andruide://join?server=x#y".into())]);
         let _ = std::fs::remove_dir_all(&dir);
     }
 
@@ -320,7 +320,7 @@ mod tests {
     fn only_requests_it_knows() {
         assert_eq!(decode("0.9.0 show\n"), Some(("0.9.0", Request::Show)));
         assert_eq!(decode("0.9.0 quit"), Some(("0.9.0", Request::Quit)));
-        assert_eq!(decode("0.9.0 join muxin://join?a#b"), Some(("0.9.0", Request::Join("muxin://join?a#b".into()))));
+        assert_eq!(decode("0.9.0 join andruide://join?a#b"), Some(("0.9.0", Request::Join("andruide://join?a#b".into()))));
         assert_eq!(decode("0.9.0 join https://example.com"), None);
         assert_eq!(decode("0.9.0 rm -rf"), None);
         assert_eq!(decode("show"), None);

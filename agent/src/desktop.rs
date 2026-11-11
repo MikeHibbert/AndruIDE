@@ -1,8 +1,8 @@
-//! The machine's screen, for Muxen's desktop view: frames out, mouse and
+//! The machine's screen, for AndruIDE's desktop view: frames out, mouse and
 //! keyboard in. Linux desktops on X11, and Macs (ScreenCaptureKit, see
 //! mac_screen.m).
 //!
-//! A link starts `muxen-agent screen` (on Linux with the desktop session's
+//! A link starts `andruide-agent screen` (on Linux with the desktop session's
 //! DISPLAY and XAUTHORITY) and relays between it and a link channel:
 //!
 //! ```text
@@ -35,7 +35,7 @@ pub const META: u8 = 24;
 /// Why an app's window can't be shown: it's gone (its window in the app closes too).
 pub const WINDOW_CLOSED: &str = "That window is closed.";
 
-/// `muxen-agent windows`: the apps' windows on this desktop, front first,
+/// `andruide-agent windows`: the apps' windows on this desktop, front first,
 /// each with the id to show it by (`window:<id>` as the display).
 pub fn windows() -> Value {
     #[cfg(target_os = "linux")]
@@ -207,7 +207,7 @@ mod key_tests {
 
     #[test]
     fn levels_on_x11_with_the_key_as_what_counts() {
-        // `muxin desktop input` "shift+2", an iPad's Shift+2: Shift and that key.
+        // `andruide desktop input` "shift+2", an iPad's Shift+2: Shift and that key.
         assert_eq!(level_help(0, true, false), LevelHelp::default());
         assert_eq!(level_help(1, true, false), LevelHelp::default());
         // "@" by itself, or an older app, which lets go of Shift first.
@@ -256,7 +256,7 @@ mod key_tests {
 
     #[test]
     fn windows_keeps_shift_and_a_key_when_the_key_is_what_counts() {
-        // `muxin desktop input` "shift+2": Shift and that key, whatever it types.
+        // `andruide desktop input` "shift+2": Shift and that key, whatever it types.
         assert_eq!(win_press(VK_2, false, true, false, false), WinPress::Key(0x32));
         // "@" by itself, or an older app, which lets go of Shift first.
         assert_eq!(win_press(SHIFT | VK_2, false, false, false, false), WinPress::Char);
@@ -398,7 +398,7 @@ pub fn no_session() -> Option<String> {
         }
         std::ffi::CStr::from_ptr((*pw).pw_name).to_string_lossy().into_owned()
     };
-    Some(format!("{} is using this Mac's screen, not {}. Muxin shows the screen of the account it connects as.", name(owner), name(me)))
+    Some(format!("{} is using this Mac's screen, not {}. AndruIDE shows the screen of the account it connects as.", name(owner), name(me)))
 }
 
 #[cfg(windows)]
@@ -415,7 +415,7 @@ pub fn no_session() -> Option<String> {
     None
 }
 
-/// `muxen-agent screen [fps] [quality] [max_width] [tiles|frames] [display]`:
+/// `andruide-agent screen [fps] [quality] [max_width] [tiles|frames] [display]`:
 /// streams a screen on stdout and applies input from stdin until either
 /// closes. `display` is one from `displays` (see displays.rs); without it, the
 /// whole desktop (Linux) or the main display (a Mac).
@@ -1081,7 +1081,7 @@ mod x11 {
         }
     }
 
-    /// `muxen-agent windows` on Linux: the apps' windows its window manager
+    /// `andruide-agent windows` on Linux: the apps' windows its window manager
     /// lists, front first.
     pub fn windows() -> Value {
         let Ok((conn, n)) = x11rb::connect(None) else {
@@ -1822,30 +1822,30 @@ mod mac {
     type FrameFn = extern "C" fn(*mut std::ffi::c_void, *const u8, usize, usize, usize);
 
     unsafe extern "C" {
-        fn muxen_display(id: u32, pixels_w: *mut usize, pixels_h: *mut usize, points_w: *mut f64, points_h: *mut f64, x: *mut f64, y: *mut f64);
-        fn muxen_capture_allowed(ask: i32) -> i32;
-        fn muxen_input_allowed(ask: i32) -> i32;
-        fn muxen_capture_start(id: u32, fps: i32, width: usize, height: usize, f: FrameFn, ctx: *mut std::ffi::c_void, err: *mut u8, errlen: usize) -> i32;
-        fn muxen_capture_stopped() -> i32;
-        fn muxen_capture_stop();
-        fn muxen_capture_idle();
-        fn muxen_mouse(kind: u32, x: f64, y: f64, button: u32, clicks: i64);
-        fn muxen_scroll(dy: i32, dx: i32);
-        fn muxen_key(keycode: u16, down: i32, flags: u64);
-        fn muxen_text(utf16: *const u16, len: usize);
-        fn muxen_key_layout(keys: *mut [u16; 4], count: usize) -> i32;
-        fn muxen_capture_window_start(id: u32, fps: i32, width: usize, height: usize, f: FrameFn, ctx: *mut std::ffi::c_void, err: *mut u8, errlen: usize) -> i32;
-        fn muxen_capture_follow(x: f64, y: f64, w: f64, h: f64, pw: usize, ph: usize);
-        fn muxen_windows_json(buf: *mut u8, len: usize) -> usize;
-        fn muxen_window_info(id: u32, x: *mut f64, y: *mut f64, w: *mut f64, h: *mut f64, pid: *mut i32, on_screen: *mut i32) -> i32;
-        fn muxen_window_title(id: u32, buf: *mut u8, len: usize) -> usize;
-        fn muxen_app_in_front(pid: i32) -> i32;
-        fn muxen_window_raise(id: u32, pid: i32);
-        fn muxen_window_resize(id: u32, pid: i32, w: f64, h: f64);
-        fn muxen_drags_at(pid: i32, x: f64, y: f64) -> i32;
-        fn muxen_cursor_kind() -> *const std::ffi::c_char;
-        fn muxen_scale_at(x: f64, y: f64) -> f64;
-        fn muxen_pointer(x: *mut f64, y: *mut f64);
+        fn andruide_display(id: u32, pixels_w: *mut usize, pixels_h: *mut usize, points_w: *mut f64, points_h: *mut f64, x: *mut f64, y: *mut f64);
+        fn andruide_capture_allowed(ask: i32) -> i32;
+        fn andruide_input_allowed(ask: i32) -> i32;
+        fn andruide_capture_start(id: u32, fps: i32, width: usize, height: usize, f: FrameFn, ctx: *mut std::ffi::c_void, err: *mut u8, errlen: usize) -> i32;
+        fn andruide_capture_stopped() -> i32;
+        fn andruide_capture_stop();
+        fn andruide_capture_idle();
+        fn andruide_mouse(kind: u32, x: f64, y: f64, button: u32, clicks: i64);
+        fn andruide_scroll(dy: i32, dx: i32);
+        fn andruide_key(keycode: u16, down: i32, flags: u64);
+        fn andruide_text(utf16: *const u16, len: usize);
+        fn andruide_key_layout(keys: *mut [u16; 4], count: usize) -> i32;
+        fn andruide_capture_window_start(id: u32, fps: i32, width: usize, height: usize, f: FrameFn, ctx: *mut std::ffi::c_void, err: *mut u8, errlen: usize) -> i32;
+        fn andruide_capture_follow(x: f64, y: f64, w: f64, h: f64, pw: usize, ph: usize);
+        fn andruide_windows_json(buf: *mut u8, len: usize) -> usize;
+        fn andruide_window_info(id: u32, x: *mut f64, y: *mut f64, w: *mut f64, h: *mut f64, pid: *mut i32, on_screen: *mut i32) -> i32;
+        fn andruide_window_title(id: u32, buf: *mut u8, len: usize) -> usize;
+        fn andruide_app_in_front(pid: i32) -> i32;
+        fn andruide_window_raise(id: u32, pid: i32);
+        fn andruide_window_resize(id: u32, pid: i32, w: f64, h: f64);
+        fn andruide_drags_at(pid: i32, x: f64, y: f64) -> i32;
+        fn andruide_cursor_kind() -> *const std::ffi::c_char;
+        fn andruide_scale_at(x: f64, y: f64) -> f64;
+        fn andruide_pointer(x: *mut f64, y: *mut f64);
     }
 
     /// x, y, width, height, in points.
@@ -1855,16 +1855,16 @@ mod mac {
     /// minimized or hidden); None when it's gone.
     fn window_info(id: u32) -> Option<(Rect, i32, bool)> {
         let (mut x, mut y, mut w, mut h, mut pid, mut on) = (0., 0., 0., 0., 0, 0);
-        (unsafe { muxen_window_info(id, &mut x, &mut y, &mut w, &mut h, &mut pid, &mut on) } == 1).then_some(((x, y, w, h), pid, on == 1))
+        (unsafe { andruide_window_info(id, &mut x, &mut y, &mut w, &mut h, &mut pid, &mut on) } == 1).then_some(((x, y, w, h), pid, on == 1))
     }
 
-    /// `muxen-agent windows` on a Mac: the apps' windows on screen, front first.
+    /// `andruide-agent windows` on a Mac: the apps' windows on screen, front first.
     pub fn windows() -> Value {
         let mut buf = vec![0u8; 256 * 1024];
-        let n = unsafe { muxen_windows_json(buf.as_mut_ptr(), buf.len()) };
+        let n = unsafe { andruide_windows_json(buf.as_mut_ptr(), buf.len()) };
         if n >= buf.len() {
             buf = vec![0u8; n + 1];
-            unsafe { muxen_windows_json(buf.as_mut_ptr(), buf.len()) };
+            unsafe { andruide_windows_json(buf.as_mut_ptr(), buf.len()) };
         }
         let list: Vec<Value> = serde_json::from_slice(&buf[..n.min(buf.len())]).unwrap_or_default();
         let mut front_seen = false;
@@ -1873,7 +1873,7 @@ mod mac {
             .map(|w| {
                 let scale = w["scale"].as_f64().unwrap_or(1.);
                 // Front first: the first window of the app in front is the window in front.
-                let front = !front_seen && unsafe { muxen_app_in_front(w["pid"].as_i64().unwrap_or(0) as i32) } == 1;
+                let front = !front_seen && unsafe { andruide_app_in_front(w["pid"].as_i64().unwrap_or(0) as i32) } == 1;
                 front_seen |= front;
                 json!({
                     "id": w["id"].as_u64().unwrap_or(0).to_string(),
@@ -1960,7 +1960,7 @@ mod mac {
             self.stop.store(true, std::sync::atomic::Ordering::Relaxed);
             // Resized for its window in the app: back as it was.
             if let Some((w, h)) = self.restore {
-                unsafe { muxen_window_resize(self.id, self.pid, w, h) };
+                unsafe { andruide_window_resize(self.id, self.pid, w, h) };
             }
         }
     }
@@ -1988,13 +1988,13 @@ mod mac {
     impl Drop for Mac {
         fn drop(&mut self) {
             // ScreenCaptureKit is told it's over, not left to find out.
-            unsafe { muxen_capture_stop() };
+            unsafe { andruide_capture_stop() };
             captures::forget();
             self.let_go();
         }
     }
 
-    /// This Mac's screen captures, a file each in `~/.muxen/captures`, named
+    /// This Mac's screen captures, a file each in `~/.andruide/captures`, named
     /// by pid: "on" while it streams, "idle" while it lingers. On a Mac, once
     /// a capture ends while another goes on, no new one starts until all have
     /// ended (ScreenCaptureKit, macOS 26-27): so none ends while others stream.
@@ -2033,21 +2033,21 @@ mod mac {
         /// Display `id` (0: the main one).
         pub fn open(fps: u32, max_width: u32, id: u32) -> Result<Mac, String> {
             let (mut pw, mut ph, mut ptw, mut pth, mut ox, mut oy) = (0usize, 0usize, 0f64, 0f64, 0f64, 0f64);
-            unsafe { muxen_display(id, &mut pw, &mut ph, &mut ptw, &mut pth, &mut ox, &mut oy) };
+            unsafe { andruide_display(id, &mut pw, &mut ph, &mut ptw, &mut pth, &mut ox, &mut oy) };
             if pw == 0 || ph == 0 {
                 return Err("No display here.".into());
             }
-            if unsafe { muxen_capture_allowed(1) } == 0 {
+            if unsafe { andruide_capture_allowed(1) } == 0 {
                 return Err(format!("On {}, allow {} under Privacy & Security › Screen Recording, then try again.", computer_name(), listed_as()));
             }
-            let input = unsafe { muxen_input_allowed(1) } == 1;
+            let input = unsafe { andruide_input_allowed(1) } == 1;
             let fw = (max_width as usize).min(pw).max(1);
             let fh = (ph * fw / pw).max(1);
             let latest = Arc::new(Mutex::new(Latest::default()));
             let mut err = [0u8; 512];
             // ScreenCaptureKit keeps calling with this pointer while the process lives.
             let ctx = Arc::into_raw(latest.clone()) as *mut std::ffi::c_void;
-            let started = one_start_at_a_time(|| unsafe { muxen_capture_start(id, fps as i32, fw, fh, on_frame, ctx, err.as_mut_ptr(), err.len()) });
+            let started = one_start_at_a_time(|| unsafe { andruide_capture_start(id, fps as i32, fw, fh, on_frame, ctx, err.as_mut_ptr(), err.len()) });
             if started != 0 {
                 let why = String::from_utf8_lossy(&err[..err.iter().position(|b| *b == 0).unwrap_or(err.len())]).into_owned();
                 return Err(format!("Can't capture the screen: {why}"));
@@ -2062,24 +2062,24 @@ mod mac {
             let closed = || super::WINDOW_CLOSED.to_string();
             let id: u32 = id.parse().map_err(|_| closed())?;
             let (_, pid, on_screen) = window_info(id).ok_or_else(closed)?;
-            if unsafe { muxen_capture_allowed(1) } == 0 {
+            if unsafe { andruide_capture_allowed(1) } == 0 {
                 return Err(format!("On {}, allow {} under Privacy & Security › Screen Recording, then try again.", computer_name(), listed_as()));
             }
-            let input = unsafe { muxen_input_allowed(1) } == 1;
+            let input = unsafe { andruide_input_allowed(1) } == 1;
             // Minimized or hidden, it isn't drawn: bring it back.
             if !on_screen {
-                unsafe { muxen_window_raise(id, pid) };
+                unsafe { andruide_window_raise(id, pid) };
                 std::thread::sleep(std::time::Duration::from_millis(500));
             }
             let ((x, y, w, h), _, _) = window_info(id).ok_or_else(closed)?;
-            let scale = unsafe { muxen_scale_at(x + w / 2., y + h / 2.) }.max(1.);
+            let scale = unsafe { andruide_scale_at(x + w / 2., y + h / 2.) }.max(1.);
             let (fw, fh) = window_frame((w, h), scale, max_width as usize);
             let latest = Arc::new(Mutex::new(Latest::default()));
             let mut err = [0u8; 512];
             let ctx = Arc::into_raw(latest.clone()) as *mut std::ffi::c_void;
             let asked = Instant::now();
             eprintln!("screen: window {id} ({fw}x{fh}): starting");
-            let started = one_start_at_a_time(|| unsafe { muxen_capture_window_start(id, fps as i32, fw, fh, on_frame, ctx, err.as_mut_ptr(), err.len()) });
+            let started = one_start_at_a_time(|| unsafe { andruide_capture_window_start(id, fps as i32, fw, fh, on_frame, ctx, err.as_mut_ptr(), err.len()) });
             eprintln!("screen: window {id}: start returned {started} after {:?}", asked.elapsed());
             match started {
                 0 => {}
@@ -2094,7 +2094,7 @@ mod mac {
             let size = move || window_info(id).map(|((_, _, w, h), _, _)| (w.round() as i32, h.round() as i32));
             let areas = move || {
                 let ((x, y, w, h), _, on) = window_info(id)?;
-                let drags = |px: i32, py: i32| match unsafe { muxen_drags_at(pid, x + px as f64, y + py as f64) } {
+                let drags = |px: i32, py: i32| match unsafe { andruide_drags_at(pid, x + px as f64, y + py as f64) } {
                     -1 => None,
                     n => Some(n == 1),
                 };
@@ -2134,20 +2134,20 @@ mod mac {
         /// Lets go of every key and button it pressed there.
         fn let_go(&mut self) {
             for (code, _) in self.pressed.drain(..) {
-                unsafe { muxen_key(code, 0, key_flags(code, 0)) };
+                unsafe { andruide_key(code, 0, key_flags(code, 0)) };
             }
             let (x, y) = self.at;
             for (i, up) in [LEFT_UP, RIGHT_UP, OTHER_UP].into_iter().enumerate() {
                 if std::mem::take(&mut self.held[i]) {
-                    unsafe { muxen_mouse(up, x, y, i as u32, 1) };
+                    unsafe { andruide_mouse(up, x, y, i as u32, 1) };
                 }
             }
         }
 
         /// Brings an app's window to the front, so clicks and keys reach it.
         fn raise(&self, win: &MacWin) {
-            if unsafe { muxen_app_in_front(win.pid) } == 0 {
-                unsafe { muxen_window_raise(win.id, win.pid) };
+            if unsafe { andruide_app_in_front(win.pid) } == 0 {
+                unsafe { andruide_window_raise(win.id, win.pid) };
                 std::thread::sleep(std::time::Duration::from_millis(60));
             }
         }
@@ -2178,7 +2178,7 @@ mod mac {
                     return Some(None);
                 }
             }
-            if unsafe { muxen_capture_stopped() } == 1 {
+            if unsafe { andruide_capture_stopped() } == 1 {
                 return None;
             }
             let mut l = self.latest.lock().unwrap();
@@ -2200,14 +2200,14 @@ mod mac {
             if let Some(win) = self.window.as_mut() {
                 win.stop.store(true, std::sync::atomic::Ordering::Relaxed);
                 if let Some((w, h)) = win.restore.take() {
-                    unsafe { muxen_window_resize(win.id, win.pid, w, h) };
+                    unsafe { andruide_window_resize(win.id, win.pid, w, h) };
                 }
             }
             if !captures::others_streaming() {
                 return;
             }
             captures::mark("idle");
-            unsafe { muxen_capture_idle() };
+            unsafe { andruide_capture_idle() };
             let since = Instant::now();
             while captures::others_streaming() && since.elapsed() < std::time::Duration::from_secs(3600) {
                 std::thread::sleep(std::time::Duration::from_millis(250));
@@ -2223,7 +2223,7 @@ mod mac {
             (self.origin, self.points) = ((x, y), (w, h));
             let (fw, fh) = window_frame((w, h), win.scale, self.max_width);
             // (Captured through its display, the capture follows it as it moves too.)
-            unsafe { muxen_capture_follow(x, y, w, h, fw, fh) };
+            unsafe { andruide_capture_follow(x, y, w, h, fw, fh) };
             if (fw, fh) == (self.fw, self.fh) {
                 return false;
             }
@@ -2243,9 +2243,9 @@ mod mac {
             win.ticks += 1;
             if win.ticks % 3 == 0 {
                 let (mut px, mut py) = (0., 0.);
-                unsafe { muxen_pointer(&mut px, &mut py) };
+                unsafe { andruide_pointer(&mut px, &mut py) };
                 let over = px >= origin.0 && py >= origin.1 && px < origin.0 + points.0 && py < origin.1 + points.1;
-                let kind = unsafe { std::ffi::CStr::from_ptr(muxen_cursor_kind()) }.to_str().unwrap_or("arrow");
+                let kind = unsafe { std::ffi::CStr::from_ptr(andruide_cursor_kind()) }.to_str().unwrap_or("arrow");
                 let kind: &'static str = ["text", "hand", "ew", "ns", "crosshair", "move"].into_iter().find(|k| *k == kind).unwrap_or("arrow");
                 if over && kind != win.cursor {
                     win.cursor = kind;
@@ -2264,7 +2264,7 @@ mod mac {
             let mut m = serde_json::Map::new();
             if let Some(win) = &self.window {
                 let mut buf = [0u8; 512];
-                let n = unsafe { muxen_window_title(win.id, buf.as_mut_ptr(), buf.len()) }.min(buf.len());
+                let n = unsafe { andruide_window_title(win.id, buf.as_mut_ptr(), buf.len()) }.min(buf.len());
                 m.insert("title".into(), String::from_utf8_lossy(&buf[..n]).into_owned().into());
                 m.insert("scale".into(), (self.fw as f64 / self.points.0.max(1.)).into());
             }
@@ -2292,18 +2292,18 @@ mod mac {
                     }
                     "key" | "text" if down || kind == "text" => {
                         self.raise(&win);
-                        super::comes_to_front(|| unsafe { muxen_app_in_front(win.pid) } == 1)
+                        super::comes_to_front(|| unsafe { andruide_app_in_front(win.pid) } == 1)
                     }
                     "resize" => {
                         let (w, h) = (e["w"].as_f64().unwrap_or(0.).max(200.), e["h"].as_f64().unwrap_or(0.).max(120.));
                         if win.restore.is_none() {
                             win.restore = Some(self.points);
                         }
-                        unsafe { muxen_window_resize(win.id, win.pid, w, h) };
+                        unsafe { andruide_window_resize(win.id, win.pid, w, h) };
                         false
                     }
                     "restore" => {
-                        unsafe { muxen_window_raise(win.id, win.pid) };
+                        unsafe { andruide_window_raise(win.id, win.pid) };
                         false
                     }
                     _ => true,
@@ -2338,7 +2338,7 @@ mod mac {
                     } else {
                         MOVED
                     };
-                    unsafe { muxen_mouse(kind, x, y, 0, 0) };
+                    unsafe { andruide_mouse(kind, x, y, 0, 0) };
                 }
                 "button" => {
                     let (x, y) = self.point(e, frame);
@@ -2362,18 +2362,18 @@ mod mac {
                     };
                     self.held[index] = down;
                     self.at = (x, y);
-                    unsafe { muxen_mouse(if down { kinds.0 } else { kinds.1 }, x, y, button, clicks) };
+                    unsafe { andruide_mouse(if down { kinds.0 } else { kinds.1 }, x, y, button, clicks) };
                 }
                 "scroll" => {
                     let (x, y) = self.point(e, frame);
-                    unsafe { muxen_mouse(MOVED, x, y, 0, 0) };
+                    unsafe { andruide_mouse(MOVED, x, y, 0, 0) };
                     let (dy, dx) = (e["dy"].as_i64().unwrap_or(0).clamp(-20, 20) as i32, e["dx"].as_i64().unwrap_or(0).clamp(-20, 20) as i32);
-                    unsafe { muxen_scroll(dy, dx) };
+                    unsafe { andruide_scroll(dy, dx) };
                 }
                 "text" => {
                     let utf16: Vec<u16> = e["s"].as_str().unwrap_or("").encode_utf16().collect();
                     if !utf16.is_empty() {
-                        unsafe { muxen_text(utf16.as_ptr(), utf16.len()) };
+                        unsafe { andruide_text(utf16.as_ptr(), utf16.len()) };
                     }
                 }
                 "key" => {
@@ -2396,20 +2396,20 @@ mod mac {
                             (super::typed_char(sym).is_none() || self.pressed.iter().any(|(c, _)| *c == code)).then_some(code)
                         });
                         if let Some(code) = code {
-                            unsafe { muxen_key(code, 0, key_flags(code, self.flags)) };
+                            unsafe { andruide_key(code, 0, key_flags(code, self.flags)) };
                             self.pressed.retain(|(c, _)| *c != code);
                         }
                         return;
                     }
                     match mac_press(sym, self.flags, e["char"].as_bool().unwrap_or(false), &Layout::current()) {
                         MacPress::Key(code, flags) => {
-                            unsafe { muxen_key(code, 1, key_flags(code, flags)) };
+                            unsafe { andruide_key(code, 1, key_flags(code, flags)) };
                             self.pressed.retain(|(c, _)| *c != code);
                             self.pressed.push((code, sym));
                         }
                         MacPress::Text => {
                             let unit = text_unit(sym, self.flags);
-                            unsafe { muxen_text(&unit, 1) };
+                            unsafe { andruide_text(&unit, 1) };
                         }
                         MacPress::Nothing => {}
                     }
@@ -2431,16 +2431,16 @@ mod mac {
     }
 
     /// The name System Settings › Privacy & Security lists this agent under:
-    /// Muxin Agent when it runs from its app (Muxin 0.10.0 and later), else
+    /// AndruIDE Agent when it runs from its app (AndruIDE 0.10.0 and later), else
     /// the plain program's own name.
     fn listed_as() -> &'static str {
         let exe = std::env::current_exe().and_then(std::fs::canonicalize).unwrap_or_default();
         listed_name(&exe)
     }
 
-    /// `~/.muxen/bin/muxen-agent` is a link: `exe` is where it leads.
+    /// `~/.andruide/bin/andruide-agent` is a link: `exe` is where it leads.
     fn listed_name(exe: &std::path::Path) -> &'static str {
-        if exe.to_string_lossy().contains("Muxin Agent.app/Contents/MacOS/") { "Muxin Agent" } else { "muxen-agent" }
+        if exe.to_string_lossy().contains("AndruIDE Agent.app/Contents/MacOS/") { "AndruIDE Agent" } else { "andruide-agent" }
     }
 
     /// The CGEventFlags bit of a modifier keysym.
@@ -2493,7 +2493,7 @@ mod mac {
         /// A US keyboard's when it can't say.
         fn current() -> Layout {
             let mut keys = [[0; 4]; 128];
-            if unsafe { muxen_key_layout(keys.as_mut_ptr(), keys.len()) } == 1 { Layout(keys) } else { Layout::us() }
+            if unsafe { andruide_key_layout(keys.as_mut_ptr(), keys.len()) } == 1 { Layout(keys) } else { Layout::us() }
         }
 
         /// From what each of those four types, key after key: keycodes 0 to 50,
@@ -2604,10 +2604,10 @@ mod mac {
 
         #[test]
         fn permissions_name_the_app_the_agent_runs_from() {
-            let app = std::path::Path::new("/Users/me/.muxen/agent/c79755dff29f2948/Muxin Agent.app/Contents/MacOS/muxen-agent");
-            assert_eq!(listed_name(app), "Muxin Agent");
-            assert_eq!(listed_name(std::path::Path::new("/Users/me/.muxen/bin/muxen-agent")), "muxen-agent");
-            assert_eq!(listed_name(std::path::Path::new("")), "muxen-agent");
+            let app = std::path::Path::new("/Users/me/.andruide/agent/c79755dff29f2948/AndruIDE Agent.app/Contents/MacOS/andruide-agent");
+            assert_eq!(listed_name(app), "AndruIDE Agent");
+            assert_eq!(listed_name(std::path::Path::new("/Users/me/.andruide/bin/andruide-agent")), "andruide-agent");
+            assert_eq!(listed_name(std::path::Path::new("")), "andruide-agent");
         }
 
         // On a US keyboard, unless a test says otherwise.
@@ -2694,7 +2694,7 @@ mod mac {
 
         #[test]
         fn without_char_shift_and_a_key_stay_that() {
-            // `muxin desktop input` "shift+2" and "2".
+            // `andruide desktop input` "shift+2" and "2".
             assert_eq!(mac_press('2' as u32, SHIFT, false), MacPress::Key(19, SHIFT));
             assert_eq!(mac_press('2' as u32, 0, false), MacPress::Key(19, 0));
             // "@" by itself, or an older app, which lets go of Shift first.
@@ -2702,7 +2702,7 @@ mod mac {
             assert_eq!(mac_press('@' as u32, SHIFT, false), MacPress::Key(19, SHIFT));
         }
 
-        // Layouts as `muxen_read_keys` reads them from macOS's own data.
+        // Layouts as `andruide_read_keys` reads them from macOS's own data.
         fn german() -> Layout {
             Layout::from_levels([
                 "asdfhgyxcv\0bqwerzt123465\097ß80+ouüipljäkö#,-nm.<",
@@ -2818,7 +2818,7 @@ mod mac {
         #[test]
         fn a_german_mac_without_char_keeps_shift_and_a_key() {
             let press = |c: char, flags| super::mac_press(c as u32, flags, false, &german());
-            // `muxin desktop input` "shift+2", whatever that types here, and "2".
+            // `andruide desktop input` "shift+2", whatever that types here, and "2".
             assert_eq!(press('2', SHIFT), MacPress::Key(19, SHIFT));
             assert_eq!(press('2', 0), MacPress::Key(19, 0));
             // "@" by itself.

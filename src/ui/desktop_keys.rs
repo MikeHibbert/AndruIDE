@@ -267,7 +267,7 @@ pub fn release_key_label() -> &'static str {
 }
 
 /// Something the Keys menu sends: a combination no keyboard here can send,
-/// or that this computer keeps for itself. `keys` is as `muxin desktop input`
+/// or that this computer keeps for itself. `keys` is as `andruide desktop input`
 /// takes it ("ctrl+right").
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Combo {

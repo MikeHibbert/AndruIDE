@@ -3,7 +3,7 @@
 //! again: the list, titles, folders and recent scrollback, with the programs
 //! started fresh (daemon.rs `restore`).
 //!
-//! One folder per session, `~/.muxen/sessions/<name>/`:
+//! One folder per session, `~/.andruide/sessions/<name>/`:
 //! - `session.json`: what it is (name, agent, title, folder, command, size,
 //!   whether it had exited), written when that changes;
 //! - `screen`: its recent scrollback and screen as escape sequences, written
@@ -25,7 +25,7 @@ use serde_json::Value;
 /// Which set of fields `session.json` has (see above).
 pub const VERSION: i64 = 1;
 
-/// Where sessions are saved: `~/.muxen/sessions` (another folder in tests).
+/// Where sessions are saved: `~/.andruide/sessions` (another folder in tests).
 #[derive(Clone)]
 pub struct Store {
     root: PathBuf,
@@ -36,7 +36,7 @@ impl Store {
         Store { root }
     }
 
-    /// The session server's own: `~/.muxen/sessions`.
+    /// The session server's own: `~/.andruide/sessions`.
     pub fn home() -> Store {
         Store::new(crate::home_dir().join("sessions"))
     }
@@ -114,7 +114,7 @@ fn usable(meta: &Value, folder: &str) -> bool {
 /// An empty store of its own, for a test.
 #[cfg(test)]
 pub fn scratch(tag: &str) -> Store {
-    let root = std::env::temp_dir().join(format!("muxen-saved-{tag}-{}", std::process::id()));
+    let root = std::env::temp_dir().join(format!("andruide-saved-{tag}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&root);
     Store::new(root)
 }

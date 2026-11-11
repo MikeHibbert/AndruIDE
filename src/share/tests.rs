@@ -3,8 +3,8 @@
 //! build, and moves HOME (so it runs alone):
 //!
 //! ```text
-//! cargo run -p muxin-share-server &
-//! MUXIN_TEST_SHARE_SERVER=http://127.0.0.1:8787 MUXIN_TEST_AGENT=target/debug/muxen-agent \
+//! cargo run -p andruide-share-server &
+//! ANDRUIDE_TEST_SHARE_SERVER=http://127.0.0.1:8787 ANDRUIDE_TEST_AGENT=target/debug/andruide-agent \
 //!   cargo test share::tests -- --ignored --test-threads=1
 //! ```
 
@@ -82,10 +82,10 @@ async fn output_until(frames: &mut Frames, needle: &str, within: Duration) -> (S
 /// A home of its own with the test agent in it (the agent and its sessions
 /// live there), and a link to that agent.
 async fn test_machine(tag: &str) -> (std::path::PathBuf, MachineSpec, Arc<Link>) {
-    let agent = std::env::var("MUXIN_TEST_AGENT").expect("set MUXIN_TEST_AGENT");
-    let home = std::env::temp_dir().join(format!("muxin-share-{tag}-{}", std::process::id()));
-    std::fs::create_dir_all(home.join(".muxen/bin")).unwrap();
-    std::fs::copy(&agent, home.join(".muxen/bin/muxen-agent")).unwrap();
+    let agent = std::env::var("ANDRUIDE_TEST_AGENT").expect("set ANDRUIDE_TEST_AGENT");
+    let home = std::env::temp_dir().join(format!("andruide-share-{tag}-{}", std::process::id()));
+    std::fs::create_dir_all(home.join(".andruide/bin")).unwrap();
+    std::fs::copy(&agent, home.join(".andruide/bin/andruide-agent")).unwrap();
     unsafe { std::env::set_var("HOME", &home) };
     let spec: MachineSpec = toml::from_str("name = \"Here\"\nid = \"here\"\nhost = \"local\"").unwrap();
     // Not a link to another test's agent (in its home, gone now).
@@ -98,7 +98,7 @@ async fn test_machine(tag: &str) -> (std::path::PathBuf, MachineSpec, Arc<Link>)
 /// takes one for the whole process, so the tests that need an app's key
 /// share it, and it stays until the run ends.
 fn app_home() -> std::path::PathBuf {
-    let dir = std::env::temp_dir().join(format!("muxin-test-app-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("andruide-test-app-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     crate::fleet::direct::init(dir.clone());
     dir
@@ -142,7 +142,7 @@ async fn screen(l: &Link, name: &str) -> String {
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 #[ignore]
 async fn a_guest_watches_then_types_when_let() {
-    let server = std::env::var("MUXIN_TEST_SHARE_SERVER").expect("set MUXIN_TEST_SHARE_SERVER");
+    let server = std::env::var("ANDRUIDE_TEST_SHARE_SERVER").expect("set ANDRUIDE_TEST_SHARE_SERVER");
     let (home, spec, l) = test_machine("session").await;
     start_session(&l, &home, "shared", "").await;
     let share = host::start(&server, target("shared", "Checkout fix", "shell", "Here"), options(true, Desktop::Control, vec![Port { port: 22, name: "ssh".into(), ..Default::default() }], 120), Arc::new(Local(spec.clone())))
@@ -272,7 +272,7 @@ async fn echo_server() -> u16 {
 #[ignore]
 async fn a_guest_uses_a_shared_machine() {
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
-    let server = std::env::var("MUXIN_TEST_SHARE_SERVER").expect("set MUXIN_TEST_SHARE_SERVER");
+    let server = std::env::var("ANDRUIDE_TEST_SHARE_SERVER").expect("set ANDRUIDE_TEST_SHARE_SERVER");
     let (home, spec, l) = test_machine("machine").await;
     start_session(&l, &home, "api", "API server").await;
     start_session(&l, &home, "web", "Web").await;
@@ -402,19 +402,19 @@ async fn a_guest_uses_a_shared_machine() {
 }
 
 /// Hosts a share for a browser to join by hand (or by a browser driver):
-/// writes the link to `MUXIN_TEST_LINK_FILE`, lets guests in, lets them type
+/// writes the link to `ANDRUIDE_TEST_LINK_FILE`, lets guests in, lets them type
 /// 15 seconds later, and keeps the sessions busy. Stops after 10 minutes.
-/// `MUXIN_TEST_SHARE_MACHINE=1` shares the machine (two sessions and a small
-/// web server) instead of one session; `MUXIN_TEST_SHARE_DESKTOP=view` or
+/// `ANDRUIDE_TEST_SHARE_MACHINE=1` shares the machine (two sessions and a small
+/// web server) instead of one session; `ANDRUIDE_TEST_SHARE_DESKTOP=view` or
 /// `control` shares its desktop too (this computer's screen: not on yours).
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 #[ignore]
 async fn hosts_for_a_browser() {
-    let (Ok(server), Ok(link_file)) = (std::env::var("MUXIN_TEST_SHARE_SERVER"), std::env::var("MUXIN_TEST_LINK_FILE")) else {
-        panic!("set MUXIN_TEST_SHARE_SERVER, MUXIN_TEST_AGENT and MUXIN_TEST_LINK_FILE");
+    let (Ok(server), Ok(link_file)) = (std::env::var("ANDRUIDE_TEST_SHARE_SERVER"), std::env::var("ANDRUIDE_TEST_LINK_FILE")) else {
+        panic!("set ANDRUIDE_TEST_SHARE_SERVER, ANDRUIDE_TEST_AGENT and ANDRUIDE_TEST_LINK_FILE");
     };
-    let machine = std::env::var("MUXIN_TEST_SHARE_MACHINE").is_ok_and(|v| v == "1");
-    let desktop = match std::env::var("MUXIN_TEST_SHARE_DESKTOP").unwrap_or_default().as_str() {
+    let machine = std::env::var("ANDRUIDE_TEST_SHARE_MACHINE").is_ok_and(|v| v == "1");
+    let desktop = match std::env::var("ANDRUIDE_TEST_SHARE_DESKTOP").unwrap_or_default().as_str() {
         "view" => Desktop::View,
         "control" => Desktop::Control,
         _ => Desktop::None,
@@ -518,7 +518,7 @@ fn pairing_hooks(trusted: Trusted, noted: Noted) -> super::pair::Hooks {
 #[ignore]
 async fn an_ipad_pairs_once_allowed() {
     use super::pair;
-    let server = std::env::var("MUXIN_TEST_SHARE_SERVER").expect("set MUXIN_TEST_SHARE_SERVER");
+    let server = std::env::var("ANDRUIDE_TEST_SHARE_SERVER").expect("set ANDRUIDE_TEST_SHARE_SERVER");
     let ipad = app_home();
     let key = crate::fleet::direct::app_fingerprint().unwrap();
     let (trusted, noted) = (Arc::new(std::sync::Mutex::new(Vec::new())), Arc::new(std::sync::Mutex::new(None)));
@@ -592,7 +592,7 @@ async fn the_agent_trusts_another_app() {
     let ask = json!({ "op": "trust", "client": ipad });
     let r = l.request(ask.clone(), Duration::from_secs(10)).await.unwrap();
     assert_eq!(r["ok"], false, "not set up yet: {r}");
-    let direct = home.join(".muxen/direct");
+    let direct = home.join(".andruide/direct");
     std::fs::create_dir_all(&direct).unwrap();
     std::fs::write(direct.join("trusted"), format!("{mac}\n")).unwrap();
     let r = l.request(ask, Duration::from_secs(10)).await.unwrap();
@@ -617,9 +617,9 @@ fn an_unpaired_app_is_let_go() {
 
 async fn unpaired_app_is_let_go() {
     use crate::fleet::direct;
-    let agent = std::env::var("MUXIN_TEST_AGENT").expect("set MUXIN_TEST_AGENT");
-    let home = std::env::temp_dir().join(format!("muxin-unpaired-{}", std::process::id()));
-    let dir = home.join(".muxen/direct");
+    let agent = std::env::var("ANDRUIDE_TEST_AGENT").expect("set ANDRUIDE_TEST_AGENT");
+    let home = std::env::temp_dir().join(format!("andruide-unpaired-{}", std::process::id()));
+    let dir = home.join(".andruide/direct");
     std::fs::create_dir_all(&dir).unwrap();
     app_home();
     let app = direct::app_fingerprint().unwrap();
@@ -670,10 +670,10 @@ fn an_ipad_hears_when_an_agent_waits() {
 async fn ipad_hears_when_an_agent_waits() {
     use crate::fleet::direct;
     use base64::Engine as _;
-    let agent = std::env::var("MUXIN_TEST_AGENT").expect("set MUXIN_TEST_AGENT");
-    let server = std::env::var("MUXIN_TEST_SHARE_SERVER").expect("set MUXIN_TEST_SHARE_SERVER");
-    let home = std::env::temp_dir().join(format!("muxin-alerts-{}", std::process::id()));
-    let dir = home.join(".muxen/direct");
+    let agent = std::env::var("ANDRUIDE_TEST_AGENT").expect("set ANDRUIDE_TEST_AGENT");
+    let server = std::env::var("ANDRUIDE_TEST_SHARE_SERVER").expect("set ANDRUIDE_TEST_SHARE_SERVER");
+    let home = std::env::temp_dir().join(format!("andruide-alerts-{}", std::process::id()));
+    let dir = home.join(".andruide/direct");
     std::fs::create_dir_all(&dir).unwrap();
     app_home();
     let app = direct::app_fingerprint().unwrap();

@@ -1,8 +1,8 @@
-// Joins a Muxin share from the browser: the link's ticket (after the #)
+// Joins a AndruIDE share from the browser: the link's ticket (after the #)
 // names the share, its secret and its certificate. This page connects to
 // the sharing computer over WebRTC, refuses any other certificate, proves
 // it has the link, then shows what's shared: a session, or a machine's
-// sessions and screen. See src/share in Muxin.
+// sessions and screen. See src/share in AndruIDE.
 "use strict";
 
 (() => {
@@ -19,10 +19,10 @@
   function readTicket() {
     let fragment = location.hash.slice(1);
     if (fragment) {
-      try { sessionStorage.setItem("muxin-share", fragment); } catch (_) {}
+      try { sessionStorage.setItem("andruide-share", fragment); } catch (_) {}
       history.replaceState(null, "", location.pathname);
     } else {
-      try { fragment = sessionStorage.getItem("muxin-share") || ""; } catch (_) {}
+      try { fragment = sessionStorage.getItem("andruide-share") || ""; } catch (_) {}
     }
     const [version, data] = fragment.split(".");
     if (version !== "1" || !data) return null;
@@ -113,7 +113,7 @@
       facts.push(info.can_type ? "Its sessions: you can watch and type" : "Its sessions: you can watch");
       if (info.desktop === "view") facts.push("Its screen: you can watch");
       if (info.desktop === "control") facts.push(info.can_control ? "Its screen: you can watch and use it" : "Its screen: you can watch, and use it when they let you");
-      if (info.ports.length) facts.push(`${info.ports.length} server${info.ports.length === 1 ? "" : "s"}: open them in the Muxin app`);
+      if (info.ports.length) facts.push(`${info.ports.length} server${info.ports.length === 1 ? "" : "s"}: open them in the AndruIDE app`);
     } else {
       facts.push(info.can_type ? "You can watch and type" : "You can watch");
     }
@@ -259,7 +259,7 @@
     if (info.desktop !== "none") items.push(tab("Screen", state.showing && state.showing.kind === "desktop", showDesktop));
     if (info.ports.length) {
       items.push(Object.assign(document.createElement("span"), { className: "gap" }));
-      items.push(Object.assign(document.createElement("span"), { className: "hint", textContent: `${info.ports.length} server${info.ports.length === 1 ? "" : "s"} shared: open them in the Muxin app` }));
+      items.push(Object.assign(document.createElement("span"), { className: "hint", textContent: `${info.ports.length} server${info.ports.length === 1 ? "" : "s"} shared: open them in the AndruIDE app` }));
     }
     $("tabs").replaceChildren(...items);
     $("tabs").hidden = false;
@@ -385,9 +385,9 @@
   function wireScreen() {
     // How it looks: smoother and sharper takes more of the connection. The
     // choice is kept for next time; a new stream starts at it.
-    try { const q = localStorage.getItem("muxin-quality"); if (q && [...$("quality").options].some((o) => o.value === q)) $("quality").value = q; } catch (_) {}
+    try { const q = localStorage.getItem("andruide-quality"); if (q && [...$("quality").options].some((o) => o.value === q)) $("quality").value = q; } catch (_) {}
     $("quality").addEventListener("change", () => {
-      try { localStorage.setItem("muxin-quality", $("quality").value); } catch (_) {}
+      try { localStorage.setItem("andruide-quality", $("quality").value); } catch (_) {}
       if (!state.desktop) return;
       closeChannel(state.desktop);
       state.desktop = 0;
@@ -708,7 +708,7 @@
       if (!r.open) return finish("The share ended", "It isn't open right now.");
       const pc = new RTCPeerConnection({ iceServers: Array.isArray(r.ice) ? r.ice : [] });
       state.pc = pc;
-      const dc = pc.createDataChannel("muxin");
+      const dc = pc.createDataChannel("andruide");
       dc.binaryType = "arraybuffer";
       state.dc = dc;
       pc.onconnectionstatechange = () => {
@@ -728,8 +728,8 @@
       dc.onopen = async () => {
         const mine = fingerprint(pc.localDescription.sdp);
         if (!mine) return finish("Couldn't join", "This browser didn't offer a certificate.");
-        const proof = hex(await hmac(ticket.secret, `muxin-share-v1\n${ticket.fingerprint}\n${mine}`));
-        const tag = await hmac(ticket.secret, `muxin-share-code-v1\n${mine}`);
+        const proof = hex(await hmac(ticket.secret, `andruide-share-v1\n${ticket.fingerprint}\n${mine}`));
+        const tag = await hmac(ticket.secret, `andruide-share-code-v1\n${mine}`);
         const code = String(new DataView(tag.buffer).getUint32(0) % 1000000).padStart(6, "0");
         $("code").textContent = `${code.slice(0, 3)} ${code.slice(3)}`;
         $("code-box").hidden = false;
@@ -772,9 +772,9 @@
       show("done");
       return;
     }
-    $("open-app").href = `muxin://join?server=${encodeURIComponent(location.origin)}#${ticket.fragment}`;
+    $("open-app").href = `andruide://join?server=${encodeURIComponent(location.origin)}#${ticket.fragment}`;
     show("start");
-    try { $("name").value = localStorage.getItem("muxin-name") || ""; } catch (_) {}
+    try { $("name").value = localStorage.getItem("andruide-name") || ""; } catch (_) {}
     $("name").focus();
     $("name").addEventListener("input", () => { $("name-error").hidden = true; });
     $("join-form").addEventListener("submit", (e) => {
@@ -782,7 +782,7 @@
       const name = $("name").value.trim();
       if (!name) { $("name-error").hidden = false; return; }
       state.name = name.slice(0, 40);
-      try { localStorage.setItem("muxin-name", state.name); } catch (_) {}
+      try { localStorage.setItem("andruide-name", state.name); } catch (_) {}
       connect(ticket);
     });
     wireScreen();

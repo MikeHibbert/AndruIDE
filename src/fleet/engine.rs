@@ -50,7 +50,7 @@ struct State {
     last_publish: Option<Instant>,
     publish_scheduled: bool,
     /// Modification times of the files we last read or wrote, so changes made
-    /// by another Muxin process (the window, the CLI, an agent's MCP
+    /// by another AndruIDE process (the window, the CLI, an agent's MCP
     /// server) are noticed. See `sync_from_disk`.
     settings_mtime: Option<SystemTime>,
     state_mtime: Option<SystemTime>,
@@ -83,7 +83,7 @@ struct State {
     droplets: HashMap<String, String>,
     /// Machines' monitors, as last listed (see fleet::desktop).
     displays: HashMap<String, Vec<super::model::DisplayInfo>>,
-    /// Monitors' sizes from before Muxin first changed them, by machine and
+    /// Monitors' sizes from before AndruIDE first changed them, by machine and
     /// monitor, until they're back at them.
     display_before: HashMap<(String, String), (u32, u32)>,
     /// Stop flags of the operations that can be cancelled.
@@ -102,7 +102,7 @@ pub struct Engine {
 }
 
 /// Tests never touch the user's own home. An engine with a machine of host
-/// "local" runs this computer's agent from ~/.muxen (installing the build from
+/// "local" runs this computer's agent from ~/.andruide (installing the build from
 /// the checkout there) and puts hooks in ~/.claude and ~/.codex; in a test
 /// that's a folder of the test run's own, from the first engine on.
 #[cfg(test)]
@@ -376,7 +376,7 @@ impl Engine {
         (*self.current()).clone()
     }
 
-    /// Picks up what other Muxin processes wrote to the shared config
+    /// Picks up what other AndruIDE processes wrote to the shared config
     /// directory: config.toml edits (machines and settings), and newer machine
     /// checks in state.json. Cheap when nothing changed (three `stat` calls).
     pub fn refresh_from_disk(&self) {
@@ -422,7 +422,7 @@ impl Engine {
         Some((spec, st.probes.get(id).cloned()))
     }
 
-    /// Re-reads config.toml right away (after Muxin edited it) and publishes.
+    /// Re-reads config.toml right away (after AndruIDE edited it) and publishes.
     /// Publishes the snapshot again (when something outside the state changed, like idle times).
     #[cfg_attr(not(feature = "gui"), allow(dead_code))]
     pub(crate) fn republish(&self) {
@@ -637,7 +637,7 @@ impl Engine {
     }
 
     /// Takes newer agent choices a machine kept (made in another of the
-    /// user's Muxins), so this one shows and sends them too.
+    /// user's AndruIDEs), so this one shows and sends them too.
     pub(crate) fn adopt_agent_settings(&self, kept: &serde_json::Value) {
         let mut st = self.state.lock().unwrap();
         let mut settings = st.settings.clone();
@@ -710,7 +710,7 @@ impl Engine {
         self.publish(&mut st);
     }
 
-    /// Keeps a monitor's size, as last listed, before Muxin changes it; the
+    /// Keeps a monitor's size, as last listed, before AndruIDE changes it; the
     /// first one only, so a few changes in a row still lead back to where it
     /// was. False when the monitor hasn't been listed.
     pub(crate) fn remember_display_size(&self, machine_id: &str, display: &str) -> bool {
@@ -721,7 +721,7 @@ impl Engine {
     }
 
     /// What the machine's monitors are now (see fleet::desktop), each with
-    /// its size from before Muxin changed it, while it's at another.
+    /// its size from before AndruIDE changed it, while it's at another.
     pub(crate) fn set_displays(&self, machine_id: &str, mut displays: Vec<super::model::DisplayInfo>) {
         let mut st = self.state.lock().unwrap();
         for d in displays.iter_mut() {
@@ -831,7 +831,7 @@ impl Engine {
                 _ = tokio::time::sleep(poll) => {}
                 _ = self.sync_now.notified() => {}
             }
-            // Pick up config.toml edits (and settings/checks from other Muxin
+            // Pick up config.toml edits (and settings/checks from other AndruIDE
             // processes) without waiting for the next full check.
             let before = self.state.lock().unwrap().inventory.machines.len();
             self.refresh_from_disk();
@@ -1355,7 +1355,7 @@ fn mtime(path: &Path) -> Option<SystemTime> {
     std::fs::metadata(path).and_then(|m| m.modified()).ok()
 }
 
-/// Writes a starter config.toml (this computer only) the first time Muxin runs.
+/// Writes a starter config.toml (this computer only) the first time AndruIDE runs.
 pub fn ensure_inventory(paths: &Paths) {
     if paths.inventory.exists() {
         return;
@@ -1370,10 +1370,10 @@ pub fn ensure_inventory(paths: &Paths) {
 mod tests {
     use super::*;
 
-    /// Two Muxin processes (say, the window and an agent's MCP server) share one config dir.
+    /// Two AndruIDE processes (say, the window and an agent's MCP server) share one config dir.
     #[tokio::test(flavor = "multi_thread")]
     async fn picks_up_changes_from_other_processes() {
-        let dir = std::env::temp_dir().join(format!("muxen-xproc-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("andruide-xproc-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         std::fs::write(dir.join("config.toml"), "[[machine]]\nname = \"Box\"\nhost = \"box.invalid\"\n").unwrap();
@@ -1419,7 +1419,7 @@ mod tests {
     /// wait for that one, not return before the machine has been looked at.
     #[tokio::test(flavor = "multi_thread")]
     async fn checking_a_machine_waits_for_a_check_already_running() {
-        let engine = Engine::new(Paths::resolve(Some(std::env::temp_dir().join("muxen-check-wait")), None), true);
+        let engine = Engine::new(Paths::resolve(Some(std::env::temp_dir().join("andruide-check-wait")), None), true);
         let mut rx = engine.subscribe();
         engine.trigger_check(Some("beacon".into()));
         let started = |s: &Snapshot| s.machines.iter().any(|m| m.id == "beacon" && m.checking);
@@ -1433,11 +1433,11 @@ mod tests {
         assert_eq!(beacon.platform, "linux-x64");
     }
 
-    /// A monitor Muxin resized keeps the size it had as `before`, through
+    /// A monitor AndruIDE resized keeps the size it had as `before`, through
     /// more changes, until it's back at it.
     #[tokio::test(flavor = "multi_thread")]
     async fn a_resized_monitor_remembers_its_size() {
-        let engine = Engine::new(Paths::resolve(Some(std::env::temp_dir().join("muxen-display-before")), None), true);
+        let engine = Engine::new(Paths::resolve(Some(std::env::temp_dir().join("andruide-display-before")), None), true);
         let at = |w: u32, h: u32| -> Vec<super::super::model::DisplayInfo> { vec![serde_json::from_value(serde_json::json!({ "id": "2", "name": "BenQ", "width": w, "height": h })).unwrap()] };
         let before = |engine: &Engine| engine.state.lock().unwrap().displays["m"][0].before;
         assert!(!engine.remember_display_size("m", "2"), "a monitor never listed");

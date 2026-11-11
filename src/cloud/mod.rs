@@ -1,4 +1,4 @@
-//! Cloud machines: droplets Muxin creates in the user's DigitalOcean account,
+//! Cloud machines: droplets AndruIDE creates in the user's DigitalOcean account,
 //! sets up, and adds to your machines (see ops::cloud for the operations).
 
 pub mod auth;
@@ -21,7 +21,7 @@ pub struct CloudOptions {
     /// "token" | "oauth" | "doctl"
     pub method: String,
     pub signed_in: bool,
-    /// The browser sign-in is built into this copy of Muxin.
+    /// The browser sign-in is built into this copy of AndruIDE.
     pub oauth_available: bool,
     pub account: Option<Account>,
     pub regions: Vec<Region>,
@@ -50,7 +50,7 @@ pub struct CloudCreate {
     pub install: Option<Vec<String>>,
 }
 
-/// Basic droplets on regular CPUs, the ones Muxin offers: the premium AMD
+/// Basic droplets on regular CPUs, the ones AndruIDE offers: the premium AMD
 /// and Intel twins of each size are left out.
 pub fn regular_size(slug: &str) -> bool {
     slug.starts_with("s-") && !slug.ends_with("-amd") && !slug.ends_with("-intel")

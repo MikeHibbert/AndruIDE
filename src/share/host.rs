@@ -126,7 +126,7 @@ pub trait Source: Send + Sync + 'static {
     fn agents(&self) -> Vec<String>;
 }
 
-/// The machine through Muxin's engine: its agent up to date, then its link.
+/// The machine through AndruIDE's engine: its agent up to date, then its link.
 pub struct EngineSource {
     pub engine: Arc<crate::fleet::Engine>,
     pub machine_id: String,
@@ -1149,7 +1149,7 @@ async fn open_watch(share: &Arc<Share>, channel: u32, asked: &str, can_type: boo
 async fn attach(share: &Arc<Share>, name: &str, can_type: bool) -> Result<(Arc<Link>, u32, mpsc::UnboundedReceiver<(u8, Vec<u8>)>), String> {
     let link = share.machine().await?;
     if !supports_sharing(link.version()) {
-        return Err(format!("Muxin's agent on {} needs an update to share sessions.", share.target.machine_name));
+        return Err(format!("AndruIDE's agent on {} needs an update to share sessions.", share.target.machine_name));
     }
     let (link_channel, frames) = link.open_channel();
     let request = json!({ "op": "attach", "name": name, "channel": link_channel, "watch_only": !can_type, "sizes": true });

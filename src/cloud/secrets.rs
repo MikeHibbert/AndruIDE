@@ -1,13 +1,13 @@
-//! Secrets Muxin keeps for the user (cloud tokens): in the macOS Keychain, in
+//! Secrets AndruIDE keeps for the user (cloud tokens): in the macOS Keychain, in
 //! Windows' Credential Manager, or elsewhere in a file only the user can
 //! read, next to config.toml.
 
 use std::path::{Path, PathBuf};
 
 #[cfg(any(target_os = "macos", windows))]
-// The app was called Muxen when these were first saved; the name stays so
+// The app was called AndruIDE when these were first saved; the name stays so
 // sign-ins made then keep working.
-const SERVICE: &str = "Muxen";
+const SERVICE: &str = "AndruIDE";
 
 /// Stores a secret under a name ("digitalocean-token").
 pub fn set(dir: &Path, name: &str, value: &str) -> Result<(), String> {
@@ -66,7 +66,7 @@ pub fn delete(dir: &Path, name: &str) {
     }
 }
 
-/// Windows' Credential Manager: generic credentials named "Muxen/<name>",
+/// Windows' Credential Manager: generic credentials named "AndruIDE/<name>",
 /// for this user, kept on this computer.
 #[cfg(windows)]
 mod credentials {
@@ -79,7 +79,7 @@ mod credentials {
 
     pub fn set(name: &str, value: &str) -> Result<(), String> {
         let mut target = target(name);
-        let mut user: Vec<u16> = "Muxen".encode_utf16().chain(std::iter::once(0)).collect();
+        let mut user: Vec<u16> = "AndruIDE".encode_utf16().chain(std::iter::once(0)).collect();
         let mut blob = value.as_bytes().to_vec();
         let cred = CREDENTIALW {
             Flags: 0,

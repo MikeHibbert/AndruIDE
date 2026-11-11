@@ -1,7 +1,7 @@
 //! The shared clipboard, once it's turned on in Settings: text copied on this
 //! computer can be pasted on the machines (Linux desktops, Macs), and text
 //! copied on one of them lands here and on the others. Each machine's agent
-//! runs `muxen-agent clip` on a link channel (see agent/src/clipboard.rs); the
+//! runs `andruide-agent clip` on a link channel (see agent/src/clipboard.rs); the
 //! window watches this computer's clipboard and calls `local_changed`.
 
 use std::collections::HashMap;

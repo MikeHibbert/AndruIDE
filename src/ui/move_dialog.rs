@@ -43,7 +43,7 @@ impl Focusable for MoveDialog {
     }
 }
 
-/// The agent CLIs Muxin found on a machine.
+/// The agent CLIs AndruIDE found on a machine.
 fn agents_on(engine: &Engine, machine: &str) -> Vec<&'static str> {
     let s = engine.current();
     let found: Vec<String> = s.machines.iter().find(|m| m.id == machine).map(|m| m.agents.clone()).unwrap_or_default();
@@ -97,7 +97,7 @@ impl Render for MoveDialog {
             .flex_col()
             .gap(px(8.))
             .child(div().flex().flex_wrap().gap(px(6.)).children(agents))
-            .when(none, |d| d.child(quiet(format!("Muxin hasn't found an agent CLI on {there} yet: install one there (Claude Code, Codex, …).")))) ;
+            .when(none, |d| d.child(quiet(format!("AndruIDE hasn't found an agent CLI on {there} yet: install one there (Claude Code, Codex, …).")))) ;
 
         // What goes along, and where it lands: the session as it is now (its git may come in after the dialog opens).
         let current = s.sessions.iter().find(|x| x.id == self.session.id);

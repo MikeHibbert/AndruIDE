@@ -201,7 +201,7 @@ pub fn signal(req: &Value) -> Value {
         return json!({ "ok": false, "error": "Which process?" });
     };
     if pid as u32 == std::process::id() {
-        return json!({ "ok": false, "error": "That's Muxen's agent itself." });
+        return json!({ "ok": false, "error": "That's AndruIDE's agent itself." });
     }
     #[cfg(windows)]
     {

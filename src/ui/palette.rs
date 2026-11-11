@@ -398,7 +398,7 @@ impl Root {
             head.group = Some(m.id.clone());
             out.push(head);
             if m.is_disconnected() {
-                let mut item = Item::new("Connect", "Muxin connects to it again", "Machine", Glyph::Icon("plug"), Run::Connect(m.id.clone()));
+                let mut item = Item::new("Connect", "AndruIDE connects to it again", "Machine", Glyph::Icon("plug"), Run::Connect(m.id.clone()));
                 item.indent = true;
                 item.group = Some(m.id.clone());
                 item.also = m.name.clone();
@@ -512,12 +512,12 @@ impl Root {
             item("Settings: Cloud", "cloud", None, Run::Do(Command::Settings(SettingsTab::Cloud))),
             item("Settings: Keyboard shortcuts", "keyboard", None, Run::Do(Command::Settings(SettingsTab::Keyboard))),
             item("Cloud usage and cost", "cloud", None, Run::Do(Command::Settings(SettingsTab::Cloud))),
-            item("Install the muxin command", "terminal", None, Run::Do(Command::Settings(SettingsTab::General))),
+            item("Install the andruide command", "terminal", None, Run::Do(Command::Settings(SettingsTab::General))),
             item("Theme: Choose…", "palette", None, Run::Do(Command::ChooseTheme)),
             item("Theme: Light mode", "palette", None, Run::Do(Command::Theme(Mode::Light))),
             item("Theme: Dark mode", "palette", None, Run::Do(Command::Theme(Mode::Dark))),
             item("Theme: Match the system", "palette", None, Run::Do(Command::Theme(Mode::System))),
-            item("About Muxin", "info", None, Run::Go(Route::About)),
+            item("About AndruIDE", "info", None, Run::Go(Route::About)),
         ];
         share.into_iter().chain(rename).chain(all).collect()
     }

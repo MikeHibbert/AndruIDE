@@ -1,5 +1,5 @@
-# Muxin: control one installed runner (macOS / Linux).
-# Muxin prepends these variables:
+# AndruIDE: control one installed runner (macOS / Linux).
+# AndruIDE prepends these variables:
 #   OR_ACTION  start | stop | restart | logs | remove | update
 #   OR_DIR     the runner folder (contains config.sh and .runner)
 #   OR_TOKEN   remove token (remove only; empty skips deregistration)
@@ -149,7 +149,7 @@ case "$OR_ACTION" in
       fail "Neither sha256sum nor shasum is installed, so the runner package can't be checked."
     fi
     # Everything that can fail by itself comes first, with the runner still running.
-    new=.muxin-update
+    new=.andruide-update
     rm -rf "$new"
     mkdir -p "$new/unpacked" || fail "Couldn't create $OR_DIR/$new."
     url="https://github.com/actions/runner/releases/download/v$OR_VERSION/$pkg"

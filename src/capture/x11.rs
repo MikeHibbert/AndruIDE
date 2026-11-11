@@ -5,12 +5,12 @@
 //!
 //! GPUI's own connection can't be reached (its window gives no handle on
 //! X11), so the grab is held by a connection of ours, which passes each key
-//! on to Muxin's window as the event it would have been. GPUI reads those
+//! on to AndruIDE's window as the event it would have been. GPUI reads those
 //! like any key. The grab itself makes the X server tell the window it lost
 //! the keyboard; a FocusIn sent after it tells GPUI it's back, so it keeps
 //! reporting the modifier keys (see `Capture::settling`).
 //!
-//! If Muxin dies, the connection closes and the X server ends the grab.
+//! If AndruIDE dies, the connection closes and the X server ends the grab.
 
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering::Relaxed};
@@ -36,19 +36,19 @@ fn property(conn: &RustConnection, window: Window, name: &str, kind: AtomEnum) -
     reply.value32()?.next()
 }
 
-/// Muxin's window with the keyboard: the one the window manager says is
+/// AndruIDE's window with the keyboard: the one the window manager says is
 /// active (or, with no window manager, the one with the input focus), when
 /// it's this program's.
 fn our_window(conn: &RustConnection, root: Window) -> Option<Window> {
     let active = property(conn, root, "_NET_ACTIVE_WINDOW", AtomEnum::WINDOW).filter(|w| *w != 0);
     let window = active.or_else(|| conn.get_input_focus().ok()?.reply().ok().map(|r| r.focus).filter(|w| *w > 1))?;
-    // (A window that doesn't say whose it is: taken as ours, as Muxin's has the keyboard.)
+    // (A window that doesn't say whose it is: taken as ours, as AndruIDE's has the keyboard.)
     let ours = property(conn, window, "_NET_WM_PID", AtomEnum::CARDINAL).is_none_or(|pid| pid == std::process::id());
     ours.then_some(window)
 }
 
 impl Grab {
-    /// Grabs the keyboard for Muxin's window, which has it now. None when
+    /// Grabs the keyboard for AndruIDE's window, which has it now. None when
     /// the X server says no (another program holds it).
     pub fn start() -> Option<Grab> {
         let (conn, screen) = RustConnection::connect(None).ok()?;
@@ -83,7 +83,7 @@ impl Grab {
     }
 }
 
-/// Each key the grab brings, on to Muxin's window (to the client that made
+/// Each key the grab brings, on to AndruIDE's window (to the client that made
 /// it, which is GPUI), until the grab ends.
 fn pass_keys_on(conn: &RustConnection, window: Window, stop: &AtomicBool) {
     while !stop.load(Relaxed) {

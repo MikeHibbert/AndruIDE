@@ -190,9 +190,9 @@ impl Preset {
     }
 }
 
-/// Muxin's own keys, and herdr's (its desktop app's) where Muxin does the
+/// AndruIDE's own keys, and herdr's (its desktop app's) where AndruIDE does the
 /// same thing: a herdr space is a machine, a tab a session.
-pub const PRESETS: &[Preset] = &[Preset { name: "Muxin", keys: &[] }, Preset { name: "herdr", keys: HERDR }];
+pub const PRESETS: &[Preset] = &[Preset { name: "AndruIDE", keys: &[] }, Preset { name: "herdr", keys: HERDR }];
 
 const HERDR: &[(&str, &str)] = if cfg!(target_os = "macos") { HERDR_MAC } else { HERDR_OTHER };
 

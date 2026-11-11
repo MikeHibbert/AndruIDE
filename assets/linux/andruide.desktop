@@ -1,12 +1,12 @@
 [Desktop Entry]
 Type=Application
-Name=Muxin
+Name=AndruIDE
 GenericName=Machines
 Comment=All your machines, one app
-Exec=muxin %u
-Icon=muxin
+Exec=andruide %u
+Icon=andruide
 Terminal=false
-StartupWMClass=muxin
+StartupWMClass=andruide
 Categories=Development;Network;RemoteAccess;
 Keywords=ssh;servers;agents;runners;
-MimeType=x-scheme-handler/muxin;
+MimeType=x-scheme-handler/andruide;

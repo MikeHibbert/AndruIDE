@@ -1,16 +1,16 @@
-//! A machine's displays: its monitors, and virtual ones Muxen adds the way
+//! A machine's displays: its monitors, and virtual ones AndruIDE adds the way
 //! DeskPad does on a Mac: extra monitors on the same desktop, that windows
 //! move to and the desktop view shows, with no screen plugged in.
 //!
-//! Linux (X11): a software dummy plug. A made-up monitor (an EDID Muxen
+//! Linux (X11): a software dummy plug. A made-up monitor (an EDID AndruIDE
 //! writes, at the size asked for) is plugged into a video output with nothing
 //! connected, through the kernel's own switches; the desktop then sets it up
 //! like a real one. That takes root: sudo, with the user's password when it
 //! asks (the app sends it; nothing is installed). A Mac: CGVirtualDisplay,
-//! held by a small `muxen-agent vdisplay` process in the user's session for
+//! held by a small `andruide-agent vdisplay` process in the user's session for
 //! as long as the monitor should exist.
 //!
-//! Muxen's own virtual monitors are kept in ~/.muxen/displays.json, so they
+//! AndruIDE's own virtual monitors are kept in ~/.andruide/displays.json, so they
 //! can be told apart and removed. Ids: on Linux the RandR monitor's name
 //! ("HDMI-A-0", "DisplayPort-0"; "all" for the whole desktop), on a Mac the
 //! CGDirectDisplayID.
@@ -26,7 +26,7 @@ fn registry_path() -> std::path::PathBuf {
     home_dir().join("displays.json")
 }
 
-/// Muxen's virtual monitors, as recorded (some may be gone; see `prune`).
+/// AndruIDE's virtual monitors, as recorded (some may be gone; see `prune`).
 fn registry() -> Vec<Value> {
     std::fs::read_to_string(registry_path()).ok().and_then(|t| serde_json::from_str::<Vec<Value>>(&t).ok()).unwrap_or_default()
 }
@@ -43,7 +43,7 @@ fn save(entries: &[Value]) {
     }
 }
 
-/// Names the user gave displays, by id (`~/.muxen/display-names.json`).
+/// Names the user gave displays, by id (`~/.andruide/display-names.json`).
 fn names_path() -> std::path::PathBuf {
     home_dir().join("display-names.json")
 }
@@ -61,7 +61,7 @@ fn save_names(names: &serde_json::Map<String, Value>) {
     }
 }
 
-/// Whether one of Muxen's virtual monitors still exists: its output is still
+/// Whether one of AndruIDE's virtual monitors still exists: its output is still
 /// plugged (Linux), its holder still running (a Mac). Not from a listing:
 /// the desktop briefly drops monitors while it rearranges them.
 fn alive(entry: &Value) -> bool {
@@ -74,7 +74,7 @@ fn alive(entry: &Value) -> bool {
     }
 }
 
-/// `{"op": "displays"}`: every display, Muxen's virtual ones marked, with
+/// `{"op": "displays"}`: every display, AndruIDE's virtual ones marked, with
 /// the names the user gave them.
 pub fn list() -> Value {
     match query() {
@@ -148,7 +148,7 @@ fn biggest_first(sizes: &mut Vec<(u32, u32)>) {
     sizes.dedup();
 }
 
-/// The displays, from `muxen-agent displays` run where it can see them: in
+/// The displays, from `andruide-agent displays` run where it can see them: in
 /// the desktop session (with its DISPLAY on Linux, through the background
 /// service on a Mac reached over ssh).
 fn query() -> Result<Vec<Value>, String> {
@@ -159,7 +159,7 @@ fn query() -> Result<Vec<Value>, String> {
     }
 }
 
-/// Runs `muxen-agent <args>` where it can see the screens, for its JSON reply.
+/// Runs `andruide-agent <args>` where it can see the screens, for its JSON reply.
 pub(crate) fn in_session(args: &[String]) -> Result<Value, String> {
     let out = if crate::gui::needed() {
         let mut stream = crate::gui::connect(args)?;
@@ -175,7 +175,7 @@ pub(crate) fn in_session(args: &[String]) -> Result<Value, String> {
     serde_json::from_str(out.trim()).map_err(|_| "The desktop session didn't answer.".to_string())
 }
 
-/// `muxen-agent displays`: prints the displays as JSON (run in the desktop session).
+/// `andruide-agent displays`: prints the displays as JSON (run in the desktop session).
 pub fn run_list() -> i32 {
     let reply = match monitors() {
         Ok(d) => json!({ "displays": d }),
@@ -213,13 +213,13 @@ pub fn create(req: &Value) -> Value {
     }
 }
 
-/// `{"op": "display_remove", "display"}`: removes one of Muxen's virtual
+/// `{"op": "display_remove", "display"}`: removes one of AndruIDE's virtual
 /// monitors. (Not "id": a link's requests carry their own.)
 pub fn remove(req: &Value) -> Value {
     let id = req["display"].as_str().unwrap_or("");
     let mut reg = registry();
     let Some(i) = reg.iter().position(|e| e["id"].as_str() == Some(id)) else {
-        return json!({ "ok": false, "error": format!("{id} isn't a virtual monitor Muxen added.") });
+        return json!({ "ok": false, "error": format!("{id} isn't a virtual monitor AndruIDE added.") });
     };
     let entry = reg.remove(i);
     #[cfg(target_os = "linux")]
@@ -486,13 +486,13 @@ fn add(w: u32, h: u32, label: &str, password: Option<&str>) -> Result<Value, Str
 
 #[cfg(target_os = "linux")]
 fn take_down(entry: &Value, password: Option<&str>) -> Result<(), String> {
-    let connector = entry["connector"].as_str().ok_or("Muxen doesn't know which output it's on.")?;
+    let connector = entry["connector"].as_str().ok_or("AndruIDE doesn't know which output it's on.")?;
     as_root(UNPLUG, &[connector], password)
 }
 
 // Cinnamon puts its panels (the menu, the window list) on the main monitor
 // only, so a new monitor would be bare wallpaper with nothing to click. Each
-// of Muxen's monitors gets copies of the main monitor's panels (the same
+// of AndruIDE's monitors gets copies of the main monitor's panels (the same
 // applets, pinned apps, sizes; not its shortcuts), and loses them when it
 // goes. Panels name their monitor by number (the RandR order, main first),
 // which shifts as monitors come and go, so they're placed again whenever the
@@ -605,7 +605,7 @@ fn panel_parts(p: &str) -> Option<(u64, usize, &str)> {
     Some((it.next()?.parse().ok()?, it.next()?.parse().ok()?, it.next()?))
 }
 
-/// The panels a virtual monitor has (Muxen's first ones were a single "panel").
+/// The panels a virtual monitor has (AndruIDE's first ones were a single "panel").
 #[cfg_attr(not(target_os = "linux"), allow(dead_code))]
 fn panels_of(entry: &Value) -> Vec<u64> {
     match entry["panels"].as_array() {
@@ -628,7 +628,7 @@ fn place_panels(reg: &mut [Value], displays: &[Value]) -> bool {
         return false;
     }
     let mut changed = false;
-    // Muxen's first panel (a menu and a window list of its own): replaced by copies.
+    // AndruIDE's first panel (a menu and a window list of its own): replaced by copies.
     for e in reg.iter_mut().filter(|e| e.get("panel").is_some()) {
         drop_panel(e);
         if let Some(o) = e.as_object_mut() {
@@ -1300,7 +1300,7 @@ fn set_display(id: &str, size: Option<(u32, u32)>, scale: Option<f64>) -> Result
     }
     let Some(layout) = layout() else {
         if scale.is_some() {
-            return Err("This desktop doesn't let Muxen change its scale.".into());
+            return Err("This desktop doesn't let AndruIDE change its scale.".into());
         }
         return xrandr_size(id, size.unwrap_or_default());
     };
@@ -1335,11 +1335,11 @@ fn set_display(id: &str, size: Option<(u32, u32)>, scale: Option<f64>) -> Result
 }
 
 /// Gives an output a `w`×`h` mode at 60 Hz (CVT reduced blanking, like the
-/// monitors Muxen adds), then waits for the desktop to see it.
+/// monitors AndruIDE adds), then waits for the desktop to see it.
 #[cfg(target_os = "linux")]
 fn add_mode(output: &str, w: u32, h: u32) -> Result<(), String> {
     let t = timing(w, h);
-    let name = format!("{w}x{h}_muxen");
+    let name = format!("{w}x{h}_andruide");
     let (hs, vs) = (t.w + t.h_front, t.h + t.v_front);
     let line = [
         format!("{:.2}", t.clock as f64 / 100.),
@@ -1373,7 +1373,7 @@ fn xrandr_size(id: &str, (w, h): (u32, u32)) -> Result<(), String> {
     let (outputs, _) = parse_xrandr(&xrandr(&[])?);
     let (x, _, old_w, _) = outputs.iter().find(|o| o.name == id).and_then(|o| o.geometry).ok_or("That monitor isn't on.")?;
     let (_, modes) = parse_xrandr(&xrandr(&[])?);
-    let ours = format!("{w}x{h}_muxen");
+    let ours = format!("{w}x{h}_andruide");
     let mode = if modes.contains(&ours) && !modes.contains(&format!("{w}x{h}")) { ours } else { format!("{w}x{h}") };
     let mut args = vec!["--output".to_string(), id.to_string(), "--mode".into(), mode];
     for o in outputs.iter().filter(|o| o.name != id) {
@@ -1402,43 +1402,43 @@ fn set_display(_: &str, _: Option<(u32, u32)>, _: Option<f64>) -> Result<(), Str
 }
 
 // ---------------------------------------------------------------------------
-// A Mac: CoreGraphics displays; virtual ones held by `muxen-agent vdisplay`.
+// A Mac: CoreGraphics displays; virtual ones held by `andruide-agent vdisplay`.
 
 #[cfg(target_os = "macos")]
 unsafe extern "C" {
-    fn muxen_display_list(ids: *mut u32, max: usize) -> usize;
-    fn muxen_display(id: u32, pixels_w: *mut usize, pixels_h: *mut usize, points_w: *mut f64, points_h: *mut f64, x: *mut f64, y: *mut f64);
-    fn muxen_display_builtin(id: u32) -> i32;
-    fn muxen_display_name(id: u32, buf: *mut u8, len: usize) -> usize;
-    fn muxen_display_main() -> u32;
-    fn muxen_display_modes(id: u32, sizes: *mut u32, max: usize) -> usize;
-    fn muxen_display_set_mode(id: u32, w: u32, h: u32, err: *mut u8, errlen: usize) -> i32;
-    fn muxen_vdisplay_create(w: u32, h: u32, name: *const std::ffi::c_char, err: *mut u8, errlen: usize) -> u32;
-    fn muxen_vdisplay_run();
+    fn andruide_display_list(ids: *mut u32, max: usize) -> usize;
+    fn andruide_display(id: u32, pixels_w: *mut usize, pixels_h: *mut usize, points_w: *mut f64, points_h: *mut f64, x: *mut f64, y: *mut f64);
+    fn andruide_display_builtin(id: u32) -> i32;
+    fn andruide_display_name(id: u32, buf: *mut u8, len: usize) -> usize;
+    fn andruide_display_main() -> u32;
+    fn andruide_display_modes(id: u32, sizes: *mut u32, max: usize) -> usize;
+    fn andruide_display_set_mode(id: u32, w: u32, h: u32, err: *mut u8, errlen: usize) -> i32;
+    fn andruide_vdisplay_create(w: u32, h: u32, name: *const std::ffi::c_char, err: *mut u8, errlen: usize) -> u32;
+    fn andruide_vdisplay_run();
 }
 
 #[cfg(target_os = "macos")]
 fn monitors() -> Result<Vec<Value>, String> {
     let mut ids = [0u32; 16];
-    let n = unsafe { muxen_display_list(ids.as_mut_ptr(), ids.len()) };
+    let n = unsafe { andruide_display_list(ids.as_mut_ptr(), ids.len()) };
     if n == 0 {
         return Err("No display here.".into());
     }
-    let main = unsafe { muxen_display_main() };
+    let main = unsafe { andruide_display_main() };
     let mut external = 0;
     let own_name = |id: u32| {
         let mut buf = [0u8; 256];
-        let n = unsafe { muxen_display_name(id, buf.as_mut_ptr(), buf.len()) };
+        let n = unsafe { andruide_display_name(id, buf.as_mut_ptr(), buf.len()) };
         (n > 0).then(|| String::from_utf8_lossy(&buf[..n]).into_owned())
     };
     Ok(ids[..n]
         .iter()
         .map(|&id| {
             let (mut pw, mut ph, mut tw, mut th, mut x, mut y) = (0usize, 0usize, 0f64, 0f64, 0f64, 0f64);
-            unsafe { muxen_display(id, &mut pw, &mut ph, &mut tw, &mut th, &mut x, &mut y) };
+            unsafe { andruide_display(id, &mut pw, &mut ph, &mut tw, &mut th, &mut x, &mut y) };
             let name = match own_name(id) {
                 Some(n) => n,
-                None if unsafe { muxen_display_builtin(id) } == 1 => "Built-in display".to_string(),
+                None if unsafe { andruide_display_builtin(id) } == 1 => "Built-in display".to_string(),
                 None => {
                     external += 1;
                     format!("Display {external}")
@@ -1447,10 +1447,10 @@ fn monitors() -> Result<Vec<Value>, String> {
             // All of them: a big monitor has well over a hundred, smallest
             // first, so a short list missed every size it's really used at.
             let mut modes = vec![(0u32, 0u32); 256];
-            let mut count = unsafe { muxen_display_modes(id, modes.as_mut_ptr() as *mut u32, modes.len()) };
+            let mut count = unsafe { andruide_display_modes(id, modes.as_mut_ptr() as *mut u32, modes.len()) };
             if count > modes.len() {
                 modes.resize(count, (0, 0));
-                count = unsafe { muxen_display_modes(id, modes.as_mut_ptr() as *mut u32, modes.len()) }.min(modes.len());
+                count = unsafe { andruide_display_modes(id, modes.as_mut_ptr() as *mut u32, modes.len()) }.min(modes.len());
             }
             let mut sizes: Vec<(u32, u32)> = modes[..count].to_vec();
             biggest_first(&mut sizes);
@@ -1460,13 +1460,13 @@ fn monitors() -> Result<Vec<Value>, String> {
         .collect())
 }
 
-/// `muxen-agent display-mode ID W H`: switches a display to that size (in
+/// `andruide-agent display-mode ID W H`: switches a display to that size (in
 /// points; a Retina version of it when there is one). Run in the session.
 #[cfg(target_os = "macos")]
 pub fn run_mode(args: &[String]) -> i32 {
     let num = |i: usize| args.get(i).and_then(|a| a.parse::<u32>().ok()).unwrap_or(0);
     let mut err = [0u8; 256];
-    let ok = unsafe { muxen_display_set_mode(num(0), num(1), num(2), err.as_mut_ptr(), err.len()) } == 0;
+    let ok = unsafe { andruide_display_set_mode(num(0), num(1), num(2), err.as_mut_ptr(), err.len()) } == 0;
     let reply = if ok {
         json!({ "ok": true })
     } else {
@@ -1497,7 +1497,7 @@ fn add(w: u32, h: u32, label: &str, _password: Option<&str>) -> Result<Value, St
     }
 }
 
-/// Runs `muxen-agent vdisplay ...` on its own (it outlives this process) and
+/// Runs `andruide-agent vdisplay ...` on its own (it outlives this process) and
 /// returns its first line, with its pid added.
 #[cfg(target_os = "macos")]
 pub fn start_holder(args: &[String]) -> Result<String, String> {
@@ -1534,7 +1534,7 @@ fn take_down(entry: &Value, _password: Option<&str>) -> Result<(), String> {
     Ok(())
 }
 
-/// `muxen-agent vdisplay <width> <height> <label>`: makes a virtual display,
+/// `andruide-agent vdisplay <width> <height> <label>`: makes a virtual display,
 /// says its id on stdout, and holds it until the process ends.
 #[cfg(target_os = "macos")]
 pub fn run_holder(args: &[String]) -> i32 {
@@ -1545,7 +1545,7 @@ pub fn run_holder(args: &[String]) -> i32 {
     // Named like a real one: it shows as this in System Settings › Displays.
     let name = std::ffi::CString::new(label).unwrap_or_default();
     let mut err = [0u8; 256];
-    let id = unsafe { muxen_vdisplay_create(w, h, name.as_ptr(), err.as_mut_ptr(), err.len()) };
+    let id = unsafe { andruide_vdisplay_create(w, h, name.as_ptr(), err.as_mut_ptr(), err.len()) };
     let mut out = std::io::stdout();
     if id == 0 {
         let why = String::from_utf8_lossy(&err[..err.iter().position(|b| *b == 0).unwrap_or(err.len())]).into_owned();
@@ -1554,7 +1554,7 @@ pub fn run_holder(args: &[String]) -> i32 {
     }
     let _ = writeln!(out, "{}", json!({ "display": id }));
     let _ = out.flush();
-    unsafe { muxen_vdisplay_run() };
+    unsafe { andruide_vdisplay_run() };
     0
 }
 

@@ -114,7 +114,7 @@ pub fn open_url(url: &str) {
 /// An HTTP client made by `builder`. Making one fails on a machine without
 /// CA certificates (a bare container: rustls's platform verifier finds none),
 /// so then it's one that trusts no certificate: HTTPS requests there fail
-/// with an error, rather than Muxin stopping before it does anything.
+/// with an error, rather than AndruIDE stopping before it does anything.
 pub fn http_client(builder: impl Fn() -> reqwest::ClientBuilder) -> reqwest::Client {
     match builder().build() {
         Ok(client) => client,

@@ -192,7 +192,7 @@ fn page(host: &str, port: u16) -> Option<(u16, String)> {
     let mut s = TcpStream::connect_timeout(&SocketAddr::new(ip, port), Duration::from_millis(300)).ok()?;
     let _ = s.set_read_timeout(Some(Duration::from_millis(400)));
     let _ = s.set_write_timeout(Some(Duration::from_millis(300)));
-    s.write_all(format!("GET / HTTP/1.0\r\nHost: localhost:{port}\r\nUser-Agent: Muxen\r\nAccept: text/html\r\nConnection: close\r\n\r\n").as_bytes()).ok()?;
+    s.write_all(format!("GET / HTTP/1.0\r\nHost: localhost:{port}\r\nUser-Agent: AndruIDE\r\nAccept: text/html\r\nConnection: close\r\n\r\n").as_bytes()).ok()?;
     let mut buf = Vec::new();
     let mut chunk = [0u8; 8192];
     let started = Instant::now();

@@ -1,14 +1,14 @@
 #!/bin/sh
-# Makes Muxin's Linux packages from what scripts/package-linux.sh staged in
-# dist/linux/Muxin, for this machine's architecture, next to the tarball:
+# Makes AndruIDE's Linux packages from what scripts/package-linux.sh staged in
+# dist/linux/AndruIDE, for this machine's architecture, next to the tarball:
 #
-#   dist/Muxin-<version>-linux-<arch>.deb        Debian, Ubuntu
-#   dist/Muxin-<version>-linux-<arch>.rpm        Fedora, openSUSE, RHEL 10
-#   dist/Muxin-<version>-linux-<arch>.pkg.tar.zst  Arch
-#   dist/Muxin-<version>-linux-<arch>.AppImage   any distribution
+#   dist/AndruIDE-<version>-linux-<arch>.deb        Debian, Ubuntu
+#   dist/AndruIDE-<version>-linux-<arch>.rpm        Fedora, openSUSE, RHEL 10
+#   dist/AndruIDE-<version>-linux-<arch>.pkg.tar.zst  Arch
+#   dist/AndruIDE-<version>-linux-<arch>.AppImage   any distribution
 #
-# The packages put the app in /usr/lib/muxin, `muxin` (and `muxen`, its name
-# from before) in /usr/bin, and Muxin in the app menu; they ask for the
+# The packages put the app in /usr/lib/andruide, `andruide` (and `andruide`, its name
+# from before) in /usr/bin, and AndruIDE in the app menu; they ask for the
 # libraries it loads (xcb, xkbcommon, Vulkan) and glibc 2.35 or newer. The
 # AppImage carries the same folder and runs without FUSE 2.
 #
@@ -19,8 +19,8 @@ set -eu
 cd "$(dirname "$0")/.."
 version=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)
 arch=$(uname -m)
-stage=dist/linux/Muxin
-[ -x "$stage/muxin" ] || { echo "error: no app in $stage: run scripts/package-linux.sh first" >&2; exit 1; }
+stage=dist/linux/AndruIDE
+[ -x "$stage/andruide" ] || { echo "error: no app in $stage: run scripts/package-linux.sh first" >&2; exit 1; }
 
 nfpm_version=2.47.0
 appimagetool_version=1.9.1
@@ -61,7 +61,7 @@ chmod +x "$tools/nfpm" "$tools/appimagetool-$arch.AppImage"
 # The .deb, .rpm and Arch package, from one description.
 config=dist/linux/nfpm.yaml
 cat > "$config" <<EOF
-name: muxin
+name: andruide
 arch: $goarch
 platform: linux
 version: $version
@@ -74,57 +74,57 @@ homepage: https://muxin.dev
 license: Apache-2.0
 description: |-
   All your machines in one app, for you and your AI agents.
-  Muxin runs AI coding agents on your Macs, Linux servers and Windows PCs,
+  AndruIDE runs AI coding agents on your Macs, Linux servers and Windows PCs,
   shows their screens, moves files between them and looks after their
   services, from one window or from your agents through MCP.
 contents:
-  - src: $stage/muxin
-    dst: /usr/lib/muxin/muxin
+  - src: $stage/andruide
+    dst: /usr/lib/andruide/andruide
     file_info: { mode: 0755 }
   - src: $stage/agents/
-    dst: /usr/lib/muxin/agents/
+    dst: /usr/lib/andruide/agents/
     file_info: { mode: 0755 }
-  - src: /usr/lib/muxin/muxin
-    dst: /usr/bin/muxin
+  - src: /usr/lib/andruide/andruide
+    dst: /usr/bin/andruide
     type: symlink
-  - src: /usr/lib/muxin/muxin
-    dst: /usr/bin/muxen
+  - src: /usr/lib/andruide/andruide
+    dst: /usr/bin/andruide
     type: symlink
-  - src: $stage/muxin.desktop
-    dst: /usr/share/applications/muxin.desktop
+  - src: $stage/andruide.desktop
+    dst: /usr/share/applications/andruide.desktop
     file_info: { mode: 0644 }
   - src: assets/brand/icon-128.png
-    dst: /usr/share/icons/hicolor/128x128/apps/muxin.png
+    dst: /usr/share/icons/hicolor/128x128/apps/andruide.png
     file_info: { mode: 0644 }
   - src: assets/brand/icon-512.png
-    dst: /usr/share/icons/hicolor/512x512/apps/muxin.png
+    dst: /usr/share/icons/hicolor/512x512/apps/andruide.png
     file_info: { mode: 0644 }
   - src: LICENSE
-    dst: /usr/share/doc/muxin/LICENSE
+    dst: /usr/share/doc/andruide/LICENSE
     packager: deb
   - src: NOTICE
-    dst: /usr/share/doc/muxin/NOTICE
+    dst: /usr/share/doc/andruide/NOTICE
     packager: deb
   - src: THIRD_PARTY_NOTICES.md
-    dst: /usr/share/doc/muxin/THIRD_PARTY_NOTICES.md
+    dst: /usr/share/doc/andruide/THIRD_PARTY_NOTICES.md
     packager: deb
   - src: LICENSE
-    dst: /usr/share/licenses/muxin/LICENSE
+    dst: /usr/share/licenses/andruide/LICENSE
     packager: rpm
   - src: NOTICE
-    dst: /usr/share/licenses/muxin/NOTICE
+    dst: /usr/share/licenses/andruide/NOTICE
     packager: rpm
   - src: THIRD_PARTY_NOTICES.md
-    dst: /usr/share/licenses/muxin/THIRD_PARTY_NOTICES.md
+    dst: /usr/share/licenses/andruide/THIRD_PARTY_NOTICES.md
     packager: rpm
   - src: LICENSE
-    dst: /usr/share/licenses/muxin/LICENSE
+    dst: /usr/share/licenses/andruide/LICENSE
     packager: archlinux
   - src: NOTICE
-    dst: /usr/share/licenses/muxin/NOTICE
+    dst: /usr/share/licenses/andruide/NOTICE
     packager: archlinux
   - src: THIRD_PARTY_NOTICES.md
-    dst: /usr/share/licenses/muxin/THIRD_PARTY_NOTICES.md
+    dst: /usr/share/licenses/andruide/THIRD_PARTY_NOTICES.md
     packager: archlinux
 overrides:
   deb:
@@ -160,30 +160,30 @@ for packager in deb rpm archlinux; do
         rpm) ext=rpm ;;
         archlinux) ext=pkg.tar.zst ;;
     esac
-    out=dist/Muxin-$version-linux-$arch.$ext
+    out=dist/AndruIDE-$version-linux-$arch.$ext
     "$tools/nfpm" package --config "$config" --packager "$packager" --target "$out" >/dev/null
     echo "Built $out ($(du -h "$out" | cut -f1))"
 done
 
 # The AppImage: the same folder, run by AppRun.
-appdir=dist/linux/Muxin.AppDir
+appdir=dist/linux/AndruIDE.AppDir
 rm -rf "$appdir"
-mkdir -p "$appdir/usr/lib/muxin" "$appdir/usr/share/applications" "$appdir/usr/share/icons/hicolor/512x512/apps" "$appdir/usr/share/doc/muxin"
-cp -R "$stage/muxin" "$stage/agents" "$appdir/usr/lib/muxin/"
-cp "$stage/muxin.desktop" "$appdir/muxin.desktop"
-cp "$stage/muxin.desktop" "$appdir/usr/share/applications/muxin.desktop"
-cp assets/brand/icon-512.png "$appdir/muxin.png"
-cp assets/brand/icon-512.png "$appdir/usr/share/icons/hicolor/512x512/apps/muxin.png"
-ln -s muxin.png "$appdir/.DirIcon"
-cp LICENSE NOTICE THIRD_PARTY_NOTICES.md "$appdir/usr/share/doc/muxin/"
+mkdir -p "$appdir/usr/lib/andruide" "$appdir/usr/share/applications" "$appdir/usr/share/icons/hicolor/512x512/apps" "$appdir/usr/share/doc/andruide"
+cp -R "$stage/andruide" "$stage/agents" "$appdir/usr/lib/andruide/"
+cp "$stage/andruide.desktop" "$appdir/andruide.desktop"
+cp "$stage/andruide.desktop" "$appdir/usr/share/applications/andruide.desktop"
+cp assets/brand/icon-512.png "$appdir/andruide.png"
+cp assets/brand/icon-512.png "$appdir/usr/share/icons/hicolor/512x512/apps/andruide.png"
+ln -s andruide.png "$appdir/.DirIcon"
+cp LICENSE NOTICE THIRD_PARTY_NOTICES.md "$appdir/usr/share/doc/andruide/"
 cat > "$appdir/AppRun" <<'EOF'
 #!/bin/sh
-# Muxin's AppImage: the app lives in usr/lib/muxin, beside its agents.
+# AndruIDE's AppImage: the app lives in usr/lib/andruide, beside its agents.
 here=$(dirname "$(readlink -f "$0")")
-exec "$here/usr/lib/muxin/muxin" "$@"
+exec "$here/usr/lib/andruide/andruide" "$@"
 EOF
 chmod +x "$appdir/AppRun"
-out=dist/Muxin-$version-linux-$arch.AppImage
+out=dist/AndruIDE-$version-linux-$arch.AppImage
 # --appimage-extract-and-run: appimagetool is an AppImage itself, and build
 # machines (containers, CI) often have no FUSE.
 ARCH=$arch "$tools/appimagetool-$arch.AppImage" --appimage-extract-and-run --no-appstream \

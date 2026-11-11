@@ -20,7 +20,7 @@ impl Root {
     pub(super) fn load_valley(&mut self, cx: &mut Context<Self>) {
         self.valley_data = Some(Load::Loading);
         self.valley_at = Some(Instant::now());
-        let valley = Valley::from_env();
+        let valley = Valley::from_parts(self.engine.settings().valley);
         if !valley.configured() {
             self.valley_data = Some(Load::Failed("not-configured".into()));
             cx.notify();

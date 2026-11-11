@@ -93,7 +93,7 @@ pub const DEFAULT_LIGHT: &str = "dawn";
 
 pub static PALETTES: &[Palette] = &[
     // --- Dark ---------------------------------------------------------------
-    palette!("graphite", "Muxin Graphite", true,
+    palette!("graphite", "AndruIDE Graphite", true,
         sidebar 0x0f1013, canvas 0x15161a, surface 0x1b1c21, elevated 0x202127, border 0x2b2d35, 0x24262d,
         text 0xececf1, 0xa2a4ae, 0x6c6f7b,
         accent 0x8b7cff, success 0x4ad6a7, warning 0xf2b347, error 0xff6b6b, info 0x6cb8ff),
@@ -102,7 +102,7 @@ pub static PALETTES: &[Palette] = &[
     // as a gradient on primary buttons (as on the icon).
     Palette {
         accent2: 0xe8734a,
-        ..palette!("dusk", "Muxin Dusk", true,
+        ..palette!("dusk", "AndruIDE Dusk", true,
             sidebar 0x151834, canvas 0x1a1e3c, surface 0x20254a, elevated 0x272d56, border 0x363d6e, 0x2b3160,
             text 0xeeecfb, 0xaeb0d8, 0x7a7fae,
             accent 0xa66bf2, success 0x52d6ad, warning 0xf2c94c, error 0xff6e86, info 0x7fa4ff)
@@ -175,7 +175,7 @@ pub static PALETTES: &[Palette] = &[
         sidebar 0x16161d, canvas 0x1f1f28, surface 0x2a2a37, elevated 0x363646, border 0x54546d, 0x363646,
         text 0xdcd7ba, 0xc8c093, 0x727169,
         accent 0x7e9cd8, success 0x98bb6c, warning 0xe6c384, error 0xe46876, info 0x7fb4ca),
-    // Muxin as a TUI: a black terminal with a green accent and a deep blue
+    // AndruIDE as a TUI: a black terminal with a green accent and a deep blue
     // selection bar, and Midnight Commander's navy with cyan lines. A bar is
     // a deep tone, so a selected row's icons and grey text still read on it.
     tui!("terminal", "Terminal", true, bar 0x1e3a52,
@@ -191,7 +191,7 @@ pub static PALETTES: &[Palette] = &[
         text 0xe6edf3, 0x9198a1, 0x6e7681,
         accent 0x4493f8, success 0x3fb950, warning 0xd29922, error 0xf85149, info 0x58a6ff),
     // --- Light --------------------------------------------------------------
-    palette!("paper", "Muxin Paper", false,
+    palette!("paper", "AndruIDE Paper", false,
         sidebar 0xf0f0f3, canvas 0xfafafb, surface 0xffffff, elevated 0xffffff, border 0xe2e2e8, 0xebebf0,
         text 0x16171c, 0x5c5f6a, 0x8c8f9a,
         accent 0x6d5cf6, success 0x12a27a, warning 0xc8870e, error 0xe5484d, info 0x2f80ed),
@@ -199,7 +199,7 @@ pub static PALETTES: &[Palette] = &[
     // deeper violet and orange so they read on white.
     Palette {
         accent2: 0xc0501a,
-        ..palette!("dawn", "Muxin Dawn", false,
+        ..palette!("dawn", "AndruIDE Dawn", false,
             sidebar 0xf2eff9, canvas 0xfaf8fe, surface 0xffffff, elevated 0xffffff, border 0xe1dcf0, 0xebe7f6,
             text 0x1e2148, 0x585c88, 0x8b8eb2,
             accent 0x7d45e4, success 0x0c8f6b, warning 0x9a6a00, error 0xd8435a, info 0x3b6fe0)
@@ -264,7 +264,7 @@ pub static PALETTES: &[Palette] = &[
         sidebar 0xf6f8fa, canvas 0xffffff, surface 0xffffff, elevated 0xffffff, border 0xd0d7de, 0xd8dee4,
         text 0x1f2328, 0x59636e, 0x818b98,
         accent 0x0969da, success 0x1a7f37, warning 0x9a6700, error 0xd1242f, info 0x0969da),
-    // Muxin as a TUI in a light terminal: black on off-white, a yellow selection bar.
+    // AndruIDE as a TUI in a light terminal: black on off-white, a yellow selection bar.
     tui!("terminal-paper", "Terminal Paper", false, bar 0xffd75f,
         sidebar 0xefeee5, canvas 0xf7f6ef, surface 0xfbfaf4, elevated 0xffffff, border 0xb9b8ad, 0xd6d5ca,
         text 0x1c1c1c, 0x55554d, 0x8e8e84,

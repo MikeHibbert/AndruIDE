@@ -1,8 +1,8 @@
 #!/bin/sh
-# Builds Muxin.app (release build + Info.plist + icon) into dist/.
+# Builds AndruIDE.app (release build + Info.plist + icon) into dist/.
 # The bundle runs the same binary: with no arguments it opens the window, and
-# `Muxin.app/Contents/MacOS/muxin mcp` still works for agents. Its bundle id
-# stays com.lumarylabs.muxen (from when it was called Muxen), so macOS keeps
+# `AndruIDE.app/Contents/MacOS/andruide mcp` still works for agents. Its bundle id
+# stays com.lumarylabs.andruide (from when it was called AndruIDE), so macOS keeps
 # its Keychain items and permissions across the rename.
 #
 #   --universal    one app for Apple silicon and Intel Macs.
@@ -26,29 +26,29 @@ for arg in "$@"; do
     esac
 done
 version=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)
-app=dist/Muxin.app
+app=dist/AndruIDE.app
 
 if [ -n "$universal" ]; then
     cargo build --release --locked --target aarch64-apple-darwin
     cargo build --release --locked --target x86_64-apple-darwin
     mkdir -p target/universal
-    lipo -create -output target/universal/muxin \
-        target/aarch64-apple-darwin/release/muxin target/x86_64-apple-darwin/release/muxin
-    binary=target/universal/muxin
+    lipo -create -output target/universal/andruide \
+        target/aarch64-apple-darwin/release/andruide target/x86_64-apple-darwin/release/andruide
+    binary=target/universal/andruide
 else
     cargo build --release
-    binary=target/release/muxin
+    binary=target/release/andruide
 fi
 # The agent builds the app installs on each machine it connects to.
 if [ -z "$skip_agents" ]; then
-    MUXEN_RELEASE=$release ./scripts/build-agents.sh >/dev/null
+    ANDRUIDE_RELEASE=$release ./scripts/build-agents.sh >/dev/null
 fi
-ls dist/agents/muxen-agent-* >/dev/null 2>&1 || { echo "error: no agent builds in dist/agents" >&2; exit 1; }
+ls dist/agents/andruide-agent-* >/dev/null 2>&1 || { echo "error: no agent builds in dist/agents" >&2; exit 1; }
 rm -rf "$app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources/agents"
-cp "$binary" "$app/Contents/MacOS/muxin"
-cp assets/brand/Muxin.icns "$app/Contents/Resources/Muxin.icns"
-cp dist/agents/muxen-agent-* "$app/Contents/Resources/agents/"
+cp "$binary" "$app/Contents/MacOS/andruide"
+cp assets/brand/AndruIDE.icns "$app/Contents/Resources/AndruIDE.icns"
+cp dist/agents/andruide-agent-* "$app/Contents/Resources/agents/"
 # Its license, and the third-party ones that must ship with every copy.
 cp LICENSE NOTICE THIRD_PARTY_NOTICES.md "$app/Contents/Resources/"
 
@@ -57,11 +57,11 @@ cat > "$app/Contents/Info.plist" <<PLIST
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>CFBundleName</key><string>Muxin</string>
-  <key>CFBundleDisplayName</key><string>Muxin</string>
-  <key>CFBundleIdentifier</key><string>com.lumarylabs.muxen</string>
-  <key>CFBundleExecutable</key><string>muxin</string>
-  <key>CFBundleIconFile</key><string>Muxin</string>
+  <key>CFBundleName</key><string>AndruIDE</string>
+  <key>CFBundleDisplayName</key><string>AndruIDE</string>
+  <key>CFBundleIdentifier</key><string>com.lumarylabs.andruide</string>
+  <key>CFBundleExecutable</key><string>andruide</string>
+  <key>CFBundleIconFile</key><string>AndruIDE</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>$version</string>
   <key>CFBundleVersion</key><string>$version</string>
@@ -70,29 +70,29 @@ cat > "$app/Contents/Info.plist" <<PLIST
   <key>NSHighResolutionCapable</key><true/>
   <key>CFBundleURLTypes</key>
   <array><dict>
-    <key>CFBundleURLName</key><string>Muxin share link</string>
-    <key>CFBundleURLSchemes</key><array><string>muxin</string></array>
+    <key>CFBundleURLName</key><string>AndruIDE share link</string>
+    <key>CFBundleURLSchemes</key><array><string>andruide</string></array>
   </dict></array>
   <key>NSHumanReadableCopyright</key><string>© Lumary Labs LLC</string>
-  <key>NSLocalNetworkUsageDescription</key><string>Muxin connects straight to your machines on your local network: faster than going through ssh or a VPN, and needed to show their desktops smoothly.</string>
+  <key>NSLocalNetworkUsageDescription</key><string>AndruIDE connects straight to your machines on your local network: faster than going through ssh or a VPN, and needed to show their desktops smoothly.</string>
 </dict>
 </plist>
 PLIST
 
-# Signed with the Developer ID when there is one (MUXEN_SIGN_IDENTITY, else the
+# Signed with the Developer ID when there is one (ANDRUIDE_SIGN_IDENTITY, else the
 # first in the keychain), so the app keeps one identity across builds: macOS
 # keeps its Keychain items (cloud sign-ins) and permissions. Not --deep: the
 # agents inside are already signed with their own identifier, which the
 # permissions on the user's Macs (Screen Recording, Accessibility) belong to.
 # By fingerprint: a keychain can hold several certificates of the same name,
 # and codesign refuses an ambiguous one.
-identity=${MUXEN_SIGN_IDENTITY:-$(security find-identity -v -p codesigning 2>/dev/null | sed -n 's/^ *[0-9][0-9]*) \([0-9A-F]\{40\}\) "Developer ID Application: .*/\1/p' | head -n1)}
+identity=${ANDRUIDE_SIGN_IDENTITY:-$(security find-identity -v -p codesigning 2>/dev/null | sed -n 's/^ *[0-9][0-9]*) \([0-9A-F]\{40\}\) "Developer ID Application: .*/\1/p' | head -n1)}
 if [ -n "$release" ]; then
     [ -n "$identity" ] || { echo "error: a release needs a Developer ID Application certificate in the keychain" >&2; exit 1; }
-    codesign --force --options runtime --timestamp --identifier com.lumarylabs.muxen -s "$identity" "$app"
+    codesign --force --options runtime --timestamp --identifier com.lumarylabs.andruide -s "$identity" "$app"
     codesign --verify --strict --verbose=2 "$app"
 elif [ -n "$identity" ]; then
-    codesign --force --timestamp=none --identifier com.lumarylabs.muxen -s "$identity" "$app" >/dev/null 2>&1 || echo "warning: signing with $identity failed" >&2
+    codesign --force --timestamp=none --identifier com.lumarylabs.andruide -s "$identity" "$app" >/dev/null 2>&1 || echo "warning: signing with $identity failed" >&2
 else
     codesign --force --sign - "$app" >/dev/null 2>&1 || echo "warning: codesign failed; the app still runs locally" >&2
 fi

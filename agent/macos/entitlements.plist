@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!--
-  Muxin Agent.app's entitlements (scripts/build-agents.sh signs with them).
+  AndruIDE Agent.app's entitlements (scripts/build-agents.sh signs with them).
   The hardened runtime refuses these resources to a program without them,
-  before macOS ever asks the user: with them, a program in a Muxin session can
+  before macOS ever asks the user: with them, a program in a AndruIDE session can
   ask, and the user decides (Info.plist says why).
 -->
 <plist version="1.0">

@@ -48,7 +48,7 @@ fn virtual_screen() -> RECT {
     }
 }
 
-/// `muxen-agent displays` on Windows: each monitor, and "all" when there are several.
+/// `andruide-agent displays` on Windows: each monitor, and "all" when there are several.
 pub fn displays() -> Value {
     dpi_aware();
     let ms = monitors();
@@ -799,7 +799,7 @@ fn is_app_window(hwnd: HWND) -> bool {
     !cloaked(hwnd) && !title_of(hwnd).trim().is_empty()
 }
 
-/// `muxen-agent windows` on Windows: the apps' windows on the desktop, front
+/// `andruide-agent windows` on Windows: the apps' windows on the desktop, front
 /// first, each with the id to show it by (`window:<id>`).
 pub fn windows() -> Value {
     dpi_aware();
@@ -1001,7 +1001,7 @@ fn set_clipboard_text(text: &str) -> bool {
     }
 }
 
-/// Windows' clipboard, for `muxen-agent clip`: Windows numbers its changes.
+/// Windows' clipboard, for `andruide-agent clip`: Windows numbers its changes.
 struct Clipboard;
 
 impl super::clipboard::Board for Clipboard {
@@ -1019,7 +1019,7 @@ impl super::clipboard::Board for Clipboard {
     }
 }
 
-/// `muxen-agent clip` on Windows: what's copied here goes out; what the app
+/// `andruide-agent clip` on Windows: what's copied here goes out; what the app
 /// sends is put on the clipboard (see clipboard.rs). A look every few hundred
 /// milliseconds sees each change.
 pub fn clip(rx: std::sync::mpsc::Receiver<String>, changed: impl Fn(&str) -> bool) {
@@ -1094,7 +1094,7 @@ pub fn no_desktop_session() -> Option<String> {
         return Some(format!("{me} is signed in to Windows here, but that session is disconnected (its Remote Desktop window was closed), so there's no screen to show. Open it with Remote Desktop again."));
     }
     Some(match users.first() {
-        Some(other) => format!("{} is signed in to Windows here, not {me}. Muxin shows the screen of the account it connects as.", other.user),
+        Some(other) => format!("{} is signed in to Windows here, not {me}. AndruIDE shows the screen of the account it connects as.", other.user),
         None => "Nobody is signed in to Windows here, so there's no screen to show. Sign in first, at the machine or with Remote Desktop.".into(),
     })
 }
@@ -1104,7 +1104,7 @@ fn gui_port_file() -> std::path::PathBuf {
     crate::home_dir().join("gui.port")
 }
 
-/// Asks the helper in the desktop session to run `muxen-agent <args>`; its
+/// Asks the helper in the desktop session to run `andruide-agent <args>`; its
 /// stdin and stdout, as the connection.
 fn ask_gui_server(args: &[String]) -> io::Result<TcpStream> {
     let text = std::fs::read_to_string(gui_port_file())?;
@@ -1115,7 +1115,7 @@ fn ask_gui_server(args: &[String]) -> io::Result<TcpStream> {
     Ok(s)
 }
 
-/// Starts `muxen-agent <args>` in the signed-in user's desktop session; its
+/// Starts `andruide-agent <args>` in the signed-in user's desktop session; its
 /// stdin and stdout, as a connection. A helper there (`gui-serve`) runs them;
 /// the first time, a one-off scheduled task starts it (through a windowless
 /// console, so nothing flashes on their screen), and it stays a while.
@@ -1128,7 +1128,7 @@ pub fn start_in_desktop(args: &[String]) -> Result<TcpStream, String> {
         return Err(why);
     }
     let exe = std::env::current_exe().map_err(|e| e.to_string())?;
-    let task = format!("Muxen desktop {}", std::process::id());
+    let task = format!("AndruIDE desktop {}", std::process::id());
     let q = crate::win::quote;
     let script = format!(
         "$action = New-ScheduledTaskAction -Execute 'conhost.exe' -Argument {argument}\n\
@@ -1148,7 +1148,7 @@ pub fn start_in_desktop(args: &[String]) -> Result<TcpStream, String> {
             match ask_gui_server(args) {
                 Ok(s) => break Ok(s),
                 Err(_) if Instant::now() < deadline => std::thread::sleep(Duration::from_millis(150)),
-                Err(_) => break Err("Windows didn't start Muxin's helper in your desktop session, so there's no screen to show.".to_string()),
+                Err(_) => break Err("Windows didn't start AndruIDE's helper in your desktop session, so there's no screen to show.".to_string()),
             }
         },
     };
@@ -1159,7 +1159,7 @@ pub fn start_in_desktop(args: &[String]) -> Result<TcpStream, String> {
 /// With nothing running for this long, the helper goes.
 const GUI_IDLE: Duration = Duration::from_secs(30 * 60);
 
-/// `muxen-agent gui-serve`, in the desktop session: runs what links ask for
+/// `andruide-agent gui-serve`, in the desktop session: runs what links ask for
 /// (`screen`, `clip`, `displays`, `windows`) with each connection as the program's stdin
 /// and stdout. A connection sends the token from gui.port, then
 /// `{"run": [args]}`.
@@ -1229,7 +1229,7 @@ pub fn gui_serve() -> i32 {
     0
 }
 
-/// Runs `muxen-agent <args>` with the connection as its stdin and stdout, until either ends.
+/// Runs `andruide-agent <args>` with the connection as its stdin and stdout, until either ends.
 fn serve_program(mut conn: TcpStream, args: &[String]) {
     let Ok(exe) = std::env::current_exe() else { return };
     let log = std::fs::OpenOptions::new().create(true).append(true).open(crate::home_dir().join("screen.log"));

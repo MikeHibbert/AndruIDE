@@ -1,12 +1,12 @@
 //! Handing a session's work to another agent (Claude Code to Codex, say):
-//! Muxin's agent on the machine writes a note in its folder from the
+//! AndruIDE's agent on the machine writes a note in its folder from the
 //! conversation so far and where the git work stands (agent/src/handoff.rs),
 //! then the new agent starts there, asked to read it first, and the old one
 //! ends. A box keeps its container and checkout and changes agents.
 //!
 //! The work can move to another machine too (agent/src/carry.rs): its commits
 //! that aren't on origin, uncommitted changes and new files are packed, copied
-//! across through Muxin, and put in a workspace there (a worktree of a
+//! across through AndruIDE, and put in a workspace there (a worktree of a
 //! checkout of the repository, else a clone) that starts where the work did.
 //! The folder it left stays as it was.
 
@@ -21,7 +21,7 @@ use crate::fleet::Engine;
 use crate::fleet::boxes::BoxInfo;
 
 /// Where the note goes, in the session's folder (kept out of git).
-pub const NOTE: &str = ".muxin/handoff.md";
+pub const NOTE: &str = ".andruide/handoff.md";
 
 /// A handoff, done.
 #[derive(Debug, Clone, Serialize)]
@@ -49,7 +49,7 @@ pub struct HandedOff {
 
 /// What the new agent is asked first.
 pub fn prompt(from: &str) -> String {
-    format!("You're taking over this work from {from}. First read {NOTE}: Muxin wrote it from {from}'s conversation, with where the code stands. Then carry on with what's left.")
+    format!("You're taking over this work from {from}. First read {NOTE}: AndruIDE wrote it from {from}'s conversation, with where the code stands. Then carry on with what's left.")
 }
 
 impl Engine {
@@ -90,13 +90,13 @@ impl Engine {
         }
         let from = super::agent(&s.agent).filter(|k| !k.command.is_empty()).ok_or_else(|| format!("{} is a shell: only an agent's work can be handed off.", s.title))?;
         if !s.persistent {
-            return Err(format!("{} runs only in the Muxin window, so its conversation can't be read from here.", s.title));
+            return Err(format!("{} runs only in the AndruIDE window, so its conversation can't be read from here.", s.title));
         }
         if let Some(t) = target {
             return self.move_session(&s, from, kind, &t, keep).await;
         }
 
-        // The note, from the transcript (or the terminal, for agents whose transcript Muxin can't read).
+        // The note, from the transcript (or the terminal, for agents whose transcript AndruIDE can't read).
         let (spec, probe) = self.machine(&s.machine_id).ok_or_else(|| format!("No machine called {}.", s.machine_id))?;
         agent::ensure(&spec, probe.as_ref()).await?;
         let terminal = self.control_session(&s.id, Control::Read { lines: 400 }).await.unwrap_or_default();
@@ -159,7 +159,7 @@ impl Engine {
         let moved = target != s.machine_id;
         let workspace = moved.then(|| format!("ws-{}", super::super::workspaces::random_id(6)));
         let cwd = match &workspace {
-            Some(ws) => format!("~/muxen/workspaces/{ws}"),
+            Some(ws) => format!("~/andruide/workspaces/{ws}"),
             None => s.cwd.clone(),
         };
         let title = if s.title == default_title(from, &s.cwd) { default_title(kind, &s.cwd) } else { s.title.clone() };
@@ -180,7 +180,7 @@ impl Engine {
         if m.is_down() {
             return Err(format!("{} isn't reachable right now.", m.name));
         }
-        // The agent's CLI there (looked up first when Muxin hasn't yet), before anything's copied.
+        // The agent's CLI there (looked up first when AndruIDE hasn't yet), before anything's copied.
         if self.sessions_of(&m.id).is_none_or(|f| f.agents_checked_at.is_none()) {
             let _ = self.refresh_tools(&m.id).await;
         }
@@ -235,11 +235,11 @@ impl Engine {
             // A worktree of a checkout of the repository there (looked at now: one may
             // have been cloned since), else a clone, else a new repository.
             let _ = self.refresh_checkouts(&dst.id).await;
-            // The user's own checkouts, not folders Muxin made (workspaces, boxes).
-            let made_by_muxin = |p: &str| p.contains("/muxen/workspaces/") || p.contains("/muxen/boxes/");
+            // The user's own checkouts, not folders AndruIDE made (workspaces, boxes).
+            let made_by_andruide = |p: &str| p.contains("/andruide/workspaces/") || p.contains("/andruide/boxes/");
             let checkout = github
                 .as_ref()
-                .and_then(|g| self.checkouts_of(&dst.id).into_iter().find(|c| !made_by_muxin(&c.path) && c.repo.as_deref().is_some_and(|r| r.eq_ignore_ascii_case(g))));
+                .and_then(|g| self.checkouts_of(&dst.id).into_iter().find(|c| !made_by_andruide(&c.path) && c.repo.as_deref().is_some_and(|r| r.eq_ignore_ascii_case(g))));
             let mut req = super::super::workspaces::CreateWorkspace {
                 machine: Some(dst.id.clone()),
                 name: Some(s.title.clone()),
@@ -267,7 +267,7 @@ impl Engine {
 
             self.op_log(op, format!("▸ Copying the work to {}", dst.name));
             let cancel = AtomicBool::new(false);
-            self.run_copy(op, &src, "~/.muxen/carry", std::slice::from_ref(&pack_id), &dst, "~/.muxen/carry", &cancel, false).await?;
+            self.run_copy(op, &src, "~/.andruide/carry", std::slice::from_ref(&pack_id), &dst, "~/.andruide/carry", &cancel, false).await?;
             let _ = agent::ctl(&src, &json!({ "op": "carry_drop", "pack_id": pack_id })).await;
             let unpacked = agent::ctl(
                 &dst,
@@ -332,7 +332,7 @@ impl Engine {
         }
         let from = super::agent(&b.agent).map(|k| k.name).unwrap_or(&b.agent);
         let to_name = super::agent(to).map(|k| k.name).unwrap_or(to);
-        let (spec, probe) = self.machine(&b.machine_id).ok_or_else(|| format!("{} isn't in Muxin anymore.", b.machine_id))?;
+        let (spec, probe) = self.machine(&b.machine_id).ok_or_else(|| format!("{} isn't in AndruIDE anymore.", b.machine_id))?;
         agent::ensure(&spec, probe.as_ref()).await?;
         let terminal = match &b.session_id {
             Some(sid) => self.control_session(sid, Control::Read { lines: 400 }).await.unwrap_or_default(),
@@ -370,9 +370,9 @@ impl Engine {
 fn branch_there(branch: Option<&str>, base: Option<&str>, has_origin: bool, session: &str) -> String {
     let default = base.and_then(|b| b.split_once('/')).map(|(_, b)| b);
     match branch.filter(|b| !b.is_empty()) {
-        Some(b) if has_origin && (Some(b) == default || (default.is_none() && matches!(b, "main" | "master"))) => format!("muxin/{session}"),
+        Some(b) if has_origin && (Some(b) == default || (default.is_none() && matches!(b, "main" | "master"))) => format!("andruide/{session}"),
         Some(b) => b.to_string(),
-        None if has_origin => format!("muxin/{session}"),
+        None if has_origin => format!("andruide/{session}"),
         None => "main".into(),
     }
 }
@@ -396,9 +396,9 @@ mod tests {
     #[test]
     fn the_work_keeps_its_branch_but_not_the_default_one() {
         assert_eq!(branch_there(Some("fix-login"), Some("origin/main"), true, "claude-3f9a"), "fix-login");
-        assert_eq!(branch_there(Some("main"), Some("origin/main"), true, "claude-3f9a"), "muxin/claude-3f9a");
-        assert_eq!(branch_there(Some("master"), None, true, "codex-1"), "muxin/codex-1");
-        assert_eq!(branch_there(None, Some("origin/main"), true, "codex-1"), "muxin/codex-1");
+        assert_eq!(branch_there(Some("main"), Some("origin/main"), true, "claude-3f9a"), "andruide/claude-3f9a");
+        assert_eq!(branch_there(Some("master"), None, true, "codex-1"), "andruide/codex-1");
+        assert_eq!(branch_there(None, Some("origin/main"), true, "codex-1"), "andruide/codex-1");
         // Without a remote there's no default branch to clash with.
         assert_eq!(branch_there(Some("main"), None, false, "codex-1"), "main");
         assert_eq!(branch_there(None, None, false, "codex-1"), "main");

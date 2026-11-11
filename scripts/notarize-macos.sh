@@ -1,6 +1,6 @@
 #!/bin/sh
-# Notarizes dist/Muxin.app (built by scripts/bundle-macos.sh --release), staples
-# it, and packs it into dist/Muxin-<version>-macos.dmg, itself signed, notarized
+# Notarizes dist/AndruIDE.app (built by scripts/bundle-macos.sh --release), staples
+# it, and packs it into dist/AndruIDE-<version>-macos.dmg, itself signed, notarized
 # and stapled, so it opens without a warning even offline.
 #
 #   --no-notarize  only make the DMG, as it is (for a test build: macOS warns
@@ -9,8 +9,8 @@
 # Apple's notary service needs one of:
 #   APPLE_API_KEY_PATH, APPLE_API_KEY_ID, APPLE_API_ISSUER_ID: an App Store
 #       Connect API key (what CI uses), or
-#   a notarytool keychain profile, MUXEN_NOTARY_PROFILE (default "muxen"),
-#       saved once with `xcrun notarytool store-credentials muxen ...`.
+#   a notarytool keychain profile, ANDRUIDE_NOTARY_PROFILE (default "andruide"),
+#       saved once with `xcrun notarytool store-credentials andruide ...`.
 # See RELEASING.md.
 set -eu
 
@@ -21,15 +21,15 @@ case "${1:-}" in
     "") ;;
     *) echo "usage: $0 [--no-notarize]" >&2; exit 2 ;;
 esac
-app=dist/Muxin.app
+app=dist/AndruIDE.app
 version=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)
-dmg=dist/Muxin-$version-macos.dmg
+dmg=dist/AndruIDE-$version-macos.dmg
 [ -d "$app" ] || { echo "error: no $app: run scripts/bundle-macos.sh --release first" >&2; exit 1; }
 
 if [ -n "${APPLE_API_KEY_PATH:-}" ]; then
     set -- --key "$APPLE_API_KEY_PATH" --key-id "$APPLE_API_KEY_ID" --issuer "$APPLE_API_ISSUER_ID"
 else
-    set -- --keychain-profile "${MUXEN_NOTARY_PROFILE:-muxen}"
+    set -- --keychain-profile "${ANDRUIDE_NOTARY_PROFILE:-andruide}"
 fi
 
 # Sends a file to the notary service and waits; shows Apple's log when it's refused.
@@ -66,20 +66,20 @@ trap 'rm -rf "$work"' EXIT
 # The app first, so it's stapled (and opens offline) once it's out of the DMG.
 if [ -n "$notarize" ]; then
     codesign --verify --strict "$app"
-    ditto -c -k --keepParent "$app" "$work/Muxin.zip"
-    notarize "$work/Muxin.zip" "$@"
+    ditto -c -k --keepParent "$app" "$work/AndruIDE.zip"
+    notarize "$work/AndruIDE.zip" "$@"
     staple "$app"
 fi
 
 # Then the DMG: the app and a link to Applications to drag it to.
 mkdir "$work/dmg"
-ditto "$app" "$work/dmg/Muxin.app"
+ditto "$app" "$work/dmg/AndruIDE.app"
 ln -s /Applications "$work/dmg/Applications"
 rm -f "$dmg"
-hdiutil create -quiet -volname "Muxin $version" -srcfolder "$work/dmg" -fs HFS+ -format UDZO "$dmg"
+hdiutil create -quiet -volname "AndruIDE $version" -srcfolder "$work/dmg" -fs HFS+ -format UDZO "$dmg"
 if [ -n "$notarize" ]; then
     # By fingerprint: a keychain can hold several certificates of the same name.
-    identity=${MUXEN_SIGN_IDENTITY:-$(security find-identity -v -p codesigning 2>/dev/null | sed -n 's/^ *[0-9][0-9]*) \([0-9A-F]\{40\}\) "Developer ID Application: .*/\1/p' | head -n1)}
+    identity=${ANDRUIDE_SIGN_IDENTITY:-$(security find-identity -v -p codesigning 2>/dev/null | sed -n 's/^ *[0-9][0-9]*) \([0-9A-F]\{40\}\) "Developer ID Application: .*/\1/p' | head -n1)}
     codesign --force --timestamp -s "$identity" "$dmg"
     notarize "$dmg" "$@"
     staple "$dmg"

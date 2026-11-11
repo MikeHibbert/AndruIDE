@@ -25,7 +25,7 @@ pub mod procs;
 pub mod remote_desktop;
 pub mod report;
 pub mod sessions;
-// Muxin's own ssh client, for an iPad (it can't run the `ssh` program).
+// AndruIDE's own ssh client, for an iPad (it can't run the `ssh` program).
 #[cfg(any(target_os = "ios", all(test, unix)))]
 pub mod ssh;
 pub mod tar_filter;

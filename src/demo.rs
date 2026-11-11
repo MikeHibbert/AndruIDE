@@ -1,4 +1,4 @@
-//! `muxin --demo`: simulated machines with jobs arriving, running and
+//! `andruide --demo`: simulated machines with jobs arriving, running and
 //! finishing, so the app can be explored without any real machines.
 
 use std::sync::Mutex;
@@ -60,18 +60,18 @@ name = "win-test"
 host = "127.0.0.1"
 user = "ci"
 port = 2201
-ssh_options = ["-J", "beacon", "-o", "HostKeyAlias=muxen-win-test"]
+ssh_options = ["-J", "beacon", "-o", "HostKeyAlias=andruide-win-test"]
 direct_address = "beacon:47830"
-vm = {{ host = "beacon", os = "windows", version = "windows-11", container = "muxen-win-test", web_port = 8007, created_at = "{vm_created}" }}
+vm = {{ host = "beacon", os = "windows", version = "windows-11", container = "andruide-win-test", web_port = 8007, created_at = "{vm_created}" }}
 
 [[machine]]
 name = "sandbox"
 host = "127.0.0.1"
 user = "ci"
 port = 2202
-ssh_options = ["-J", "ci@forge.local", "-o", "HostKeyAlias=muxen-sandbox"]
+ssh_options = ["-J", "ci@forge.local", "-o", "HostKeyAlias=andruide-sandbox"]
 direct_address = "forge.local:47831"
-vm = {{ host = "forge", os = "linux", version = "ubuntu-24.04", container = "muxen-sandbox", created_at = "{vm_created}" }}
+vm = {{ host = "forge", os = "linux", version = "ubuntu-24.04", container = "andruide-sandbox", created_at = "{vm_created}" }}
 "#
     )
 }
@@ -141,7 +141,7 @@ struct SimRunner {
     online: bool,
     job: Option<u64>,
     version: &'static str,
-    /// Installed as a Docker container (muxen-<name>).
+    /// Installed as a Docker container (andruide-<name>).
     docker: bool,
 }
 
@@ -198,13 +198,13 @@ fn demo_containers(machine_id: &str) -> Vec<crate::probe::PublishedContainer> {
     let port = |ip: &str, host_port: u16, target: &str| PublishedPort { host_ip: ip.into(), host_port, target: target.into() };
     match machine_id {
         "beacon" => vec![PublishedContainer {
-            name: "muxen-win-test".into(),
+            name: "andruide-win-test".into(),
             state: "running".into(),
             image: "dockurr/windows".into(),
             ports: vec![port("127.0.0.1", 2201, "22/tcp"), port("127.0.0.1", 8007, "8006/tcp"), port("", 47830, "47821/udp")],
         }],
         "forge" => vec![PublishedContainer {
-            name: "muxen-sandbox".into(),
+            name: "andruide-sandbox".into(),
             state: "running".into(),
             image: "ubuntu:24.04".into(),
             ports: vec![port("127.0.0.1", 2202, "22/tcp"), port("", 47831, "47821/udp")],
@@ -313,7 +313,7 @@ impl World {
             .map(|(name, online, working, version, docker)| {
                 pid += 37;
                 if *docker {
-                    let container = format!("muxen-{name}");
+                    let container = format!("andruide-{name}");
                     return ProbedRunner {
                         dir: crate::probe::container_dir(&container),
                         name: name.clone(),
@@ -782,7 +782,7 @@ impl World {
             clients,
             created_at: Some(now - chrono::Duration::minutes(mins)),
             last_output_at: Some(now - chrono::Duration::seconds(if busy { 1 } else { 140 })),
-            attach_command: format!("ssh -t {machine_id} ~/.muxen/bin/muxen-agent attach {name}"),
+            attach_command: format!("ssh -t {machine_id} ~/.andruide/bin/andruide-agent attach {name}"),
             persistent: true,
             git: None,
             box_id: None,
@@ -823,7 +823,7 @@ impl World {
                 vec!["claude", "opencode", "copilot", "qwen", "droid"],
                 vec![
                     session("opencode-c40d", "opencode", "OpenCode", "OpenCode · api", "/home/ci/api", true, 5, 0),
-                    SessionInfo { box_id: Some("box-7k2m9q".into()), ..session("box-7k2m9q", "claude", "Claude Code", "Add rate limit headers", "/home/ci/muxen/boxes/box-7k2m9q/repo", true, 9, 0) },
+                    SessionInfo { box_id: Some("box-7k2m9q".into()), ..session("box-7k2m9q", "claude", "Claude Code", "Add rate limit headers", "/home/ci/andruide/boxes/box-7k2m9q/repo", true, 9, 0) },
                 ],
             ),
             "pebble" => (vec!["claude", "codex", "kimi"], vec![session("claude-5d2e", "claude", "Claude Code", "Docs refresh", "/home/ci/docs", false, 26, 0)]),
@@ -844,7 +844,7 @@ impl World {
                     agent_name: agent_name.into(),
                     state: state.into(),
                     task: task.into(),
-                    path: format!("/home/ci/muxen/boxes/{id}/repo"),
+                    path: format!("/home/ci/andruide/boxes/{id}/repo"),
                     idle_minutes: crate::fleet::boxes::IDLE_MINUTES,
                     created_at: Some(now - chrono::Duration::minutes(mins)),
                     state_at: Some(now - chrono::Duration::minutes(if state == "paused" { mins - 40 } else { mins })),
@@ -937,12 +937,12 @@ impl World {
                         Some(pull(142, "Fix the checkout total when a coupon is applied", "acme/shop", Checks { total: 6, passed: 5, pending: 1, ..Default::default() })),
                     ),
                     ("orbit", "/Users/ci/code/ios-app") => status("offline-mode", "acme/ios-app", (7, 312, 45, 3, 0), true, None),
-                    ("orbit", "/Users/ci/muxen/workspaces/ws-9c4e71") => GitStatus {
+                    ("orbit", "/Users/ci/andruide/workspaces/ws-9c4e71") => GitStatus {
                         pull: Some(BranchPull { state: "merged".into(), ..pull(77, "Share a list from the share sheet", "acme/ios-app", Checks { total: 3, passed: 3, ..Default::default() }) }),
                         ..status("share-sheet", "acme/ios-app", (6, 204, 31, 3, 0), true, None)
                     },
-                    ("beacon", "/home/ci/muxen/boxes/box-7k2m9q/repo") => status("box/add-rate-limit-headers", "acme/api", (3, 58, 4, 1, 2), false, None),
-                    ("beacon", "/home/ci/muxen/boxes/box-3hf8wd/repo") => status(
+                    ("beacon", "/home/ci/andruide/boxes/box-7k2m9q/repo") => status("box/add-rate-limit-headers", "acme/api", (3, 58, 4, 1, 2), false, None),
+                    ("beacon", "/home/ci/andruide/boxes/box-3hf8wd/repo") => status(
                         "box/fix-flaky-webhook-retry-test",
                         "acme/api",
                         (2, 31, 9, 2, 0),
@@ -982,7 +982,7 @@ impl World {
             clients: 0,
             created_at: Some(Utc::now()),
             last_output_at: Some(Utc::now()),
-            attach_command: format!("ssh -t {} ~/.muxen/bin/muxen-agent attach {name}", spec.host),
+            attach_command: format!("ssh -t {} ~/.andruide/bin/andruide-agent attach {name}", spec.host),
             persistent: true,
             git: None,
             box_id: None,

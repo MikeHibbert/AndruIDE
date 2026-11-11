@@ -6,7 +6,7 @@
 # The runner, and everything on it, is thrown away after the job.
 set -eu
 
-keychain=$RUNNER_TEMP/muxen-signing.keychain-db
+keychain=$RUNNER_TEMP/andruide-signing.keychain-db
 password=$(openssl rand -hex 24)
 printf '%s' "$MACOS_CERT_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
 security create-keychain -p "$password" "$keychain"

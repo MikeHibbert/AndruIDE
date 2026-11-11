@@ -1,10 +1,10 @@
-//! Agent sessions that run in a desktop app rather than in Muxin's terminal:
+//! Agent sessions that run in a desktop app rather than in AndruIDE's terminal:
 //! Claude's desktop app (its Code tab), which runs Claude Code with
 //! `CLAUDE_CODE_ENTRYPOINT=claude-desktop` and the app's own id for the
 //! session in `CLAUDE_CODE_HOST_SESSION_ID`.
 //!
-//! Muxin's Claude hook reports for those too (states.rs keeps each as
-//! `desktop-claude-<id>`), and `discover` lists them beside Muxin's own
+//! AndruIDE's Claude hook reports for those too (states.rs keeps each as
+//! `desktop-claude-<id>`), and `discover` lists them beside AndruIDE's own
 //! sessions, with the title and folder from the app's file for the session.
 //! The apps open them in Claude (`claude://code/continue?session=<id>`).
 //!

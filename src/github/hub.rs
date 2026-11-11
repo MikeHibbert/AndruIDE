@@ -35,7 +35,7 @@ pub struct Repo {
     pub html_url: String,
     /// Owned by an organization (else by a person: you, or someone who shared it with you).
     pub owner_is_org: bool,
-    /// Starred in Muxin (not GitHub's stars).
+    /// Starred in AndruIDE (not GitHub's stars).
     pub favorite: bool,
     /// This login can push to it.
     pub can_push: bool,
@@ -645,7 +645,7 @@ mod tests {
 
     #[test]
     fn parses_repo_and_issue_refs() {
-        assert_eq!(repo_name("git@github.com:LumaryLabsLLC/muxin.git").as_deref(), Some("LumaryLabsLLC/muxin"));
+        assert_eq!(repo_name("git@github.com:MikeHibbert/AndruIDE.git").as_deref(), Some("MikeHibbert/AndruIDE"));
         assert_eq!(repo_name("https://github.com/zennotes/zennotes").as_deref(), Some("zennotes/zennotes"));
         assert_eq!(repo_name("acme/api").as_deref(), Some("acme/api"));
         assert_eq!(repo_name("https://gitlab.com/x/y"), None);

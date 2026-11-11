@@ -1,9 +1,9 @@
-//! The `muxin` command in the user's PATH, so terminals (and other agents,
-//! with `muxin mcp`) can run it: a link to this executable in
+//! The `andruide` command in the user's PATH, so terminals (and other agents,
+//! with `andruide mcp`) can run it: a link to this executable in
 //! /usr/local/bin on macOS (asking for an administrator's password when the
 //! folder isn't writable) and ~/.local/bin on Linux; on Windows, this
-//! executable's folder added to the user's PATH. `muxen`, its name from
-//! before, goes beside it (on Windows, muxen.cmd ships next to muxin.exe).
+//! executable's folder added to the user's PATH. `andruide`, its name from
+//! before, goes beside it (on Windows, andruide.cmd ships next to andruide.exe).
 //! When Homebrew or a Linux package installed the app, its link is the one in
 //! the PATH; an AppImage links the AppImage file, not its temporary mount.
 
@@ -21,13 +21,13 @@ pub struct Status {
     pub target: Option<String>,
     /// Something to know, in plain words ("Open a new terminal to use it.").
     pub note: Option<String>,
-    /// "other" that install may replace: a link to another copy of Muxin.
+    /// "other" that install may replace: a link to another copy of AndruIDE.
     pub replaceable: bool,
     /// Homebrew or the app's Linux package put it there, and takes it away.
     pub managed: bool,
 }
 
-/// Whether `muxin` is in the PATH and runs this copy of Muxin.
+/// Whether `andruide` is in the PATH and runs this copy of AndruIDE.
 pub fn status() -> Status {
     let exe = match this_exe() {
         Ok(exe) => exe,
@@ -39,7 +39,7 @@ pub fn status() -> Status {
 pub fn install() -> Result<Status, String> {
     let exe = this_exe()?;
     if exe.to_string_lossy().contains("/AppTranslocation/") {
-        return Err("macOS is running Muxin from a temporary copy. Move Muxin to Applications, open it from there, and try again.".into());
+        return Err("macOS is running AndruIDE from a temporary copy. Move AndruIDE to Applications, open it from there, and try again.".into());
     }
     imp::install(&exe)?;
     Ok(imp::status(&exe))
@@ -59,18 +59,18 @@ fn this_exe() -> Result<PathBuf, String> {
     {
         return Ok(std::fs::canonicalize(&file).unwrap_or(file));
     }
-    let exe = std::env::current_exe().map_err(|e| format!("Couldn't tell where Muxin is: {e}"))?;
+    let exe = std::env::current_exe().map_err(|e| format!("Couldn't tell where AndruIDE is: {e}"))?;
     Ok(std::fs::canonicalize(&exe).unwrap_or(exe))
 }
 
-/// A link of ours: it points to a Muxin executable (this one, another copy,
-/// or one from when it was called Muxen), not to something else that happens
+/// A link of ours: it points to a AndruIDE executable (this one, another copy,
+/// or one from when it was called AndruIDE), not to something else that happens
 /// to have the name.
 #[cfg(unix)]
 fn is_ours(target: &Path) -> bool {
     let s = target.to_string_lossy();
     let name = target.file_name().map(|n| n.to_string_lossy().to_lowercase()).unwrap_or_default();
-    name == "muxin" || name == "muxen" || (name.starts_with("muxin") && name.ends_with(".appimage")) || s.contains("Muxin.app/") || s.contains("Muxen.app/")
+    name == "andruide" || name == "andruide" || (name.starts_with("andruide") && name.ends_with(".appimage")) || s.contains("AndruIDE.app/") || s.contains("AndruIDE.app/")
 }
 
 #[cfg(unix)]
@@ -81,22 +81,22 @@ mod imp {
     /// Where the link goes on this OS.
     fn link_path() -> Result<PathBuf, String> {
         if cfg!(target_os = "macos") {
-            Ok(PathBuf::from("/usr/local/bin/muxin"))
+            Ok(PathBuf::from("/usr/local/bin/andruide"))
         } else {
             let home = std::env::var_os("HOME").ok_or("HOME isn't set.")?;
-            Ok(PathBuf::from(home).join(".local/bin/muxin"))
+            Ok(PathBuf::from(home).join(".local/bin/andruide"))
         }
     }
 
-    /// `muxen`, its name from before, next to it: setups that run that (an
+    /// `andruide`, its name from before, next to it: setups that run that (an
     /// agent's MCP config, say) keep working.
     fn alias_of(link: &Path) -> PathBuf {
-        link.with_file_name("muxen")
+        link.with_file_name("andruide")
     }
 
-    /// Who installed this copy and its link, when that wasn't Muxin: Homebrew
-    /// (`brew install --cask muxin`), or the .deb, .rpm or Arch package (the
-    /// app in /usr/lib/muxin, the link in /usr/bin).
+    /// Who installed this copy and its link, when that wasn't AndruIDE: Homebrew
+    /// (`brew install --cask andruide`), or the .deb, .rpm or Arch package (the
+    /// app in /usr/lib/andruide, the link in /usr/bin).
     #[derive(Clone, Copy, PartialEq, Debug)]
     pub(super) enum Manager {
         Homebrew,
@@ -105,18 +105,18 @@ mod imp {
 
     fn managed_link(exe: &Path) -> Option<(PathBuf, Manager)> {
         let runs_this = |link: &Path| std::fs::canonicalize(link).is_ok_and(|r| r == exe);
-        if cfg!(target_os = "linux") && exe.starts_with("/usr/lib/muxin") && runs_this(Path::new("/usr/bin/muxin")) {
-            return Some((PathBuf::from("/usr/bin/muxin"), Manager::Package));
+        if cfg!(target_os = "linux") && exe.starts_with("/usr/lib/andruide") && runs_this(Path::new("/usr/bin/andruide")) {
+            return Some((PathBuf::from("/usr/bin/andruide"), Manager::Package));
         }
         let prefixes = std::env::var_os("HOMEBREW_PREFIX").map(PathBuf::from).into_iter().chain(["/opt/homebrew", "/usr/local", "/home/linuxbrew/.linuxbrew"].map(PathBuf::from));
-        prefixes.filter(|p| p.join("Caskroom/muxin").is_dir()).map(|p| p.join("bin/muxin")).find(|link| runs_this(link)).map(|link| (link, Manager::Homebrew))
+        prefixes.filter(|p| p.join("Caskroom/andruide").is_dir()).map(|p| p.join("bin/andruide")).find(|link| runs_this(link)).map(|link| (link, Manager::Homebrew))
     }
 
     pub fn status(exe: &Path) -> Status {
         if let Some((link, by)) = managed_link(exe) {
             let note = Some(match by {
                 Manager::Homebrew => "Homebrew put it there with the app.",
-                Manager::Package => "Muxin's package put it there with the app.",
+                Manager::Package => "AndruIDE's package put it there with the app.",
             });
             return Status { state: "installed", path: link.display().to_string(), target: Some(exe.display().to_string()), note: note.map(Into::into), replaceable: false, managed: true };
         }
@@ -133,7 +133,7 @@ mod imp {
             return Status { state: "missing", path, ..Default::default() };
         };
         if !meta.file_type().is_symlink() {
-            return Status { state: "other", path, note: Some("A different program called muxin is there; Muxin leaves it alone.".into()), ..Default::default() };
+            return Status { state: "other", path, note: Some("A different program called andruide is there; AndruIDE leaves it alone.".into()), ..Default::default() };
         }
         let target = std::fs::read_link(&link).ok();
         let resolved = std::fs::canonicalize(&link).ok();
@@ -147,13 +147,13 @@ mod imp {
                 let alias_elsewhere = std::fs::read_link(&alias).is_ok_and(|t| is_ours(&t)) && std::fs::canonicalize(&alias).ok().as_deref() != Some(exe);
                 if alias_elsewhere {
                     let target = std::fs::read_link(&alias).ok().map(|t| t.display().to_string());
-                    return Status { state: "other", path: alias.display().to_string(), target, note: Some("It runs another copy of Muxin.".into()), replaceable: true, managed: false };
+                    return Status { state: "other", path: alias.display().to_string(), target, note: Some("It runs another copy of AndruIDE.".into()), replaceable: true, managed: false };
                 }
                 Status { state: "installed", path: path.clone(), target: shown.clone(), note: in_path_note(&link), ..Default::default() }
             }
-            _ if !ours => other("It links to a different program called muxin; Muxin leaves it alone.", false),
-            None => other("It points to a copy of Muxin that isn't there anymore.", true),
-            Some(_) => other("It runs another copy of Muxin.", true),
+            _ if !ours => other("It links to a different program called andruide; AndruIDE leaves it alone.", false),
+            None => other("It points to a copy of AndruIDE that isn't there anymore.", true),
+            Some(_) => other("It runs another copy of AndruIDE.", true),
         }
     }
 
@@ -175,7 +175,7 @@ mod imp {
         install_at(&link_path()?, exe)
     }
 
-    /// The link, and `muxen` beside it unless something else has that name.
+    /// The link, and `andruide` beside it unless something else has that name.
     pub(super) fn install_at(link: &Path, exe: &Path) -> Result<(), String> {
         refuse_others(link)?;
         let alias = alias_of(link);
@@ -193,18 +193,18 @@ mod imp {
 
     pub fn remove(exe: &Path) -> Result<(), String> {
         match managed_link(exe) {
-            Some((_, Manager::Homebrew)) => return Err("Homebrew put it there. It goes when you uninstall Muxin with brew uninstall --cask muxin.".into()),
-            Some((_, Manager::Package)) => return Err("Muxin's package put it there. It goes when you uninstall the package.".into()),
+            Some((_, Manager::Homebrew)) => return Err("Homebrew put it there. It goes when you uninstall AndruIDE with brew uninstall --cask andruide.".into()),
+            Some((_, Manager::Package)) => return Err("AndruIDE's package put it there. It goes when you uninstall the package.".into()),
             None => {}
         }
         remove_at(&link_path()?)
     }
 
-    /// The link, and `muxen` beside it when that's ours too.
+    /// The link, and `andruide` beside it when that's ours too.
     pub(super) fn remove_at(link: &Path) -> Result<(), String> {
         let ours = |l: &Path| std::fs::symlink_metadata(l).is_ok_and(|m| m.file_type().is_symlink()) && std::fs::read_link(l).is_ok_and(|t| is_ours(&t));
         if std::fs::symlink_metadata(link).is_ok() && !ours(link) {
-            return Err(format!("{} isn't a link to Muxin, so Muxin leaves it alone.", link.display()));
+            return Err(format!("{} isn't a link to AndruIDE, so AndruIDE leaves it alone.", link.display()));
         }
         let links: Vec<PathBuf> = [link.to_path_buf(), alias_of(link)].into_iter().filter(|l| ours(l)).collect();
         for l in &links {
@@ -220,10 +220,10 @@ mod imp {
         Ok(())
     }
 
-    /// Only ever replace a link to Muxin, never someone else's file.
+    /// Only ever replace a link to AndruIDE, never someone else's file.
     fn refuse_others(link: &Path) -> Result<(), String> {
         match std::fs::symlink_metadata(link) {
-            Ok(m) if !m.file_type().is_symlink() => Err(format!("There's already a file at {} that isn't a link to Muxin. Remove it first if you don't need it.", link.display())),
+            Ok(m) if !m.file_type().is_symlink() => Err(format!("There's already a file at {} that isn't a link to AndruIDE. Remove it first if you don't need it.", link.display())),
             Ok(_) if !std::fs::read_link(link).is_ok_and(|t| is_ours(&t)) => {
                 Err(format!("{} already links to another program. Remove it first if you don't need it.", link.display()))
             }
@@ -279,10 +279,10 @@ $p = if ($k) { $k.GetValue('Path', '', 'DoNotExpandEnvironmentNames') } else { '
 $k = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey('Environment')
 $p = $k.GetValue('Path', '', 'DoNotExpandEnvironmentNames')
 $kind = if ($p) { $k.GetValueKind('Path') } else { [Microsoft.Win32.RegistryValueKind]::ExpandString }
-$parts = @($p -split ';' | Where-Object { $_ -and ($_.TrimEnd('\') -ne $env:MUXEN_DIR.TrimEnd('\')) })
-if ($env:MUXEN_ADD -eq '1') { $parts += $env:MUXEN_DIR }
+$parts = @($p -split ';' | Where-Object { $_ -and ($_.TrimEnd('\') -ne $env:ANDRUIDE_DIR.TrimEnd('\')) })
+if ($env:ANDRUIDE_ADD -eq '1') { $parts += $env:ANDRUIDE_DIR }
 $k.SetValue('Path', ($parts -join ';'), $kind)
-[Environment]::SetEnvironmentVariable('MUXEN_PATH_CHANGED', $null, 'User')
+[Environment]::SetEnvironmentVariable('ANDRUIDE_PATH_CHANGED', $null, 'User')
 "#;
 
     fn powershell(script: &str, env: &[(&str, &str)]) -> Result<String, String> {
@@ -301,7 +301,7 @@ $k.SetValue('Path', ($parts -join ';'), $kind)
     }
 
     fn dir_of(exe: &Path) -> Result<String, String> {
-        let dir = exe.parent().ok_or("Couldn't tell which folder Muxin is in.")?.display().to_string();
+        let dir = exe.parent().ok_or("Couldn't tell which folder AndruIDE is in.")?.display().to_string();
         // canonicalize gives \\?\C:\...; PATH wants C:\...
         Ok(dir.strip_prefix(r"\\?\").unwrap_or(&dir).to_string())
     }
@@ -324,11 +324,11 @@ $k.SetValue('Path', ($parts -join ';'), $kind)
     }
 
     pub fn install(exe: &Path) -> Result<(), String> {
-        powershell(WRITE, &[("MUXEN_DIR", &dir_of(exe)?), ("MUXEN_ADD", "1")]).map(|_| ())
+        powershell(WRITE, &[("ANDRUIDE_DIR", &dir_of(exe)?), ("ANDRUIDE_ADD", "1")]).map(|_| ())
     }
 
     pub fn remove(exe: &Path) -> Result<(), String> {
-        powershell(WRITE, &[("MUXEN_DIR", &dir_of(exe)?), ("MUXEN_ADD", "0")]).map(|_| ())
+        powershell(WRITE, &[("ANDRUIDE_DIR", &dir_of(exe)?), ("ANDRUIDE_ADD", "0")]).map(|_| ())
     }
 }
 
@@ -339,33 +339,33 @@ mod tests {
 
     #[test]
     fn knows_its_own_links() {
-        assert!(is_ours(Path::new("/Applications/Muxin.app/Contents/MacOS/muxin")));
-        assert!(is_ours(Path::new("/Applications/Muxen.app/Contents/MacOS/muxen")));
-        assert!(is_ours(Path::new("/home/me/.cargo/bin/muxin")));
-        assert!(is_ours(Path::new("/home/me/Applications/Muxin-0.5.2-linux-x86_64.AppImage")));
+        assert!(is_ours(Path::new("/Applications/AndruIDE.app/Contents/MacOS/andruide")));
+        assert!(is_ours(Path::new("/Applications/AndruIDE.app/Contents/MacOS/andruide")));
+        assert!(is_ours(Path::new("/home/me/.cargo/bin/andruide")));
+        assert!(is_ours(Path::new("/home/me/Applications/AndruIDE-0.5.2-linux-x86_64.AppImage")));
         assert!(!is_ours(Path::new("/usr/bin/python3")));
     }
 
     #[test]
     fn links_replaces_and_removes_only_its_own() {
-        let tmp = std::env::temp_dir().join(format!("muxin-shell-command-{}", std::process::id()));
+        let tmp = std::env::temp_dir().join(format!("andruide-shell-command-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&tmp);
-        let exe = tmp.join("Muxin.app/Contents/MacOS/muxin");
+        let exe = tmp.join("AndruIDE.app/Contents/MacOS/andruide");
         std::fs::create_dir_all(exe.parent().unwrap()).unwrap();
         std::fs::write(&exe, "").unwrap();
         let exe = std::fs::canonicalize(&exe).unwrap();
-        let link = tmp.join("bin/muxin");
-        let alias = tmp.join("bin/muxen");
+        let link = tmp.join("bin/andruide");
+        let alias = tmp.join("bin/andruide");
 
         assert_eq!(imp::status_at(&link, &exe).state, "missing");
         imp::install_at(&link, &exe).unwrap();
         assert_eq!(imp::status_at(&link, &exe).state, "installed");
-        assert_eq!(std::fs::canonicalize(&alias).unwrap(), exe, "muxen runs it too");
+        assert_eq!(std::fs::canonicalize(&alias).unwrap(), exe, "andruide runs it too");
         // Again: replaces its own link.
         imp::install_at(&link, &exe).unwrap();
         assert_eq!(imp::status_at(&link, &exe).state, "installed");
         // A link to another copy is "other" and gets replaced.
-        let old = tmp.join("Muxen.app/Contents/MacOS/muxen");
+        let old = tmp.join("AndruIDE.app/Contents/MacOS/andruide");
         std::fs::create_dir_all(old.parent().unwrap()).unwrap();
         std::fs::write(&old, "").unwrap();
         std::fs::remove_file(&link).unwrap();
@@ -382,9 +382,9 @@ mod tests {
         assert_eq!(imp::status_at(&link, &exe).state, "installed");
         imp::remove_at(&link).unwrap();
         assert_eq!(imp::status_at(&link, &exe).state, "missing");
-        assert!(std::fs::symlink_metadata(&alias).is_err(), "muxen goes with it");
+        assert!(std::fs::symlink_metadata(&alias).is_err(), "andruide goes with it");
 
-        // Someone else's muxen: muxin goes in, muxen stays theirs.
+        // Someone else's andruide: andruide goes in, andruide stays theirs.
         std::fs::write(&alias, "#!/bin/sh").unwrap();
         imp::install_at(&link, &exe).unwrap();
         assert_eq!(imp::status_at(&link, &exe).state, "installed");

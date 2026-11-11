@@ -14,7 +14,7 @@ static LOG: Mutex<Option<PathBuf>> = Mutex::new(None);
 const MAX_LOG: u64 = 1024 * 1024;
 
 /// Appends each panic to `log`, then lets the previous hook do what it did
-/// (print it to stderr). `program` names the build, such as "muxin 0.5.6".
+/// (print it to stderr). `program` names the build, such as "andruide 0.5.6".
 pub fn install(program: &'static str, log: PathBuf) {
     log_to(log);
     let previous = std::panic::take_hook();
@@ -75,10 +75,10 @@ mod tests {
 
     #[test]
     fn report_has_what_happened_and_where() {
-        let text = report("muxin 0.5.6", 1_760_000_000, "main", "byte index 5 is out of range", "src/ui/input.rs:367:42", "   0: muxin::main\n");
+        let text = report("andruide 0.5.6", 1_760_000_000, "main", "byte index 5 is out of range", "src/ui/input.rs:367:42", "   0: andruide::main\n");
         assert_eq!(
             text,
-            "=== muxin 0.5.6 panicked at unix time 1760000000\nthread: main\nat: src/ui/input.rs:367:42\nbyte index 5 is out of range\n\nbacktrace:\n   0: muxin::main\n\n"
+            "=== andruide 0.5.6 panicked at unix time 1760000000\nthread: main\nat: src/ui/input.rs:367:42\nbyte index 5 is out of range\n\nbacktrace:\n   0: andruide::main\n\n"
         );
     }
 
@@ -94,7 +94,7 @@ mod tests {
 
     #[test]
     fn log_appends_then_starts_over_when_big() {
-        let dir = std::env::temp_dir().join(format!("muxen-crash-test-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("andruide-crash-test-{}", std::process::id()));
         let log = dir.join("crash.log");
         let _ = std::fs::remove_file(&log);
         write(&log, "one\n").unwrap();

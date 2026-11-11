@@ -1,5 +1,5 @@
-//! The agent-facing API: one layer behind both the MCP server (`muxin mcp`)
-//! and the scriptable CLI (`muxin status --json`, `muxin install`, ...).
+//! The agent-facing API: one layer behind both the MCP server (`andruide mcp`)
+//! and the scriptable CLI (`andruide status --json`, `andruide install`, ...).
 //!
 //! Responses are compact and explicit on purpose: stable ids, plain state
 //! strings, a one-line `summary` where it helps, and operation logs capped to a
@@ -89,7 +89,7 @@ fn op_error(message: String) -> ApiError {
     let lower = message.to_ascii_lowercase();
     let code = if lower.contains("another operation") || lower.contains("still running") {
         "busy"
-    } else if lower.contains("isn't in config.toml") || lower.contains("isn't in muxen") {
+    } else if lower.contains("isn't in config.toml") || lower.contains("isn't in andruide") {
         "not_found"
     } else {
         "invalid"
@@ -460,7 +460,7 @@ pub struct MachineSummary {
     /// and whether traffic to it goes peer-to-peer or through a relay.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tailnet: Option<crate::fleet::model::TailnetDevice>,
-    /// A cloud machine Muxin created: provider, droplet id, region, size,
+    /// A cloud machine AndruIDE created: provider, droplet id, region, size,
     /// USD an hour, what it has cost so far and since when it's been idle.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cloud: Option<CloudOut>,
@@ -468,7 +468,7 @@ pub struct MachineSummary {
     /// through (relation "through"), with the container it runs in.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub parent: Option<crate::fleet::model::ParentMachine>,
-    /// A VM Muxin made with vm_create (vm_destroy deletes it): host, os,
+    /// A VM AndruIDE made with vm_create (vm_destroy deletes it): host, os,
     /// version (the system id), container, created_at.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub vm: Option<crate::config::VmRef>,
@@ -532,7 +532,7 @@ pub struct DiagnosticOut {
     pub hint: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub runner_id: Option<String>,
-    /// What Muxin can do about it, the likely fix first (see AGENTS.md).
+    /// What AndruIDE can do about it, the likely fix first (see AGENTS.md).
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub actions: Vec<crate::fleet::model::DiagnosticAction>,
 }
@@ -601,7 +601,7 @@ pub struct OperationOut {
     pub started_at: DateTime<Utc>,
     pub finished_at: Option<DateTime<Utc>>,
     pub error: Option<String>,
-    /// The last lines of output. "▸ " lines are Muxin's steps, "✓ " successes,
+    /// The last lines of output. "▸ " lines are AndruIDE's steps, "✓ " successes,
     /// "error: "/"warning: " problems; anything else is output from the machine.
     pub log_tail: Vec<String>,
     pub log_lines: usize,
@@ -669,7 +669,7 @@ pub struct SshHostsResponse {
     /// Computers on the user's tailnet (when Tailscale is installed and on
     /// here), online ones first.
     pub tailnet: Vec<TailnetHost>,
-    /// Computers on this local network that aren't in Muxin yet: ones
+    /// Computers on this local network that aren't in AndruIDE yet: ones
     /// advertising ssh (`ssh: true`, add by `host`), and Macs with Remote
     /// Login off (`ssh: false`: it needs turning on there first).
     pub network: Vec<crate::fleet::discover::NetworkHost>,
@@ -688,7 +688,7 @@ pub struct TailnetHost {
     pub os: String,
     /// Whether Tailscale sees it online.
     pub online: bool,
-    /// Already in Muxin, as this machine.
+    /// Already in AndruIDE, as this machine.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub machine_id: Option<String>,
 }
@@ -982,11 +982,11 @@ pub fn status_from(s: &Snapshot, surface: Surface) -> StatusResponse {
         Some(match g.detected.first() {
             Some(d) => surface.say(
                 format!("Not watching GitHub yet. Runner configs mention \"{d}\": call github_scopes with add=[\"{d}\"]."),
-                format!("Not watching GitHub yet. Runner configs mention \"{d}\": run `muxin watch {d}`."),
+                format!("Not watching GitHub yet. Runner configs mention \"{d}\": run `andruide watch {d}`."),
             ),
             None => surface.say(
                 "Not watching GitHub yet: call github_scopes with add=[\"<org>\"] or [\"owner/repo\"].",
-                "Not watching GitHub yet: run `muxin watch <org>` (or owner/repo).",
+                "Not watching GitHub yet: run `andruide watch <org>` (or owner/repo).",
             ),
         })
     } else {
@@ -1080,7 +1080,7 @@ pub fn status_from(s: &Snapshot, surface: Surface) -> StatusResponse {
         hint: never_checked.then(|| {
             surface.say(
                 "No machine has been checked yet; call check_machines (or status with refresh=true).",
-                "No machine has been checked yet; run `muxin status --refresh` (or `muxin check`).",
+                "No machine has been checked yet; run `andruide status --refresh` (or `andruide check`).",
             )
         }),
         demo: s.demo,
@@ -1139,7 +1139,7 @@ pub async fn jobs(engine: &Arc<Engine>, surface: Surface) -> ApiResult<JobsRespo
         hint: (!s.github.configured && !s.demo).then(|| {
             surface.say(
                 "Jobs come from GitHub: call github_scopes with add=[\"<org>\"] first.",
-                "Jobs come from GitHub: run `muxin watch <org>` first.",
+                "Jobs come from GitHub: run `andruide watch <org>` first.",
             )
         }),
     })
@@ -1152,7 +1152,7 @@ pub fn operations(engine: &Arc<Engine>) -> Vec<OperationOut> {
 pub fn operation(engine: &Arc<Engine>, req: OperationRequest) -> ApiResult<OperationOut> {
     let s = engine.current();
     let o = s.operations.iter().find(|o| o.id == req.operation_id).ok_or_else(|| {
-        ApiError::not_found(format!("No operation {} in this Muxin process.", req.operation_id))
+        ApiError::not_found(format!("No operation {} in this AndruIDE process.", req.operation_id))
             .with_hint("Operation ids are per process; list_operations shows the ones this server started.")
     })?;
     Ok(operation_out(o, req.tail.unwrap_or(DEFAULT_TAIL)))
@@ -1285,18 +1285,18 @@ pub async fn add_machine(engine: &Arc<Engine>, req: AddMachineRequest, surface: 
     let next = match machine.as_ref().map(|m| m.summary.status.as_str()) {
         Some("online") => surface.say(
             format!("Machine is reachable. {direct}Install runners with install_runners(machine_id=\"{id}\", count=N)."),
-            format!("Machine is reachable. {direct}Install runners with `muxin install {id} --count N`."),
+            format!("Machine is reachable. {direct}Install runners with `andruide install {id} --count N`."),
         ),
         Some("offline") => surface.say(
             "The machine didn't answer over ssh. Make sure key-based `ssh <host>` works without a password prompt, then call check_machines.",
-            "The machine didn't answer over ssh. Make sure key-based `ssh <host>` works without a password prompt, then run `muxin check`.",
+            "The machine didn't answer over ssh. Make sure key-based `ssh <host>` works without a password prompt, then run `andruide check`.",
         ),
-        _ => surface.say(format!("Call check_machines(machine_id=\"{id}\") to check it."), "Run `muxin check` to check it.".to_string()),
+        _ => surface.say(format!("Call check_machines(machine_id=\"{id}\") to check it."), "Run `andruide check` to check it.".to_string()),
     };
     Ok(AddMachineResponse { machine_id: id, machine, next })
 }
 
-/// Disconnects from a machine (Muxin stops connecting to it, checking it and
+/// Disconnects from a machine (AndruIDE stops connecting to it, checking it and
 /// looking at its sessions, which go on there) or connects again (and checks
 /// it, waiting for that).
 pub async fn connect_machine(engine: &Arc<Engine>, req: ConnectMachineRequest) -> ApiResult<MachineSummary> {
@@ -1353,7 +1353,7 @@ pub async fn install_runners(engine: &Arc<Engine>, req: InstallRunnersRequest, s
                 [] => {
                     return Err(ApiError::invalid("Say which GitHub org or repo to register the runners with (scope).").with_hint(surface.say(
                         "Watch it first with github_scopes(add=[\"<org>\"]), or pass scope=\"<org>\" / \"owner/repo\".",
-                        "Watch it first with `muxin watch <org>`, or pass --scope <org> / owner/repo.",
+                        "Watch it first with `andruide watch <org>`, or pass --scope <org> / owner/repo.",
                     )));
                 }
                 many => return Err(ApiError::invalid(format!("Several orgs/repos are watched ({}); pass scope.", many.join(", ")))),
@@ -1467,7 +1467,7 @@ pub struct CloudMachineRequest {
     pub wait: bool,
 }
 
-/// Destroys a cloud machine: deletes the droplet and removes it from Muxin.
+/// Destroys a cloud machine: deletes the droplet and removes it from AndruIDE.
 pub async fn cloud_destroy(engine: &Arc<Engine>, req: CloudMachineRequest, surface: Surface, on_line: impl FnMut(&str)) -> ApiResult<ActionResponse> {
     let s = freshen(engine).await;
     let m = find_machine(&s, &req.machine_id)?.clone();
@@ -1603,7 +1603,7 @@ pub async fn vm_create(engine: &Arc<Engine>, req: VmCreateRequest, surface: Surf
     finish_action(engine, op, req.wait, req.timeout_secs.unwrap_or(600), DEFAULT_TAIL, Some(id), Vec::new(), surface, on_line).await
 }
 
-/// Destroys a VM Muxin made: its container and disk, and the machine in Muxin.
+/// Destroys a VM AndruIDE made: its container and disk, and the machine in AndruIDE.
 pub async fn vm_destroy(engine: &Arc<Engine>, req: CloudMachineRequest, surface: Surface, on_line: impl FnMut(&str)) -> ApiResult<ActionResponse> {
     let s = freshen(engine).await;
     let m = find_machine(&s, &req.machine_id)?.clone();
@@ -1627,7 +1627,7 @@ pub async fn machine_power(engine: &Arc<Engine>, req: CloudMachineRequest, surfa
         None => engine.machine_power(&m.id, true).map_err(op_error)?,
         Some(action) => engine.machine_os_power(&m.id, action).await.map_err(|e| match e {
             crate::fleet::desktop::AddDisplayError::NeedsPassword(_) => {
-                ApiError::new("invalid", format!("{} wants the user's password for that (sudo).", m.name)).with_hint("Do it from the Muxin app (the machine's menu), which asks for it.")
+                ApiError::new("invalid", format!("{} wants the user's password for that (sudo).", m.name)).with_hint("Do it from the AndruIDE app (the machine's menu), which asks for it.")
             }
             crate::fleet::desktop::AddDisplayError::Failed(why) => op_error(why),
         })?,
@@ -1671,7 +1671,7 @@ async fn finish_action(
         next: (!finished).then(|| {
             surface.say(
                 format!("Still running. Poll get_operation(operation_id={op}) until status isn't \"running\"."),
-                "Still running in the background; this command stopped waiting. Check the result with `muxin status`.",
+                "Still running in the background; this command stopped waiting. Check the result with `andruide status`.",
             )
         }),
         operation: operation_out(&operation, tail),
@@ -1791,7 +1791,7 @@ const HISTORY_IN_GET: usize = 20;
 #[derive(Debug, Default, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct WorkspaceCreateRequest {
-    /// Machine id to use. Omit to let Muxin pick the least-loaded online machine that allows workspaces.
+    /// Machine id to use. Omit to let AndruIDE pick the least-loaded online machine that allows workspaces.
     pub machine_id: Option<String>,
     /// When picking a machine: platform prefix it must match, e.g. "linux", "linux-x64", "darwin-arm64", "windows".
     pub platform: Option<String>,
@@ -2135,7 +2135,7 @@ fn ws_error(message: String, surface: Surface) -> ApiError {
     } else if m.contains("doesn't allow") || m.contains("not allowed") || m.contains("disabled") {
         err = err.with_hint(surface.say(
             "Turn workspaces on for that machine (workspace_allow, the toggle in the app, or `workspaces = true` in config.toml), or pick another machine.",
-            "Turn workspaces on for that machine (`muxin workspace allow <machine-id>`, the toggle in the app, or `workspaces = true` in config.toml), or pick another machine.",
+            "Turn workspaces on for that machine (`andruide workspace allow <machine-id>`, the toggle in the app, or `workspaces = true` in config.toml), or pick another machine.",
         ));
     } else if m.contains("rsync") {
         err = err.with_hint("Install rsync on both this computer and the machine.");
@@ -2145,7 +2145,7 @@ fn ws_error(message: String, surface: Surface) -> ApiError {
     err
 }
 
-/// The current workspaces, including ones other Muxin processes created.
+/// The current workspaces, including ones other AndruIDE processes created.
 fn current_workspaces(engine: &Arc<Engine>) -> Vec<WorkspaceInfo> {
     engine.refresh_from_disk();
     engine.workspaces()
@@ -2163,12 +2163,12 @@ fn find_workspace(engine: &Arc<Engine>, id: &str, surface: Surface) -> ApiResult
         return Ok((*one).clone());
     }
     Err(ApiError::not_found(format!("No workspace \"{id}\".")).with_hint(if all.is_empty() {
-        surface.say("There are no workspaces; create one with workspace_create.", "There are no workspaces; create one with `muxin workspace create`.")
+        surface.say("There are no workspaces; create one with workspace_create.", "There are no workspaces; create one with `andruide workspace create`.")
     } else {
         let known = all.iter().map(|w| w.id.as_str()).collect::<Vec<_>>().join(", ");
         surface.say(
             &format!("Known workspaces: {known}. Or create one with workspace_create."),
-            &format!("Known workspaces: {known}. Or create one with `muxin workspace create`."),
+            &format!("Known workspaces: {known}. Or create one with `andruide workspace create`."),
         )
     }))
 }
@@ -2235,7 +2235,7 @@ pub async fn workspace_create(engine: &Arc<Engine>, req: WorkspaceCreateRequest,
                 return Err(ApiError::invalid(format!("{} doesn't allow workspaces.", m.name))
                     .with_hint(surface.say(
                         format!("Turn them on with workspace_allow(machine_id=\"{}\", allowed=true) if the user agrees, or pick another machine.", m.id),
-                        format!("Turn them on with `muxin workspace allow {}`, or pick another machine.", m.id),
+                        format!("Turn them on with `andruide workspace allow {}`, or pick another machine.", m.id),
                     )));
             }
             Some(m.id.clone())
@@ -2267,7 +2267,7 @@ pub async fn workspace_create(engine: &Arc<Engine>, req: WorkspaceCreateRequest,
     let id = &created.id;
     let next = surface.say(
         format!("Run commands with workspace_exec(workspace_id=\"{id}\", command=...). Review edits with workspace_changes. Call workspace_destroy(workspace_id=\"{id}\") when the task is done."),
-        format!("Run commands with `muxin workspace exec {id} -- <command>`; review edits with `muxin workspace changes {id}`; destroy it with `muxin workspace rm {id}` when done."),
+        format!("Run commands with `andruide workspace exec {id} -- <command>`; review edits with `andruide workspace changes {id}`; destroy it with `andruide workspace rm {id}` when done."),
     );
     Ok(WorkspaceCreated { workspace: workspace_out(&created, 0), next })
 }
@@ -2308,7 +2308,7 @@ pub async fn workspace_exec(engine: &Arc<Engine>, req: WorkspaceExecRequest, by:
     let next = if let Some(log) = &result.log_path {
         Some(surface.say(
             format!("Running in the background (pid {pid}). Read its output with workspace_read_file(path=\"{log}\") or workspace_exec(command=\"tail -n 50 {log}\")."),
-            format!("Running in the background (pid {pid}). Read its output with `muxin workspace cat {} {log}`.", w.id),
+            format!("Running in the background (pid {pid}). Read its output with `andruide workspace cat {} {log}`.", w.id),
         ))
     } else if result.timed_out {
         Some(surface.say(
@@ -2458,7 +2458,7 @@ mod tests {
     use crate::config::Paths;
 
     fn demo() -> Arc<Engine> {
-        Engine::new(Paths::resolve(Some(std::env::temp_dir().join("muxen-api-test")), None), true)
+        Engine::new(Paths::resolve(Some(std::env::temp_dir().join("andruide-api-test")), None), true)
     }
 
     #[tokio::test(flavor = "multi_thread")]
@@ -2567,7 +2567,7 @@ mod tests {
         let s = engine.current();
         assert!(status_from(&s, Surface::Mcp).hint.unwrap().contains("check_machines"));
         let cli = status_from(&s, Surface::Cli).hint.unwrap();
-        assert!(cli.contains("muxin status --refresh") && !cli.contains("check_machines"), "{cli}");
+        assert!(cli.contains("andruide status --refresh") && !cli.contains("check_machines"), "{cli}");
     }
 
     #[test]
@@ -2585,7 +2585,7 @@ mod tests {
         assert_eq!(ws_error("No workspace \"ws-x\".".into(), Surface::Mcp).code, "not_found");
         assert_eq!(ws_error("ssh: connect to host x port 22: Operation timed out".into(), Surface::Mcp).code, "unreachable");
         assert_eq!(ws_error("Workspaces aren't implemented yet.".into(), Surface::Mcp).code, "internal");
-        assert!(ws_error("Mac Studio doesn't allow workspaces.".into(), Surface::Cli).hint.unwrap().contains("muxin workspace allow"));
+        assert!(ws_error("Mac Studio doesn't allow workspaces.".into(), Surface::Cli).hint.unwrap().contains("andruide workspace allow"));
         let e = ws_error("Mac Studio doesn't allow workspaces.".into(), Surface::Mcp);
         assert_eq!(e.code, "invalid");
         assert!(e.hint.unwrap().contains("workspace_allow"));
@@ -2611,7 +2611,7 @@ mod tests {
         assert_eq!(workspace_exec(&engine, bad_env, "test", Surface::Mcp).await.unwrap_err().code, "invalid");
         // Valid input, unknown workspace.
         let missing = workspace_exec(&engine, exec("ls", None, Some("src")), "test", Surface::Cli).await.unwrap_err();
-        assert!(missing.hint.as_deref().unwrap_or_default().contains("muxin workspace create"), "{missing:?}");
+        assert!(missing.hint.as_deref().unwrap_or_default().contains("andruide workspace create"), "{missing:?}");
         assert_eq!(missing.code, "not_found");
 
         let read = WorkspaceReadRequest { workspace_id: "ws-nope".into(), path: "/etc/hosts".into(), max_bytes: None };
@@ -2835,7 +2835,7 @@ fn default_true() -> bool {
 pub struct SessionHostOut {
     pub machine_id: String,
     pub machine: String,
-    /// The Muxin agent's version there, once it's set up.
+    /// The AndruIDE agent's version there, once it's set up.
     pub agent: Option<String>,
     /// Agent CLIs found on the machine.
     pub agents: Vec<String>,
@@ -2928,19 +2928,19 @@ async fn resolve_session(engine: &Arc<Engine>, id: &str) -> ApiResult<SessionInf
         let m = find_machine(&engine.current(), machine)?.clone();
         let found = engine.refresh_sessions(&m.id).await.map_err(session_error)?;
         return found.sessions.into_iter().find(|s| s.name == name).ok_or_else(|| {
-            ApiError::not_found(format!("No session \"{name}\" on {}.", m.name)).with_hint("List sessions with session_list (`muxin session ls`).")
+            ApiError::not_found(format!("No session \"{name}\" on {}.", m.name)).with_hint("List sessions with session_list (`andruide session ls`).")
         });
     }
     let all = sessions_list(engine, SessionListRequest::default()).await?;
     let matches: Vec<SessionInfo> = all.sessions.into_iter().filter(|s| s.name == id).collect();
     match matches.len() {
         1 => Ok(matches.into_iter().next().unwrap()),
-        0 => Err(ApiError::not_found(format!("No session \"{id}\".")).with_hint("Session ids look like <machine-id>/<name>; list them with session_list (`muxin session ls`).")),
+        0 => Err(ApiError::not_found(format!("No session \"{id}\".")).with_hint("Session ids look like <machine-id>/<name>; list them with session_list (`andruide session ls`).")),
         _ => Err(ApiError::invalid(format!("\"{id}\" is on more than one machine; use <machine-id>/{id}."))),
     }
 }
 
-/// The session this process runs in (Muxin's CLI or MCP server run by an
+/// The session this process runs in (AndruIDE's CLI or MCP server run by an
 /// agent in one), by name on this computer. Never in the demo or in tests.
 fn session_here(engine: &Arc<Engine>) -> Option<String> {
     if engine.is_demo() || cfg!(test) {
@@ -2952,7 +2952,7 @@ fn session_here(engine: &Arc<Engine>) -> Option<String> {
 /// The session called `name` that this process runs in: on this computer
 /// (a machine with host "local"), else on `target` (where the helper goes,
 /// should this computer be one of the machines under another name), else
-/// one Muxin knows on any machine.
+/// one AndruIDE knows on any machine.
 async fn find_parent(engine: &Arc<Engine>, name: &str, target: Option<&str>) -> Option<SessionInfo> {
     let s = engine.current();
     let mut look: Vec<String> = s.machines.iter().filter(|m| m.local).map(|m| m.id.clone()).collect();
@@ -2962,8 +2962,8 @@ async fn find_parent(engine: &Arc<Engine>, name: &str, target: Option<&str>) -> 
         look.push(t);
     }
     for id in look {
-        // Never checked (a Muxin just installed on the machine the agent runs
-        // on): its sessions can't be listed until Muxin knows the machine.
+        // Never checked (a AndruIDE just installed on the machine the agent runs
+        // on): its sessions can't be listed until AndruIDE knows the machine.
         if engine.machine(&id).is_some_and(|(_, probe)| probe.is_none()) {
             engine.run_check(Some(vec![id.clone()])).await;
         }
@@ -2977,20 +2977,20 @@ async fn find_parent(engine: &Arc<Engine>, name: &str, target: Option<&str>) -> 
     (known.len() == 1).then(|| known.into_iter().next()).flatten()
 }
 
-const HELPERS_OFF: &str = "Agents can't start other sessions: the user turned that off in Muxin (Settings › General › Agents).";
+const HELPERS_OFF: &str = "Agents can't start other sessions: the user turned that off in AndruIDE (Settings › General › Agents).";
 
 pub async fn session_start(engine: &Arc<Engine>, req: SessionStartRequest) -> ApiResult<SessionInfo> {
     if sessions::agent(&req.agent).is_none() {
         let ids: Vec<&str> = sessions::AGENTS.iter().map(|a| a.id).collect();
         return Err(ApiError::invalid(format!("Unknown agent \"{}\".", req.agent)).with_hint(format!("Use one of: {}.", ids.join(", "))));
     }
-    // Started from inside one of Muxin's sessions: a helper of it.
+    // Started from inside one of AndruIDE's sessions: a helper of it.
     let here = session_here(engine);
     let parent = match &here {
         Some(name) => find_parent(engine, name, req.machine_id.as_deref()).await,
         None => None,
     };
-    // (Looking at its machine took up a newer choice made in another Muxin.)
+    // (Looking at its machine took up a newer choice made in another AndruIDE.)
     if here.is_some() && !engine.settings().agents.helpers {
         return Err(helpers_off());
     }
@@ -2998,9 +2998,9 @@ pub async fn session_start(engine: &Arc<Engine>, req: SessionStartRequest) -> Ap
         (Some(m), _, _) => m.clone(),
         (None, Some(p), _) => p.machine_id.clone(),
         (None, None, Some(name)) => {
-            return Err(ApiError::invalid(format!("This runs in Muxin's session {name}, but Muxin here can't find that session on this computer, so it doesn't know which machine to start the helper on.")).with_hint("Say which machine (machine_id), from status (`muxin status`)."));
+            return Err(ApiError::invalid(format!("This runs in AndruIDE's session {name}, but AndruIDE here can't find that session on this computer, so it doesn't know which machine to start the helper on.")).with_hint("Say which machine (machine_id), from status (`andruide status`)."));
         }
-        (None, None, None) => return Err(ApiError::invalid("Say which machine: machine_id is missing.").with_hint("List machines with status (`muxin status`).")),
+        (None, None, None) => return Err(ApiError::invalid("Say which machine: machine_id is missing.").with_hint("List machines with status (`andruide status`).")),
     };
     let m = find_machine(&engine.current(), &machine_id)?.clone();
     // Beside it: same machine, same folder, unless asked otherwise.
@@ -3104,13 +3104,13 @@ fn last_lines(text: &str, n: usize) -> String {
 async fn terminal_session(engine: &Arc<Engine>, id: &str) -> ApiResult<SessionInfo> {
     let s = resolve_session(engine, id).await?;
     if s.app.is_some() {
-        return Err(ApiError::invalid(format!("{} runs in Claude's desktop app, not in a Muxin terminal: it can't be read or typed into from here.", s.id)).with_hint("The user opens it in Claude (Muxin's app does that when they click it). Its state still shows in session_list, and session_wait works."));
+        return Err(ApiError::invalid(format!("{} runs in Claude's desktop app, not in a AndruIDE terminal: it can't be read or typed into from here.", s.id)).with_hint("The user opens it in Claude (AndruIDE's app does that when they click it). Its state still shows in session_list, and session_wait works."));
     }
     Ok(s)
 }
 
 /// Asks a session's agent to commit, open a pull request, review, ...: types
-/// that action's prompt (the user's, else Muxin's) into it.
+/// that action's prompt (the user's, else AndruIDE's) into it.
 pub async fn session_action(engine: &Arc<Engine>, req: SessionActionRequest) -> ApiResult<SessionActionOut> {
     let s = terminal_session(engine, &req.session_id).await?;
     let action = req.action.trim().to_string();
@@ -3124,7 +3124,7 @@ pub async fn session_send(engine: &Arc<Engine>, req: SessionSendRequest) -> ApiR
     }
     let s = terminal_session(engine, &req.session_id).await?;
     if s.status != "running" {
-        return Err(ApiError::invalid(format!("{} has exited.", s.id)).with_hint("Restart it with session_restart (`muxin session restart`)."));
+        return Err(ApiError::invalid(format!("{} has exited.", s.id)).with_hint("Restart it with session_restart (`andruide session restart`)."));
     }
     engine.control_session(&s.id, Control::Send { text: &req.text, enter: req.enter }).await.map_err(session_error)?;
     Ok(SessionDoneOut { session_id: s.id, done: "sent".into() })
@@ -3207,7 +3207,7 @@ use crate::fleet::boxes::{BoxInfo, CreateBox};
 
 fn box_error(message: String) -> ApiError {
     let m = message.to_ascii_lowercase();
-    let code = if m.contains("no box called") || m.contains("no machine called") || m.contains("isn't in muxin") || m.contains("there's no box") {
+    let code = if m.contains("no box called") || m.contains("no machine called") || m.contains("isn't in andruide") || m.contains("there's no box") {
         "not_found"
     } else if m.contains("unreachable") || m.contains("timed out") || m.contains("connection refused") || m.contains("no route to host") {
         "unreachable"
@@ -3261,7 +3261,7 @@ async fn resolve_box(engine: &Arc<Engine>, id: &str) -> ApiResult<BoxInfo> {
         return Ok(b);
     }
     box_list(engine, BoxListRequest::default()).await?;
-    engine.find_box(id).map_err(|e| box_error(e).with_hint("List boxes with box_list (`muxin box ls`)."))
+    engine.find_box(id).map_err(|e| box_error(e).with_hint("List boxes with box_list (`andruide box ls`)."))
 }
 
 #[derive(Debug, Deserialize)]
@@ -3342,7 +3342,7 @@ pub async fn box_create(engine: &Arc<Engine>, req: BoxCreateRequest, surface: Su
         done.finished.then(|| {
             surface.say(
                 format!("Its agent is working. Follow it with session_read(session_id) or box_list; ask it more with box_send(\"{id}\", text)."),
-                format!("Its agent is working. Watch it with `muxin box attach {id}`; ask it more with `muxin box send {id} \"...\"`."),
+                format!("Its agent is working. Watch it with `andruide box attach {id}`; ask it more with `andruide box send {id} \"...\"`."),
             )
         })
     });
@@ -3410,7 +3410,7 @@ fn github_error(message: String) -> ApiError {
     let lower = message.to_ascii_lowercase();
     let mut err = ApiError::new("github", message);
     if lower.contains("no github token") || lower.contains("rejected the token") || lower.contains("bad credentials") {
-        err = err.with_hint("Sign in to GitHub: `gh auth login` (Muxin uses the GitHub CLI's login), or set GITHUB_TOKEN.");
+        err = err.with_hint("Sign in to GitHub: `gh auth login` (AndruIDE uses the GitHub CLI's login), or set GITHUB_TOKEN.");
     }
     err
 }
@@ -3472,13 +3472,13 @@ pub struct FavoriteRequest {
 
 #[derive(Debug, Serialize)]
 pub struct AccountsOut {
-    /// The account Muxin uses now: for the GitHub page, managing runners,
+    /// The account AndruIDE uses now: for the GitHub page, managing runners,
     /// and cloning into workspaces.
     pub using: Option<String>,
     /// "gh", or the environment variable the token came from (then switching
     /// between the GitHub CLI's accounts isn't possible); "" when none was found.
     pub token_source: String,
-    /// When Muxin uses another machine's GitHub CLI login: that machine's id.
+    /// When AndruIDE uses another machine's GitHub CLI login: that machine's id.
     pub machine_id: Option<String>,
     /// The accounts the GitHub CLI here is signed in to.
     pub accounts: Vec<crate::github::Account>,
@@ -3540,7 +3540,7 @@ pub async fn github_repos(engine: &Arc<Engine>) -> ApiResult<Vec<hub::Repo>> {
     Ok(repos)
 }
 
-/// The GitHub CLI's accounts, and which one Muxin uses (read fresh, so a
+/// The GitHub CLI's accounts, and which one AndruIDE uses (read fresh, so a
 /// permission granted a moment ago shows).
 pub async fn github_accounts(engine: &Arc<Engine>) -> ApiResult<AccountsOut> {
     if engine.is_demo() {
@@ -3599,13 +3599,13 @@ pub async fn github_accounts(engine: &Arc<Engine>) -> ApiResult<AccountsOut> {
     Ok(AccountsOut { using: viewer.ok().map(|v| v.login), token_source, machine_id, accounts, machines, scopes, orgs: orgs.unwrap_or_default(), grant_command })
 }
 
-/// Switches Muxin to another of the GitHub CLI's accounts (not the CLI's own active account).
+/// Switches AndruIDE to another of the GitHub CLI's accounts (not the CLI's own active account).
 pub async fn github_use_account(engine: &Arc<Engine>, req: UseAccountRequest) -> ApiResult<AccountsOut> {
     let login = req.login.trim().trim_start_matches('@').to_string();
     let mut settings = engine.settings();
     let source = engine.github().token_source().await;
     if !source.is_empty() && source != "gh" {
-        return Err(ApiError::invalid(format!("Muxin is using the token in ${source}. Unset it to switch between the GitHub CLI's accounts.")));
+        return Err(ApiError::invalid(format!("AndruIDE is using the token in ${source}. Unset it to switch between the GitHub CLI's accounts.")));
     }
     let previous = settings.clone();
     if let Some(id) = req.machine_id.as_deref().filter(|m| !m.is_empty()) {
@@ -3648,11 +3648,11 @@ pub async fn github_use_account(engine: &Arc<Engine>, req: UseAccountRequest) ->
         Some(u) if u.eq_ignore_ascii_case(&wanted) => Ok(out),
         Some(u) => {
             let _ = engine.update_settings(previous);
-            Err(ApiError::invalid(format!("That login turned out to be {u}, not {wanted}, so Muxin kept the previous one. Check which account gh is signed in to there.")))
+            Err(ApiError::invalid(format!("That login turned out to be {u}, not {wanted}, so AndruIDE kept the previous one. Check which account gh is signed in to there.")))
         }
         None => {
             let _ = engine.update_settings(previous);
-            Err(ApiError::new("github", "GitHub didn't accept that login, so Muxin kept the previous one.").with_hint("gh auth login"))
+            Err(ApiError::new("github", "GitHub didn't accept that login, so AndruIDE kept the previous one.").with_hint("gh auth login"))
         }
     }
 }
@@ -3828,7 +3828,7 @@ pub struct DirectRequest {
     pub enabled: bool,
 }
 
-/// How Muxin reaches a machine: directly (QUIC), a live ssh link, or none.
+/// How AndruIDE reaches a machine: directly (QUIC), a live ssh link, or none.
 pub async fn machine_connection(engine: &Arc<Engine>, machine_id: &str) -> ApiResult<crate::fleet::connection::Connection> {
     let m = find_machine(&engine.current(), machine_id)?.clone();
     engine.connection(&m.id).await.map_err(|e| ApiError::new("unreachable", e))
@@ -3857,7 +3857,7 @@ pub fn ipad_machines(engine: &Arc<Engine>, named: &[String]) -> ApiResult<Vec<St
     }
     let ids: Vec<String> = s.machines.iter().filter(|m| !m.local && m.status == "online").map(|m| m.id.clone()).collect();
     if ids.is_empty() {
-        return Err(ApiError::invalid("No machine is online to pair an iPhone or iPad with.").with_hint("Check them with `muxin check`, or name one with --machine."));
+        return Err(ApiError::invalid("No machine is online to pair an iPhone or iPad with.").with_hint("Check them with `andruide check`, or name one with --machine."));
     }
     Ok(ids)
 }
@@ -3867,7 +3867,7 @@ pub struct IpadsOut {
     pub ipads: Vec<crate::fleet::ipads::Ipad>,
 }
 
-/// The iPads paired from here (`muxin ipad pair`, or Settings › iPads).
+/// The iPads paired from here (`andruide ipad pair`, or Settings › iPads).
 pub fn ipads(engine: &Arc<Engine>) -> IpadsOut {
     IpadsOut { ipads: engine.ipads() }
 }
@@ -3940,7 +3940,7 @@ pub struct AddDisplayRequest {
 fn display_error(e: crate::fleet::desktop::AddDisplayError) -> ApiError {
     match e {
         crate::fleet::desktop::AddDisplayError::NeedsPassword(why) => ApiError::invalid(why)
-            .with_hint("Ask the user to add or remove this monitor from the Muxin app (the machine's desktop › Add monitor); it asks for their password there."),
+            .with_hint("Ask the user to add or remove this monitor from the AndruIDE app (the machine's desktop › Add monitor); it asks for their password there."),
         crate::fleet::desktop::AddDisplayError::Failed(why) => ApiError::new("operation_failed", why),
     }
 }
@@ -3985,7 +3985,7 @@ pub struct RemoveDisplayRequest {
     pub display: String,
 }
 
-/// Removes a virtual monitor Muxin added.
+/// Removes a virtual monitor AndruIDE added.
 pub async fn desktop_remove_display(engine: &Arc<Engine>, req: RemoveDisplayRequest) -> ApiResult<serde_json::Value> {
     let m = find_machine(&engine.current(), &req.machine_id)?.clone();
     engine.remove_display(&m.id, &req.display).await.map_err(display_error)?;
@@ -4073,7 +4073,7 @@ pub async fn service_action(engine: &Arc<Engine>, req: ServiceActionRequest) -> 
         .ok_or_else(|| ApiError::new("not_found", format!("{} has no service or container called {}.", m.name, req.name)))?;
     engine.service_action(&m.id, &service, action).await.map_err(|e| match e {
         crate::fleet::desktop::AddDisplayError::NeedsPassword(_) => {
-            ApiError::new("invalid", format!("{} wants the user's password for that (sudo).", m.name)).with_hint("Do it from the Muxin app (machine › Services), which asks for it.")
+            ApiError::new("invalid", format!("{} wants the user's password for that (sudo).", m.name)).with_hint("Do it from the AndruIDE app (machine › Services), which asks for it.")
         }
         crate::fleet::desktop::AddDisplayError::Failed(why) => ApiError::new("operation_failed", why),
     })?;
@@ -4333,7 +4333,7 @@ pub async fn process_signal(engine: &Arc<Engine>, req: ProcessSignalRequest) -> 
     };
     let process = crate::fleet::services::Service { kind: "process".into(), target: req.pid.to_string(), name: req.pid.to_string(), ..Default::default() };
     engine.service_action(&m.id, &process, action).await.map_err(|e| match e {
-        crate::fleet::desktop::AddDisplayError::NeedsPassword(_) => ApiError::new("invalid", format!("{} wants the user's password for that: it's another user's process (sudo).", m.name)).with_hint("Do it from the Muxin app (machine › Services › Processes), which asks for it."),
+        crate::fleet::desktop::AddDisplayError::NeedsPassword(_) => ApiError::new("invalid", format!("{} wants the user's password for that: it's another user's process (sudo).", m.name)).with_hint("Do it from the AndruIDE app (machine › Services › Processes), which asks for it."),
         crate::fleet::desktop::AddDisplayError::Failed(e) => ApiError::new("operation_failed", e),
     })?;
     Ok(serde_json::json!({ "machine_id": m.id, "pid": req.pid, "done": if action == "kill" { "killed" } else { "stopped" } }))
@@ -4401,7 +4401,7 @@ pub struct WakeRequest {
 pub async fn wake_machine(engine: &Arc<Engine>, req: WakeRequest) -> ApiResult<serde_json::Value> {
     let m = find_machine(&engine.current(), &req.machine_id)?.clone();
     let from = engine.wake(&m.id).await.map_err(|e| ApiError::new("operation_failed", e))?;
-    Ok(serde_json::json!({ "machine_id": m.id, "sent_from": from, "next": "Muxin checks it again in 20 and 40 seconds; call get_machine then." }))
+    Ok(serde_json::json!({ "machine_id": m.id, "sent_from": from, "next": "AndruIDE checks it again in 20 and 40 seconds; call get_machine then." }))
 }
 
 #[derive(Debug, Deserialize)]

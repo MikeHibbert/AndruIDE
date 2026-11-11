@@ -287,10 +287,10 @@ impl Service {
         super::logs::LogSource { kind: kind.into(), target: self.target.clone(), name: self.name.clone(), detail: self.detail.clone(), user: self.user, ..Default::default() }
     }
 
-    /// Whether stopping it could cut Muxin off from the machine.
-    pub fn keeps_muxen_connected(&self) -> bool {
+    /// Whether stopping it could cut AndruIDE off from the machine.
+    pub fn keeps_andruide_connected(&self) -> bool {
         let n = self.name.to_lowercase();
-        ["ssh", "sshd", "tailscaled", "networkmanager", "systemd-networkd", "networking", "systemd-resolved", "muxen-agent", "dbus", "wpa_supplicant"].contains(&n.as_str())
+        ["ssh", "sshd", "tailscaled", "networkmanager", "systemd-networkd", "networking", "systemd-resolved", "andruide-agent", "dbus", "wpa_supplicant"].contains(&n.as_str())
     }
 }
 
@@ -312,7 +312,7 @@ impl Engine {
         }
         super::sessions::agent::ensure(&spec, probe.as_ref()).await?;
         let reply = super::sessions::agent::ctl(&spec, &json!({ "op": "compose_describe", "project": project.name, "files": project.files })).await?;
-        serde_json::from_value(reply).map_err(|_| format!("{} described {} in a way Muxin can't read.", spec.name, project.name))
+        serde_json::from_value(reply).map_err(|_| format!("{} described {} in a way AndruIDE can't read.", spec.name, project.name))
     }
 
     /// A machine's services and containers; with what they use when `stats`
@@ -324,7 +324,7 @@ impl Engine {
         }
         super::sessions::agent::ensure(&spec, probe.as_ref()).await?;
         let reply = super::sessions::agent::ctl(&spec, &json!({ "op": "services", "stats": stats })).await?;
-        serde_json::from_value(reply).map_err(|_| format!("{} listed its services in a way Muxin can't read.", spec.name))
+        serde_json::from_value(reply).map_err(|_| format!("{} listed its services in a way AndruIDE can't read.", spec.name))
     }
 
     /// Starts, stops or restarts one (`enable`, `disable`: whether a systemd
@@ -363,7 +363,7 @@ impl Engine {
         }
         // An iPad uses the agent a paired machine already has.
         if reply["error"].as_str().is_some_and(|e| e.contains("unknown request")) {
-            return Err(format!("{} runs an older Muxin agent that can't do this. Connect to it from Muxin on a Mac to update it, or remove it from this {} and add it again.", spec.name, crate::config::this_device()).into());
+            return Err(format!("{} runs an older AndruIDE agent that can't do this. Connect to it from AndruIDE on a Mac to update it, or remove it from this {} and add it again.", spec.name, crate::config::this_device()).into());
         }
         Err(refusal(&spec.id, &reply, "The machine couldn't do that."))
     }

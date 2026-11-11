@@ -3,7 +3,7 @@
 //! accept only each other's, by SHA-256 fingerprint; the fingerprints are
 //! swapped over ssh when pairing (see agent/src/direct.rs).
 //!
-//! Files, in Muxin's config folder: `identity/cert.der` and
+//! Files, in AndruIDE's config folder: `identity/cert.der` and
 //! `identity/key.der` (this app), `direct.json` (paired machines).
 
 use std::collections::{HashMap, HashSet};
@@ -22,7 +22,7 @@ use serde::{Deserialize, Serialize};
 use crate::config::MachineSpec;
 use crate::probe;
 
-const ALPN: &[u8] = b"muxen/1";
+const ALPN: &[u8] = b"andruide/1";
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(3);
 /// After a direct connection fails, use ssh for this long before trying again
 /// (sooner when the network or Tailscale changes: see `retry_all`).
@@ -50,12 +50,12 @@ pub struct Paired {
 
 static DIR: OnceLock<PathBuf> = OnceLock::new();
 
-/// Where Muxin keeps its files (set once, at startup).
+/// Where AndruIDE keeps its files (set once, at startup).
 pub fn init(config_dir: PathBuf) {
     let _ = DIR.set(config_dir);
 }
 
-/// Muxin's config folder, once set (where this app's keys are kept).
+/// AndruIDE's config folder, once set (where this app's keys are kept).
 #[cfg_attr(not(any(target_os = "ios", test)), allow(dead_code))]
 pub fn config_dir() -> Option<PathBuf> {
     DIR.get().cloned()
@@ -78,7 +78,7 @@ pub fn paired_ids() -> HashSet<String> {
     load().into_keys().collect()
 }
 
-/// Machines the user keeps on ssh: Muxin doesn't suggest connecting to them
+/// Machines the user keeps on ssh: AndruIDE doesn't suggest connecting to them
 /// directly. `ssh-only.json`, a list of machine ids.
 fn ssh_only_store() -> Option<PathBuf> {
     DIR.get().map(|d| d.join("ssh-only.json"))
@@ -90,7 +90,7 @@ pub fn ssh_only() -> HashSet<String> {
 
 /// Keeps a machine on ssh (no more suggestions to connect directly), or not.
 pub fn set_ssh_only(machine_id: &str, keep: bool) -> Result<(), String> {
-    let path = ssh_only_store().ok_or("Muxin's config folder isn't set")?;
+    let path = ssh_only_store().ok_or("AndruIDE's config folder isn't set")?;
     let mut all = ssh_only();
     let changed = if keep { all.insert(machine_id.to_string()) } else { all.remove(machine_id) };
     if !changed {
@@ -102,7 +102,7 @@ pub fn set_ssh_only(machine_id: &str, keep: bool) -> Result<(), String> {
 }
 
 pub fn save(machine_id: &str, entry: Option<Paired>) -> Result<(), String> {
-    let path = store().ok_or("Muxin's config folder isn't set")?;
+    let path = store().ok_or("AndruIDE's config folder isn't set")?;
     let mut all = load();
     match entry {
         Some(e) => all.insert(machine_id.to_string(), e),
@@ -130,13 +130,13 @@ pub fn fingerprint(der: &[u8]) -> String {
 
 /// This app's certificate and key, made on first use.
 fn identity() -> Result<(CertificateDer<'static>, PrivateKeyDer<'static>), String> {
-    let dir = DIR.get().ok_or("Muxin's config folder isn't set")?.join("identity");
+    let dir = DIR.get().ok_or("AndruIDE's config folder isn't set")?.join("identity");
     let (cert_path, key_path) = (dir.join("cert.der"), dir.join("key.der"));
     if let (Ok(cert), Ok(key)) = (std::fs::read(&cert_path), std::fs::read(&key_path)) {
         return Ok((CertificateDer::from(cert), PrivateKeyDer::Pkcs8(PrivatePkcs8KeyDer::from(key))));
     }
     crate::config::create_private_dir(&dir).map_err(|e| e.to_string())?;
-    let made = rcgen::generate_simple_self_signed(vec!["muxen-app".to_string()]).map_err(|e| e.to_string())?;
+    let made = rcgen::generate_simple_self_signed(vec!["andruide-app".to_string()]).map_err(|e| e.to_string())?;
     let (cert, key) = (made.cert.der().to_vec(), made.key_pair.serialize_der());
     {
         use std::io::Write;
@@ -296,7 +296,7 @@ fn attempt(config: &quinn::ClientConfig, addr: SocketAddr, delay: Duration, limi
     Box::pin(async move {
         tokio::time::sleep(delay).await;
         let ep = endpoint(addr.is_ipv6())?;
-        let connecting = ep.connect_with(config, addr, "muxen-agent").map_err(|e| format!("{addr}: {e}"))?;
+        let connecting = ep.connect_with(config, addr, "andruide-agent").map_err(|e| format!("{addr}: {e}"))?;
         match tokio::time::timeout(limit, connecting).await {
             Ok(Ok(conn)) => Ok(conn),
             Ok(Err(e)) => Err(format!("{addr}: {e}")),

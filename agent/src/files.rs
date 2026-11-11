@@ -303,7 +303,7 @@ mod tests {
 
     #[test]
     fn packs_and_unpacks_through_channels() {
-        let base = std::env::temp_dir().join(format!("muxen-files-{}", std::process::id()));
+        let base = std::env::temp_dir().join(format!("andruide-files-{}", std::process::id()));
         let (src, dst) = (base.join("src"), base.join("dst"));
         std::fs::create_dir_all(src.join("folder/inner")).unwrap();
         std::fs::write(src.join("folder/inner/a.txt"), b"hello").unwrap();

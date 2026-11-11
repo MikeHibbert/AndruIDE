@@ -1,4 +1,4 @@
-//! `muxen-agent clip`: this machine's clipboard, shared with the app. Frames
+//! `andruide-agent clip`: this machine's clipboard, shared with the app. Frames
 //! on stdin set it (text); frames on stdout say it changed (text copied here).
 //! Linux: owns and watches the X clipboard (needs a desktop session). macOS:
 //! pbcopy and pbpaste. A password manager's copies aren't sent (each system
@@ -166,7 +166,7 @@ mod mac {
     use std::process::{Command, Stdio};
 
     unsafe extern "C" {
-        fn muxen_pasteboard(concealed: *mut i32) -> i64;
+        fn andruide_pasteboard(concealed: *mut i32) -> i64;
     }
 
     /// pbcopy or pbpaste, reading and writing UTF-8. Without a locale (as
@@ -184,7 +184,7 @@ mod mac {
         /// there private (see mac_screen.m).
         fn state(&mut self) -> (i64, bool) {
             let mut concealed = 0;
-            let count = unsafe { muxen_pasteboard(&mut concealed) };
+            let count = unsafe { andruide_pasteboard(&mut concealed) };
             (count, concealed != 0)
         }
 
@@ -224,7 +224,7 @@ mod x11 {
         conn.create_window(0, win, root, 0, 0, 1, 1, 0, WindowClass::INPUT_ONLY, 0, &CreateWindowAux::new()).map_err(|e| e.to_string())?;
         let atom = |name: &str| -> Result<u32, String> { Ok(conn.intern_atom(false, name.as_bytes()).map_err(|e| e.to_string())?.reply().map_err(|e| e.to_string())?.atom) };
         let (clipboard, utf8, targets, text_atom, plain, prop, incr) =
-            (atom("CLIPBOARD")?, atom("UTF8_STRING")?, atom("TARGETS")?, atom("TEXT")?, atom("text/plain;charset=utf-8")?, atom("MUXEN_CLIP")?, atom("INCR")?);
+            (atom("CLIPBOARD")?, atom("UTF8_STRING")?, atom("TARGETS")?, atom("TEXT")?, atom("text/plain;charset=utf-8")?, atom("ANDRUIDE_CLIP")?, atom("INCR")?);
         let hint = atom("x-kde-passwordManagerHint")?;
         let string: u32 = AtomEnum::STRING.into();
         conn.xfixes_query_version(5, 0).map_err(|e| e.to_string())?.reply().map_err(|e| format!("no XFixes: {e}"))?;

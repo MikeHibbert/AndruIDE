@@ -1,4 +1,4 @@
-# Creates a VM for Muxin on this machine: Windows in Docker with KVM
+# Creates a VM for AndruIDE on this machine: Windows in Docker with KVM
 # (dockur/windows), or Linux in a container that runs sshd.
 # Prepended: OR_OS OR_NAME OR_IMAGE OR_VERSION OR_CPUS OR_MEM OR_DISK OR_USER
 # OR_PASS OR_KEY OR_HOSTNAME OR_SETUP OR_NPM. Prints ssh_port=N, udp_port=N
@@ -23,7 +23,7 @@ in_use() {
 }
 free_port() { p=$1; while in_use "$p"; do p=$((p + 1)); done; echo "$p"; }
 ssh_port=$(free_port 2201)
-# Muxin's direct connections (QUIC) to the VM's agent: a UDP port on every
+# AndruIDE's direct connections (QUIC) to the VM's agent: a UDP port on every
 # address here, forwarded to the agent's 47821 inside (it only talks to
 # apps it's paired with).
 udp_in_use() {
@@ -38,7 +38,7 @@ windows)
   [ "$(uname -s)" = Linux ] || fail "Windows VMs need a Linux machine with KVM; $(hostname) runs $(uname -s)."
   [ "$(uname -m)" = x86_64 ] || fail "Windows VMs need an x86-64 machine; $(hostname) is $(uname -m)."
   [ -e /dev/kvm ] || fail "$(hostname) has no /dev/kvm: turn on virtualization (VT-x or AMD-V) in its firmware settings."
-  dir="$HOME/.muxen/vms/$OR_NAME"
+  dir="$HOME/.andruide/vms/$OR_NAME"
   mkdir -p "$dir/storage" "$dir/oem" || fail "Couldn't make $dir."
   free=$(df -Pk "$dir" | awk 'NR == 2 { print int($4 / 1048576) }')
   [ "${free:-0}" -ge 30 ] || fail "$(hostname) has ${free:-0} GB free; Windows needs about 30 GB."
@@ -46,27 +46,27 @@ windows)
 
   # Windows runs install.bat once, at the end of its setup: OpenSSH with
   # this computer's key, and PowerShell as its shell.
-  printf '%s\n' "$OR_KEY" > "$dir/oem/muxen.pub"
-  printf '@echo off\r\npowershell -NoProfile -ExecutionPolicy Bypass -File C:\\OEM\\muxen.ps1 > C:\\OEM\\muxen.log 2>&1\r\n' > "$dir/oem/install.bat"
-  cat > "$dir/oem/muxen.ps1" <<'PS1'
+  printf '%s\n' "$OR_KEY" > "$dir/oem/andruide.pub"
+  printf '@echo off\r\npowershell -NoProfile -ExecutionPolicy Bypass -File C:\\OEM\\andruide.ps1 > C:\\OEM\\andruide.log 2>&1\r\n' > "$dir/oem/install.bat"
+  cat > "$dir/oem/andruide.ps1" <<'PS1'
 $ProgressPreference = 'SilentlyContinue'
 Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
 $dir = Join-Path $env:ProgramData 'ssh'
 New-Item -ItemType Directory -Force -Path $dir | Out-Null
 $keys = Join-Path $dir 'administrators_authorized_keys'
-Copy-Item 'C:\OEM\muxen.pub' $keys -Force
+Copy-Item 'C:\OEM\andruide.pub' $keys -Force
 icacls $keys /inheritance:r /grant '*S-1-5-32-544:F' /grant '*S-1-5-18:F' | Out-Null
 New-ItemProperty -Path HKLM:\SOFTWARE\OpenSSH -Name DefaultShell -Value "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -PropertyType String -Force | Out-Null
 Set-Service -Name sshd -StartupType Automatic
 Start-Service sshd
-New-NetFirewallRule -Name muxen-sshd -DisplayName 'OpenSSH (Muxin)' -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 22 -ErrorAction SilentlyContinue | Out-Null
-'ready' | Out-File C:\OEM\muxen.done
+New-NetFirewallRule -Name andruide-sshd -DisplayName 'OpenSSH (AndruIDE)' -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 22 -ErrorAction SilentlyContinue | Out-Null
+'ready' | Out-File C:\OEM\andruide.done
 PS1
   # The account's name and password in a file only this user reads, not on a command line.
   umask 077
   printf 'USERNAME=%s\nPASSWORD=%s\n' "$OR_USER" "$OR_PASS" > "$dir/env"
   echo "▸ Starting $OR_NAME (Docker fetches the dockurr/windows image the first time)"
-  docker run -d --name "$OR_NAME" --label muxen.vm="$OR_NAME" \
+  docker run -d --name "$OR_NAME" --label andruide.vm="$OR_NAME" \
     -e VERSION="$OR_VERSION" -e RAM_SIZE="$OR_MEM" -e CPU_CORES="$OR_CPUS" -e DISK_SIZE="$OR_DISK" \
     --env-file "$dir/env" \
     -p "127.0.0.1:$ssh_port:22" -p "127.0.0.1:$web_port:8006" -p "$udp_port:47821/udp" \
@@ -83,12 +83,12 @@ PS1
 linux)
   echo "▸ Starting $OR_NAME from $OR_IMAGE"
   # shellcheck disable=SC2086
-  docker run -d --name "$OR_NAME" --label muxen.vm="$OR_NAME" --hostname "$OR_HOSTNAME" \
-    -p "127.0.0.1:$ssh_port:22" -p "$udp_port:47821/udp" -e MUXEN_USER="$OR_USER" -e MUXEN_KEY="$OR_KEY" -e MUXEN_NPM="$OR_NPM" \
+  docker run -d --name "$OR_NAME" --label andruide.vm="$OR_NAME" --hostname "$OR_HOSTNAME" \
+    -p "127.0.0.1:$ssh_port:22" -p "$udp_port:47821/udp" -e ANDRUIDE_USER="$OR_USER" -e ANDRUIDE_KEY="$OR_KEY" -e ANDRUIDE_NPM="$OR_NPM" \
     ${OR_CPUS:+--cpus "$OR_CPUS"} ${OR_MEM:+--memory "$OR_MEM"} \
     "$OR_IMAGE" sh -c "$OR_SETUP" >/dev/null || fail "Docker couldn't start it."
   echo "ssh_port=$ssh_port"
   echo "udp_port=$udp_port"
   ;;
-*) fail "Muxin can't make a $OR_OS VM." ;;
+*) fail "AndruIDE can't make a $OR_OS VM." ;;
 esac

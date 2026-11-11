@@ -1,6 +1,6 @@
 //! Virtual machines on the user's own machines. Windows runs in Docker with
 //! KVM (dockur/windows) on a Linux machine; Linux runs in a container with
-//! sshd on any machine with Docker. Muxin creates one, adds it to the user's
+//! sshd on any machine with Docker. AndruIDE creates one, adds it to the user's
 //! machines (under the one it runs on), waits until it answers ssh, and
 //! destroys it again. Starting and stopping are in power.rs.
 
@@ -184,7 +184,7 @@ impl Engine {
         if self.current().machines.iter().any(|m| m.name.eq_ignore_ascii_case(&name)) {
             return Err(format!("You already have a machine called \"{name}\"."));
         }
-        let system = system(&req.system).ok_or_else(|| format!("Muxin doesn't know the system \"{}\". It knows: {}.", req.system, SYSTEMS.iter().map(|s| s.id).collect::<Vec<_>>().join(", ")))?;
+        let system = system(&req.system).ok_or_else(|| format!("AndruIDE doesn't know the system \"{}\". It knows: {}.", req.system, SYSTEMS.iter().map(|s| s.id).collect::<Vec<_>>().join(", ")))?;
         let options = self.vm_options();
         let host = match req.host.as_deref().filter(|h| !h.trim().is_empty()) {
             Some(h) => {
@@ -212,7 +212,7 @@ impl Engine {
                     }
                 })?,
         };
-        let (host_spec, _) = self.machine(&host.machine_id).ok_or("Its host isn't in Muxin anymore.")?;
+        let (host_spec, _) = self.machine(&host.machine_id).ok_or("Its host isn't in AndruIDE anymore.")?;
         if self.machine_busy(&host_spec.id) {
             return Err(format!("An operation is still running on {}. Wait for it to finish.", host_spec.name));
         }
@@ -232,7 +232,7 @@ impl Engine {
         let key = key.trim().to_string();
         let user = crate::cloud::setup::user_name(&std::env::var("USER").or_else(|_| std::env::var("USERNAME")).unwrap_or_default());
         let slug = crate::util::slug(name);
-        let container = format!("muxen-{slug}");
+        let container = format!("andruide-{slug}");
         let windows = system.os == "windows";
         let password = if windows { random_password() } else { String::new() };
         let cpus = req.cpus.unwrap_or(4).clamp(1, 64);
@@ -263,7 +263,7 @@ impl Engine {
         let secrets: Vec<String> = [password.clone()].into_iter().filter(|p| !p.is_empty()).collect();
         let printed = remote::run_lines(self, op, host, Shell::Sh, script, &secrets, Duration::from_secs(30 * 60)).await?;
         let port = |key: &str| printed.iter().find_map(|l| l.strip_prefix(&format!("{key}="))).and_then(|p| p.trim().parse::<u16>().ok());
-        let ssh_port = port("ssh_port").ok_or("The VM started, but Muxin didn't learn its ssh port.")?;
+        let ssh_port = port("ssh_port").ok_or("The VM started, but AndruIDE didn't learn its ssh port.")?;
 
         // Into the user's machines: ssh goes through its host to the port its
         // container publishes there, with a host key of its own.
@@ -305,12 +305,12 @@ impl Engine {
             wait_for_ssh(&spec, Duration::from_secs(12 * 60)).await.map_err(|_| format!("{name} didn't answer ssh within 12 minutes. Its log: `docker logs {container}` on {}.", host.name))?;
         }
 
-        // Muxin's agent, so terminals, sessions and files work right away.
+        // AndruIDE's agent, so terminals, sessions and files work right away.
         self.run_check(Some(vec![id.clone(), host.id.clone()])).await;
         let probe = self.machine(&id).and_then(|(_, p)| p);
         match crate::fleet::sessions::agent::ensure(&spec, probe.as_ref()).await {
             Ok(()) => self.op_log(op, "✓ Agent installed"),
-            Err(e) => self.op_log(op, format!("! The agent didn't install yet ({e}); Muxin tries again when you open a terminal")),
+            Err(e) => self.op_log(op, format!("! The agent didn't install yet ({e}); AndruIDE tries again when you open a terminal")),
         }
         self.connect_directly_after_setup(op, &id).await;
         self.op_log(op, format!("✓ {name} is ready"));
@@ -345,15 +345,15 @@ impl Engine {
         Err(format!("Windows didn't finish installing within 90 minutes. Watch its screen from {}'s page, or remove it.", spec.name))
     }
 
-    /// Deletes a VM Muxin made: its container and disk on its host, and the
-    /// machine from Muxin.
+    /// Deletes a VM AndruIDE made: its container and disk on its host, and the
+    /// machine from AndruIDE.
     pub fn vm_destroy(self: &Arc<Self>, machine_id: &str) -> Result<u64, String> {
-        let (spec, _) = self.machine(machine_id).ok_or("That machine isn't in Muxin anymore.")?;
-        let vm = spec.vm.clone().ok_or_else(|| format!("{} isn't a VM Muxin made. Remove it from Muxin instead.", spec.name))?;
+        let (spec, _) = self.machine(machine_id).ok_or("That machine isn't in AndruIDE anymore.")?;
+        let vm = spec.vm.clone().ok_or_else(|| format!("{} isn't a VM AndruIDE made. Remove it from AndruIDE instead.", spec.name))?;
         if !valid_container(&vm.container) {
-            return Err(format!("\"{}\" isn't a container Muxin made.", vm.container));
+            return Err(format!("\"{}\" isn't a container AndruIDE made.", vm.container));
         }
-        let (host, _) = self.machine(&vm.host).ok_or_else(|| format!("The machine {} runs on isn't in Muxin anymore; remove {} instead.", spec.name, spec.name))?;
+        let (host, _) = self.machine(&vm.host).ok_or_else(|| format!("The machine {} runs on isn't in AndruIDE anymore; remove {} instead.", spec.name, spec.name))?;
         if self.machine_busy(&spec.id) || self.machine_busy(&host.id) {
             return Err("An operation is still running on this machine. Wait for it to finish.".into());
         }
@@ -381,7 +381,7 @@ impl Engine {
         Ok(op)
     }
 
-    /// A Windows VM's account password (Muxin made it; it's kept in the Keychain).
+    /// A Windows VM's account password (AndruIDE made it; it's kept in the Keychain).
     pub fn vm_password(&self, machine_id: &str) -> Option<String> {
         crate::cloud::secrets::get(&self.paths().dir, &password_key(machine_id))
     }
@@ -427,9 +427,9 @@ fn random_password() -> String {
     bytes.iter().map(|b| CHARS[*b as usize % CHARS.len()] as char).collect()
 }
 
-/// A container Muxin made: "muxen-" and a slug.
+/// A container AndruIDE made: "andruide-" and a slug.
 fn valid_container(name: &str) -> bool {
-    name.strip_prefix("muxen-").is_some_and(|rest| !rest.is_empty() && rest.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-'))
+    name.strip_prefix("andruide-").is_some_and(|rest| !rest.is_empty() && rest.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-'))
 }
 
 #[cfg(test)]
@@ -445,10 +445,10 @@ mod tests {
 
     #[test]
     fn only_destroys_its_own_containers() {
-        assert!(valid_container("muxen-win-dev"));
+        assert!(valid_container("andruide-win-dev"));
         assert!(!valid_container("zn-win11"));
-        assert!(!valid_container("muxen-../../x"));
-        assert!(!valid_container("muxen-"));
+        assert!(!valid_container("andruide-../../x"));
+        assert!(!valid_container("andruide-"));
     }
 
     #[test]

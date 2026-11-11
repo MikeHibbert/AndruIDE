@@ -1,4 +1,4 @@
-//! Joining someone's share from Muxin: connect through the link's server,
+//! Joining someone's share from AndruIDE: connect through the link's server,
 //! check that the answer comes from the share's own certificate, prove the
 //! link, then open what's shared on channels of our own, as on a machine's
 //! link: a session, the desktop, a server (forwarded to a port here).
@@ -306,7 +306,7 @@ impl Joined {
 /// runtime; updates arrive until the share ends or `leave`.
 pub async fn join(link: &str, name: &str) -> Result<(Arc<Joined>, mpsc::UnboundedReceiver<Update>), String> {
     if super::ticket::is_pair_link(link) {
-        return Err("That link is for pairing an iPhone or iPad: open it with Muxin there.".into());
+        return Err("That link is for pairing an iPhone or iPad: open it with AndruIDE there.".into());
     }
     let ticket = Ticket::parse(link)?;
     let server = signal::Server::new(&ticket.server);

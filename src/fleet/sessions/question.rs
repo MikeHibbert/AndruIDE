@@ -6,7 +6,7 @@
 //!
 //! The marks and words it goes by are data (`Rules`): built in, and replaced
 //! by a newer set from muxin.dev when there is one (rules.rs), so a CLI that
-//! draws its prompts a new way needn't wait for a Muxin release.
+//! draws its prompts a new way needn't wait for a AndruIDE release.
 
 use std::sync::{Arc, OnceLock, RwLock};
 
@@ -49,7 +49,7 @@ fn strings(list: &[&str]) -> Vec<String> {
 }
 
 impl Default for Rules {
-    /// Muxin's own, as read off Claude Code 2.1 and Codex 0.163 screens.
+    /// AndruIDE's own, as read off Claude Code 2.1 and Codex 0.163 screens.
     /// Raise `version` with any change, and copy it to assets/prompt-rules.json.
     fn default() -> Rules {
         Rules {
@@ -537,23 +537,23 @@ mod tests {
         assert_eq!(q.text.last().map(String::as_str), Some("2. Deploy to staging"));
     }
 
-    /// As Qwen Code 0.26, Kimi Code 2.5 and Copilot CLI 1.0 asked, in a Muxin session.
+    /// As Qwen Code 0.26, Kimi Code 2.5 and Copilot CLI 1.0 asked, in a AndruIDE session.
     #[test]
     fn reads_the_newer_agents_prompts() {
-        let qwen = "  > run it muxin-ask\n  ? Shell touch muxin-made.txt (print a word) ←\n\n     touch muxin-made.txt\n\n   Allow execution of: 'touch'?\n\n   › 1. Yes, allow once\n     2. Always allow run 'touch *' commands in this project\n     3. Always allow run 'touch *' commands for this user\n     4. No, suggest changes (esc)\n\n\n  ⠏ Waiting for user confirmation...\n";
+        let qwen = "  > run it andruide-ask\n  ? Shell touch andruide-made.txt (print a word) ←\n\n     touch andruide-made.txt\n\n   Allow execution of: 'touch'?\n\n   › 1. Yes, allow once\n     2. Always allow run 'touch *' commands in this project\n     3. Always allow run 'touch *' commands for this user\n     4. No, suggest changes (esc)\n\n\n  ⠏ Waiting for user confirmation...\n";
         let q = read(qwen);
         assert_eq!(q.options.len(), 4, "{q:?}");
         assert_eq!(q.options[0].label, "Yes, allow once");
         assert_eq!(q.selected.as_deref(), Some("1"));
         assert!(q.text.iter().any(|l| l.contains("Allow execution of: 'touch'?")), "{:?}", q.text);
 
-        let kimi = " ● Running a command · $ touch muxin-made.txt\n ────────────────────────────────────────\n   ▶ Run this command?\n\n   cwd: /home/t/w\n   $ touch muxin-made.txt\n     print a word\n\n   ▶ 1. Approve once\n     2. Approve for this session\n     3. Reject\n     4. Reject with feedback\n\n   ↑/↓ select · 1/2/3/4 choose · ↵ confirm\n ────────────────────────────────────────\n stub thinking  ~/w  master [±]\n";
+        let kimi = " ● Running a command · $ touch andruide-made.txt\n ────────────────────────────────────────\n   ▶ Run this command?\n\n   cwd: /home/t/w\n   $ touch andruide-made.txt\n     print a word\n\n   ▶ 1. Approve once\n     2. Approve for this session\n     3. Reject\n     4. Reject with feedback\n\n   ↑/↓ select · 1/2/3/4 choose · ↵ confirm\n ────────────────────────────────────────\n stub thinking  ~/w  master [±]\n";
         let q = read(kimi);
         assert_eq!(q.options.iter().map(|o| o.label.as_str()).collect::<Vec<_>>(), ["Approve once", "Approve for this session", "Reject", "Reject with feedback"]);
         assert_eq!(q.selected.as_deref(), Some("1"));
         assert!(q.text.iter().any(|l| l.contains("Run this command?")), "{:?}", q.text);
 
-        let copilot = "│ print a word                                   │\n│ ────────────────────────────────────────────── │\n│ ╭────────────────────────────────────────────╮ │\n│ │ touch muxin-made.txt                       │ │\n│ ╰────────────────────────────────────────────╯ │\n│                                                │\n│ Do you want to run this command?               │\n│                                                │\n│ ❯ 1. Yes                                       │\n│   2. Yes, and don't ask again for `touch` in this repo (~/w) │\n│   3. No, and tell Copilot what to do differently (Esc to stop) │\n│                                                │\n│ ↑/↓ to navigate · enter to select · esc to cancel │\n╰────────────────────────────────────────────────╯\n";
+        let copilot = "│ print a word                                   │\n│ ────────────────────────────────────────────── │\n│ ╭────────────────────────────────────────────╮ │\n│ │ touch andruide-made.txt                       │ │\n│ ╰────────────────────────────────────────────╯ │\n│                                                │\n│ Do you want to run this command?               │\n│                                                │\n│ ❯ 1. Yes                                       │\n│   2. Yes, and don't ask again for `touch` in this repo (~/w) │\n│   3. No, and tell Copilot what to do differently (Esc to stop) │\n│                                                │\n│ ↑/↓ to navigate · enter to select · esc to cancel │\n╰────────────────────────────────────────────────╯\n";
         let q = read(copilot);
         assert_eq!(q.options.len(), 3, "{q:?}");
         assert_eq!(q.options[2].label, "No, and tell Copilot what to do differently (Esc to stop)");
@@ -562,7 +562,7 @@ mod tests {
 
     #[test]
     fn reads_codexs_tool_approval_in_two_columns() {
-        let screen = "› Call the muxin MCP tool named status\n\n  Allow the muxin MCP server to run tool \"status\"?\n\n› 1. Allow                   Run the tool and continue.\n  2. Allow for this session  Run the tool and remember this choice for this session.\n  3. Always allow            Run the tool and remember this choice for future tool calls.\n  4. Cancel                  Cancel this tool call\n  enter to submit | esc to cancel\n";
+        let screen = "› Call the andruide MCP tool named status\n\n  Allow the andruide MCP server to run tool \"status\"?\n\n› 1. Allow                   Run the tool and continue.\n  2. Allow for this session  Run the tool and remember this choice for this session.\n  3. Always allow            Run the tool and remember this choice for future tool calls.\n  4. Cancel                  Cancel this tool call\n  enter to submit | esc to cancel\n";
         let q = read(screen);
         let labels: Vec<&str> = q.options.iter().map(|c| c.label.as_str()).collect();
         assert_eq!(
@@ -575,12 +575,12 @@ mod tests {
             ]
         );
         assert_eq!(q.selected.as_deref(), Some("1"));
-        assert_eq!(q.text, ["Allow the muxin MCP server to run tool \"status\"?"]);
+        assert_eq!(q.text, ["Allow the andruide MCP server to run tool \"status\"?"]);
     }
 
     #[test]
     fn codex_menus_wait_for_enter() {
-        let screen = "> You are in /home/adib/muxen/workspaces/ws-cqp5kr\n\n  Do you trust the contents of this directory?\n\n› 1. Yes, continue\n  2. No, quit\n\n  Press enter to continue\n";
+        let screen = "> You are in /home/adib/andruide/workspaces/ws-cqp5kr\n\n  Do you trust the contents of this directory?\n\n› 1. Yes, continue\n  2. No, quit\n\n  Press enter to continue\n";
         let q = read(screen);
         assert_eq!(q.options.iter().map(|o| o.key.as_str()).collect::<Vec<_>>(), ["1", "2"]);
         assert!(q.confirm);

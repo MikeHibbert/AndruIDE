@@ -41,10 +41,10 @@ impl Root {
                     .child(
                         div().flex().flex_col().flex_none().w(px(intro_width)).gap(px(4.)).child(
                             div().text_size(px(12.5)).text_color(theme.text_muted).child(
-                                "A place on your machines for an agent you're using elsewhere (Claude Code on your laptop, say) to work in: it runs commands, edits files and syncs code there through Muxin. Nothing works there on its own; to hand a task to an agent that does, start a box. Workspaces stay until deleted.",
+                                "A place on your machines for an agent you're using elsewhere (Claude Code on your laptop, say) to work in: it runs commands, edits files and syncs code there through AndruIDE. Nothing works there on its own; to hand a task to an agent that does, start a box. Workspaces stay until deleted.",
                             ),
                         ).child(div().text_size(px(12.)).text_color(theme.text_placeholder).child(format!(
-                            "{allowed} of {} machines accept workspaces. Agents create them with the workspace_create MCP tool or `muxin workspace create`.",
+                            "{allowed} of {} machines accept workspaces. Agents create them with the workspace_create MCP tool or `andruide workspace create`.",
                             s.machines.len()
                         ))),
                     )
@@ -455,7 +455,7 @@ impl Root {
                             .flex_col()
                             .gap(px(2.))
                             .child(section_title(theme, "Agents' workspaces", Some(s.workspaces.len())))
-                            .child(div().text_size(px(12.)).text_color(theme.text_placeholder).child("Folders on your machines that AI tools you use elsewhere work in through Muxin.")),
+                            .child(div().text_size(px(12.)).text_color(theme.text_placeholder).child("Folders on your machines that AI tools you use elsewhere work in through AndruIDE.")),
                     )
                     .child(
                         Button::new("ws-all", "All workspaces")

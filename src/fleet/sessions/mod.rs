@@ -1,8 +1,8 @@
 //! Agent sessions: terminals on fleet machines running an AI agent (Claude Code,
 //! Codex, OpenCode, Pi, ...) or a plain shell.
 //!
-//! Sessions live in Muxin's own agent on each machine (`muxen-agent`,
-//! the `agent/` crate), which Muxin installs when it connects. The agent
+//! Sessions live in AndruIDE's own agent on each machine (`andruide-agent`,
+//! the `agent/` crate), which AndruIDE installs when it connects. The agent
 //! keeps them running when the window closes or the network drops, and anyone
 //! can attach: the app's terminal, the CLI, or the user's own terminal. The
 //! agent is the source of truth; the engine keeps the last discovery per
@@ -37,7 +37,7 @@ pub const REFRESH_EVERY: Duration = Duration::from_secs(8);
 /// interactive shell on the machine, so not on every refresh).
 const AGENTS_EVERY: chrono::Duration = chrono::Duration::minutes(10);
 
-/// An agent CLI Muxin knows how to start.
+/// An agent CLI AndruIDE knows how to start.
 pub struct AgentKind {
     pub id: &'static str,
     pub name: &'static str,
@@ -107,7 +107,7 @@ pub struct SessionInfo {
     /// the session is opened) or "idle". See `state_source` for how it's known.
     pub state: String,
     /// How `state` is known: "hook" or "escape" (the agent said so, see
-    /// agent/src/states.rs), "screen" (a question Muxin knows is on its
+    /// agent/src/states.rs), "screen" (a question AndruIDE knows is on its
     /// screen), "output" (a guess from its output: printing is working,
     /// quiet after working is done).
     pub state_source: String,
@@ -146,14 +146,14 @@ pub struct SessionInfo {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub restored_at: Option<DateTime<Utc>>,
     /// The session that started this one (a helper): `<machine-id>/<name>`.
-    /// An agent in a Muxin session started it through Muxin's MCP server or
+    /// An agent in a AndruIDE session started it through AndruIDE's MCP server or
     /// CLI. It ends with that session unless `keep`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub parent: Option<String>,
     /// A helper that goes on after the session that started it ends.
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     pub keep: bool,
-    /// The desktop app it runs in rather than Muxin's terminal
+    /// The desktop app it runs in rather than AndruIDE's terminal
     /// ("claude-desktop": Claude's desktop app), which opens it.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub app: Option<String>,
@@ -227,7 +227,7 @@ impl SessionInfo {
 
 /// The session id under column `col` of a line of terminal text, if the word
 /// there looks like one: `beelink/codex-3f9a`, or a name on its own
-/// (`codex-3f9a`, `box-7k2m9q`). Whether it's a session Muxin knows is the
+/// (`codex-3f9a`, `box-7k2m9q`). Whether it's a session AndruIDE knows is the
 /// caller's to check.
 pub fn session_id_at(line: &[char], col: usize) -> Option<String> {
     let part = |c: char| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.' | '/');
@@ -327,7 +327,7 @@ pub struct MachineSessions {
     /// Recent bells and exits the agent saw, oldest first.
     pub events: Vec<RawEvent>,
     pub error: Option<String>,
-    /// Muxin's hooks there, per agent CLI ("on", "off", "none" or what went
+    /// AndruIDE's hooks there, per agent CLI ("on", "off", "none" or what went
     /// wrong), as the agent last applied them; and whether that was for on.
     pub hooks: Option<Value>,
     pub hooks_sent: Option<bool>,
@@ -470,7 +470,7 @@ impl Engine {
                     // What the machine went by (agents before 0.6 ignore it all).
                     found.hooks_sent = Some(reply["settings"]["hooks"]["on"].as_bool().unwrap_or(choices.hooks));
                 }
-                // A newer choice made in another Muxin: this one takes it.
+                // A newer choice made in another AndruIDE: this one takes it.
                 if reply["settings"].is_object() {
                     self.adopt_agent_settings(&reply["settings"]);
                 }
@@ -499,7 +499,7 @@ impl Engine {
 
     /// The states of sessions whose agent doesn't say (no hooks, an older
     /// agent): one that went quiet after working is done, or needs you when a
-    /// question Muxin knows is on its screen (question.rs). It stays so until
+    /// question AndruIDE knows is on its screen (question.rs). It stays so until
     /// it works again.
     async fn guess_states(&self, spec: &MachineSpec, previous: Option<&MachineSessions>, found: &mut MachineSessions) {
         for s in found.sessions.iter_mut().filter(|s| s.state_source == "output" && s.status == "running" && s.state == "idle") {
@@ -685,7 +685,7 @@ impl Engine {
                     self.set_direct_status(id, "running");
                     Ok(String::new())
                 }
-                _ => Err(format!("{id} runs only in the Muxin window, so it can't be read or typed into from here.")),
+                _ => Err(format!("{id} runs only in the AndruIDE window, so it can't be read or typed into from here.")),
             };
         }
         let (machine_id, name) = split_id(id)?;
@@ -721,7 +721,7 @@ impl Engine {
     }
 
     /// Gives a session a new title (kept by the agent on its machine, so every
-    /// Muxin sees it). An empty title goes back to the one it started with.
+    /// AndruIDE sees it). An empty title goes back to the one it started with.
     pub async fn rename_session(self: &Arc<Self>, id: &str, title: &str) -> Result<SessionInfo, String> {
         let title = clean_title(title)?;
         if let Some(d) = self.direct_session(id) {
@@ -1123,7 +1123,7 @@ mod tests {
         assert_eq!(claude.agent_name, "Claude Code");
         assert!(claude.busy && claude.persistent);
         assert_eq!(claude.clients, 1);
-        assert_eq!(claude.attach_command, "ssh -t beelink ~/.muxen/bin/muxen-agent attach claude-ab12");
+        assert_eq!(claude.attach_command, "ssh -t beelink ~/.andruide/bin/andruide-agent attach claude-ab12");
     }
 
     #[test]
@@ -1136,7 +1136,7 @@ mod tests {
         assert_eq!(s.app.as_deref(), Some("claude-desktop"));
         assert_eq!(s.app_link().as_deref(), Some("claude://code/continue?session=local_4da6"));
         assert!(s.attach_command.is_empty(), "no terminal to attach to");
-        // Muxin's own sessions have no app.
+        // AndruIDE's own sessions have no app.
         let own = parse_discovery(&spec("beelink"), &reply(1000, 998, json!([])));
         assert!(own.sessions.iter().all(|s| s.app.is_none() && s.app_link().is_none()));
     }
@@ -1245,7 +1245,7 @@ mod tests {
         assert_eq!(default_title(agent("shell").unwrap(), "~"), "Shell · home");
         assert!(split_id("beelink/claude-1").is_ok());
         assert!(split_id("claude-1").is_err());
-        assert_eq!(user_attach_command(&spec("local"), "x"), "~/.muxen/bin/muxen-agent attach x");
+        assert_eq!(user_attach_command(&spec("local"), "x"), "~/.andruide/bin/andruide-agent attach x");
         let taken = vec!["Shell · home".to_string(), "Shell · home 2".to_string()];
         assert_eq!(unique_title("Shell · home", &taken), "Shell · home 3");
         assert_eq!(unique_title("Shell · tmp", &taken), "Shell · tmp");
