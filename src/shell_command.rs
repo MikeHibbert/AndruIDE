@@ -2,10 +2,15 @@
 //! with `andruide mcp`) can run it: a link to this executable in
 //! /usr/local/bin on macOS (asking for an administrator's password when the
 //! folder isn't writable) and ~/.local/bin on Linux; on Windows, this
-//! executable's folder added to the user's PATH. `andruide`, its name from
-//! before, goes beside it (on Windows, andruide.cmd ships next to andruide.exe).
-//! When Homebrew or a Linux package installed the app, its link is the one in
-//! the PATH; an AppImage links the AppImage file, not its temporary mount.
+//! executable's folder added to the user's PATH. When Homebrew or a Linux
+//! package installed the app, its link is the one in the PATH; an AppImage
+//! links the AppImage file, not its temporary mount.
+//!
+//! There is no legacy alias beside the link: unlike upstream's muxin (which
+//! kept `muxen` from its earlier name), AndruIDE has never shipped under
+//! another name, so there is nothing for it to keep working. (Brand rename,
+//! Father's directive 11 Nov 2026; the alias collapse broke CI run
+//! 43079175313 — alias ended up equal to the link itself.)
 
 use std::path::{Path, PathBuf};
 
@@ -63,14 +68,13 @@ fn this_exe() -> Result<PathBuf, String> {
     Ok(std::fs::canonicalize(&exe).unwrap_or(exe))
 }
 
-/// A link of ours: it points to a AndruIDE executable (this one, another copy,
-/// or one from when it was called AndruIDE), not to something else that happens
-/// to have the name.
+/// A link of ours: it points to a AndruIDE executable (this one or another
+/// copy), not to something else that happens to have the name.
 #[cfg(unix)]
 fn is_ours(target: &Path) -> bool {
     let s = target.to_string_lossy();
     let name = target.file_name().map(|n| n.to_string_lossy().to_lowercase()).unwrap_or_default();
-    name == "andruide" || name == "andruide" || (name.starts_with("andruide") && name.ends_with(".appimage")) || s.contains("AndruIDE.app/") || s.contains("AndruIDE.app/")
+    name == "andruide" || (name.starts_with("andruide") && name.ends_with(".appimage")) || s.contains("AndruIDE.app/")
 }
 
 #[cfg(unix)]
@@ -86,12 +90,6 @@ mod imp {
             let home = std::env::var_os("HOME").ok_or("HOME isn't set.")?;
             Ok(PathBuf::from(home).join(".local/bin/andruide"))
         }
-    }
-
-    /// `andruide`, its name from before, next to it: setups that run that (an
-    /// agent's MCP config, say) keep working.
-    fn alias_of(link: &Path) -> PathBuf {
-        link.with_file_name("andruide")
     }
 
     /// Who installed this copy and its link, when that wasn't AndruIDE: Homebrew
@@ -141,16 +139,7 @@ mod imp {
         let ours = target.as_deref().is_some_and(is_ours);
         let other = |note: &str, replaceable| Status { state: "other", path: path.clone(), target: shown.clone(), note: Some(note.into()), replaceable, managed: false };
         match resolved {
-            Some(r) if r == exe => {
-                // The old name still runs another copy: offer to point it here too.
-                let alias = alias_of(&link);
-                let alias_elsewhere = std::fs::read_link(&alias).is_ok_and(|t| is_ours(&t)) && std::fs::canonicalize(&alias).ok().as_deref() != Some(exe);
-                if alias_elsewhere {
-                    let target = std::fs::read_link(&alias).ok().map(|t| t.display().to_string());
-                    return Status { state: "other", path: alias.display().to_string(), target, note: Some("It runs another copy of AndruIDE.".into()), replaceable: true, managed: false };
-                }
-                Status { state: "installed", path: path.clone(), target: shown.clone(), note: in_path_note(&link), ..Default::default() }
-            }
+            Some(r) if r == exe => Status { state: "installed", path: path.clone(), target: shown.clone(), note: in_path_note(&link), ..Default::default() },
             _ if !ours => other("It links to a different program called andruide; AndruIDE leaves it alone.", false),
             None => other("It points to a copy of AndruIDE that isn't there anymore.", true),
             Some(_) => other("It runs another copy of AndruIDE.", true),
@@ -175,17 +164,14 @@ mod imp {
         install_at(&link_path()?, exe)
     }
 
-    /// The link, and `andruide` beside it unless something else has that name.
+    /// The link in the PATH, pointing at this executable.
     pub(super) fn install_at(link: &Path, exe: &Path) -> Result<(), String> {
         refuse_others(link)?;
-        let alias = alias_of(link);
-        let links: Vec<&Path> = if refuse_others(&alias).is_ok() { vec![link, &alias] } else { vec![link] };
-        match links.iter().try_for_each(|l| link_here(l, exe)) {
+        match link_here(link, exe) {
             Ok(()) => Ok(()),
             Err(e) if e.kind() == ErrorKind::PermissionDenied && cfg!(target_os = "macos") => {
                 let dir = link.parent().map(|d| d.display().to_string()).unwrap_or_default();
-                let lns: Vec<String> = links.iter().map(|l| format!("ln -sfn {} {}", sh(&exe.display().to_string()), sh(&l.display().to_string()))).collect();
-                as_admin(&format!("mkdir -p {} && {}", sh(&dir), lns.join(" && ")))
+                as_admin(&format!("mkdir -p {} && ln -sfn {} {}", sh(&dir), sh(&exe.display().to_string()), sh(&link.display().to_string())))
             }
             Err(e) => Err(format!("Couldn't create {}: {e}", link.display())),
         }
@@ -200,22 +186,21 @@ mod imp {
         remove_at(&link_path()?)
     }
 
-    /// The link, and `andruide` beside it when that's ours too.
+    /// The link, when it's ours.
     pub(super) fn remove_at(link: &Path) -> Result<(), String> {
         let ours = |l: &Path| std::fs::symlink_metadata(l).is_ok_and(|m| m.file_type().is_symlink()) && std::fs::read_link(l).is_ok_and(|t| is_ours(&t));
         if std::fs::symlink_metadata(link).is_ok() && !ours(link) {
             return Err(format!("{} isn't a link to AndruIDE, so AndruIDE leaves it alone.", link.display()));
         }
-        let links: Vec<PathBuf> = [link.to_path_buf(), alias_of(link)].into_iter().filter(|l| ours(l)).collect();
-        for l in &links {
-            match std::fs::remove_file(l) {
-                Ok(()) => {}
-                Err(e) if e.kind() == ErrorKind::PermissionDenied && cfg!(target_os = "macos") => {
-                    let rms: Vec<String> = links.iter().map(|l| format!("rm -f {}", sh(&l.display().to_string()))).collect();
-                    return as_admin(&rms.join(" && "));
-                }
-                Err(e) => return Err(format!("Couldn't remove {}: {e}", l.display())),
+        if !ours(link) {
+            return Ok(());
+        }
+        match std::fs::remove_file(link) {
+            Ok(()) => {}
+            Err(e) if e.kind() == ErrorKind::PermissionDenied && cfg!(target_os = "macos") => {
+                return as_admin(&format!("rm -f {}", sh(&link.display().to_string())));
             }
+            Err(e) => return Err(format!("Couldn't remove {}: {e}", link.display())),
         }
         Ok(())
     }
@@ -340,7 +325,6 @@ mod tests {
     #[test]
     fn knows_its_own_links() {
         assert!(is_ours(Path::new("/Applications/AndruIDE.app/Contents/MacOS/andruide")));
-        assert!(is_ours(Path::new("/Applications/AndruIDE.app/Contents/MacOS/andruide")));
         assert!(is_ours(Path::new("/home/me/.cargo/bin/andruide")));
         assert!(is_ours(Path::new("/home/me/Applications/AndruIDE-0.5.2-linux-x86_64.AppImage")));
         assert!(!is_ours(Path::new("/usr/bin/python3")));
@@ -355,17 +339,15 @@ mod tests {
         std::fs::write(&exe, "").unwrap();
         let exe = std::fs::canonicalize(&exe).unwrap();
         let link = tmp.join("bin/andruide");
-        let alias = tmp.join("bin/andruide");
 
         assert_eq!(imp::status_at(&link, &exe).state, "missing");
         imp::install_at(&link, &exe).unwrap();
         assert_eq!(imp::status_at(&link, &exe).state, "installed");
-        assert_eq!(std::fs::canonicalize(&alias).unwrap(), exe, "andruide runs it too");
         // Again: replaces its own link.
         imp::install_at(&link, &exe).unwrap();
         assert_eq!(imp::status_at(&link, &exe).state, "installed");
         // A link to another copy is "other" and gets replaced.
-        let old = tmp.join("AndruIDE.app/Contents/MacOS/andruide");
+        let old = tmp.join("Applications/AndruIDE.app/Contents/MacOS/andruide");
         std::fs::create_dir_all(old.parent().unwrap()).unwrap();
         std::fs::write(&old, "").unwrap();
         std::fs::remove_file(&link).unwrap();
@@ -373,24 +355,8 @@ mod tests {
         assert_eq!((imp::status_at(&link, &exe).state, imp::status_at(&link, &exe).replaceable), ("other", true));
         imp::install_at(&link, &exe).unwrap();
         assert_eq!(imp::status_at(&link, &exe).state, "installed");
-        // Only the old name runs the old copy: that's "other" too, until it's replaced.
-        std::fs::remove_file(&alias).unwrap();
-        std::os::unix::fs::symlink(&old, &alias).unwrap();
-        let s = imp::status_at(&link, &exe);
-        assert_eq!((s.state, s.replaceable, s.path), ("other", true, alias.display().to_string()));
-        imp::install_at(&link, &exe).unwrap();
-        assert_eq!(imp::status_at(&link, &exe).state, "installed");
         imp::remove_at(&link).unwrap();
         assert_eq!(imp::status_at(&link, &exe).state, "missing");
-        assert!(std::fs::symlink_metadata(&alias).is_err(), "andruide goes with it");
-
-        // Someone else's andruide: andruide goes in, andruide stays theirs.
-        std::fs::write(&alias, "#!/bin/sh").unwrap();
-        imp::install_at(&link, &exe).unwrap();
-        assert_eq!(imp::status_at(&link, &exe).state, "installed");
-        imp::remove_at(&link).unwrap();
-        assert!(std::fs::read(&alias).is_ok_and(|b| b == b"#!/bin/sh"));
-        std::fs::remove_file(&alias).unwrap();
 
         // Someone else's file, or a link to another program: left alone.
         std::fs::write(&link, "#!/bin/sh").unwrap();
