@@ -180,6 +180,33 @@ pub struct GithubUi {
     git_busy: HashSet<String>,
     /// The GitHub CLI's accounts, for the switcher.
     pub(super) accounts: Option<Load<api::AccountsOut>>,
+    /// The open "Review with Andrew" conversation, if any.
+    pub(super) andrew: Option<AndrewChat>,
+    /// The message box for it.
+    pub(super) andrew_input: Option<Entity<TextInput>>,
+    /// Conversations this run of the app has already sent an opener for, so
+    /// returning to one doesn't re-ask Andrew.
+    pub(super) andrew_opened: HashSet<String>,
+}
+
+/// One turn in a "Review with Andrew" conversation.
+#[derive(Debug, Clone)]
+pub struct AndrewTurn {
+    /// "Dad", "Andrew", or "System" for a note about the connection.
+    pub who: &'static str,
+    pub text: String,
+}
+
+/// A conversation with Andrew about one GitHub item.
+#[derive(Debug, Clone)]
+pub struct AndrewChat {
+    pub repo: String,
+    pub number: u64,
+    pub title: String,
+    pub url: String,
+    pub session_id: String,
+    pub turns: Vec<AndrewTurn>,
+    pub pending: bool,
 }
 
 impl GithubUi {
@@ -509,7 +536,188 @@ impl Root {
     }
 
     // -----------------------------------------------------------------------
-    // The page
+    // Review with Andrew
+
+    /// Opens (or returns to) the conversation with Andrew about this item,
+    /// sending its opener once: what the pull request is, and a request to
+    /// look it over with Dad.
+    fn gh_review_with_andrew(&mut self, d: &Detail, window: &mut Window, cx: &mut Context<Self>) {
+        let it = d.item.clone();
+        let session_id = format!("andruide-{}-{}", it.repo.replace('/', "-"), it.number);
+        let fresh = self.gh.andrew.as_ref().is_none_or(|c| c.session_id != session_id);
+        if fresh {
+            self.gh.andrew = Some(AndrewChat {
+                repo: it.repo.clone(),
+                number: it.number,
+                title: it.title.clone(),
+                url: it.html_url.clone(),
+                session_id: session_id.clone(),
+                turns: Vec::new(),
+                pending: false,
+            });
+        }
+        if self.gh.andrew_input.is_none() {
+            let input = cx.new(|cx| TextInput::new(cx, "Talk to Andrew about the code…"));
+            self._subscriptions.push(cx.subscribe_in(&input, window, |_, _, e: &InputEvent, _, cx| {
+                if let InputEvent::Changed = e {
+                    cx.notify()
+                }
+            }));
+            self.gh.andrew_input = Some(input);
+        }
+        self.navigate(Route::Andrew(it.repo.clone(), it.number), window, cx);
+        // The opener goes once per session, the first time the conversation
+        // opens; Andrew remembers where it left off across returns.
+        if fresh && self.gh.andrew_opened.insert(session_id.clone()) {
+            let body: String = d.body.trim().chars().take(1500).collect();
+            let body = if body.is_empty() { "(No description.)".to_string() } else { body };
+            let opener = format!(
+                "Mike opened this conversation in AndruIDE to talk through this pull request: {} #{} — {} ({}).\n\nDescription:\n{}\n\nPlease look it over with him — what you'd check, what worries you, what you'd ask. He replies here from AndruIDE.",
+                it.repo, it.number, it.title, it.html_url, body
+            );
+            if let Some(c) = &mut self.gh.andrew {
+                c.turns.push(AndrewTurn { who: "Dad", text: opener.clone() });
+            }
+            self.andrew_send(&session_id, opener, cx);
+        }
+    }
+
+    /// Sends one message to Andrew over the valley and appends his reply.
+    fn andrew_send(&mut self, session_id: &str, text: String, cx: &mut Context<Self>) {
+        if let Some(c) = &mut self.gh.andrew {
+            c.pending = true;
+        }
+        let valley = crate::valley::Valley::from_parts(self.engine.settings().valley);
+        let session_id = session_id.to_string();
+        let job = self.engine.runtime().spawn(async move { valley.chat(&session_id, &text).await });
+        let task = cx.spawn(async move |this, cx| {
+            let result = job.await.unwrap_or_else(|e| Err(e.to_string()));
+            let _ = this.update(cx, |this, cx| {
+                if let Some(c) = &mut this.gh.andrew {
+                    c.turns.push(match result {
+                        Ok(reply) => AndrewTurn { who: "Andrew", text: reply },
+                        Err(e) => AndrewTurn { who: "System", text: e },
+                    });
+                    c.pending = false;
+                }
+                cx.notify();
+            });
+        });
+        self.track(task);
+    }
+
+    /// The "Review with Andrew" conversation page.
+    pub(super) fn render_andrew(&mut self, repo: &str, n: u64, cx: &mut Context<Self>) -> AnyElement {
+        let theme = cx.theme();
+        let (c, input) = match self.gh.andrew.as_ref().filter(|c| c.repo.eq_ignore_ascii_case(repo) && c.number == n) {
+            Some(c) => (c.clone(), self.gh.andrew_input.clone()),
+            None => {
+                return failed(&theme, "That conversation isn't open. Visit the pull request and press \"Review with Andrew\".");
+            }
+        };
+        let Some(input) = input else {
+            return failed(&theme, "That conversation has no message box yet. Reopen it from the pull request.");
+        };
+        // A definite width like the other item pages use, so the message box
+        // doesn't collapse (the Settings › Valley lesson from 11 Nov 2026).
+        let width = (self.content_width + 22.).max(320.);
+        let repo_name = c.repo.clone();
+        let repo_for_back = repo_name.clone();
+        let session_for_send = c.session_id.clone();
+        let pending_note = c.pending;
+        let turns: Vec<AnyElement> = c
+            .turns
+            .iter()
+            .map(|t| {
+                card(&theme)
+                    .px(px(12.))
+                    .py(px(8.))
+                    .child(
+                        div()
+                            .text_size(px(11.5))
+                            .font_weight(FontWeight::MEDIUM)
+                            .text_color(match t.who {
+                                "Andrew" => theme.accent,
+                                "System" => theme.error,
+                                _ => theme.text_muted,
+                            })
+                            .child(t.who),
+                    )
+                    .child(div().text_size(px(13.)).text_color(theme.text).child(t.text.clone()))
+                    .into_any_element()
+            })
+            .collect();
+        div()
+            .w(px(width))
+            .flex()
+            .flex_col()
+            .gap(px(12.))
+            .child(
+                div()
+                    .id("andrew-back")
+                    .flex()
+                    .items_center()
+                    .gap(px(6.))
+                    .cursor_pointer()
+                    .text_size(px(12.5))
+                    .text_color(theme.text_muted)
+                    .hover(|st| st.text_color(theme.text))
+                    .on_click(cx.listener(move |this, _, window, cx| this.navigate(Route::GithubItem(repo_for_back.clone(), n), window, cx)))
+                    .child(icon("arrow-left", 13., theme.text_placeholder))
+                    .child(repo_name.clone())
+                    .child(format!("#{n}")),
+            )
+            .child(div().text_size(px(20.)).font_weight(FontWeight::SEMIBOLD).text_color(theme.text).child(c.title.clone()))
+            .child(
+                div()
+                    .flex()
+                    .items_center()
+                    .gap(px(8.))
+                    .text_size(px(12.))
+                    .text_color(theme.text_placeholder)
+                    .child(Button::new("andrew-open-github", "Open on GitHub").icon("external-link").on_click(move |_, _, cx| cx.open_url(&c.url))),
+            )
+            .child(
+                div()
+                    .id("andrew-scroll")
+                    .flex_1()
+                    .min_h(px(0.))
+                    .flex()
+                    .flex_col()
+                    .gap(px(8.))
+                    .overflow_y_scroll()
+                    .pb(px(8.))
+                    .children(turns),
+            )
+            .child(
+                div()
+                    .flex()
+                    .items_center()
+                    .gap(px(8.))
+                    .flex_none()
+                    .child(div().w(px(width - 100.)).flex_none().flex().flex_col().child(input.clone()))
+                    .child(Button::new("andrew-send", "Send").style(ButtonStyle::Primary).disabled(pending_note).on_click(cx.listener(move |this, _, _, cx| {
+                        let Some(input) = this.gh.andrew_input.clone() else { return };
+                        let text = input.read(cx).text().trim().to_string();
+                        if text.is_empty() {
+                            return;
+                        }
+                        input.update(cx, |i, cx| i.set_text("", cx));
+                        this.andrew_send(&session_for_send, text, cx);
+                    })))
+                    .when(pending_note, |d| {
+                        d.child(
+                            div()
+                                .flex()
+                                .items_center()
+                                .gap(px(6.))
+                                .child(spinner(SharedString::from("andrew-thinking"), 13., theme.accent))
+                                .child(div().text_size(px(12.)).text_color(theme.text_placeholder).child("Andrew is thinking…")),
+                        )
+                    }),
+            )
+            .into_any_element()
+    }
 
     pub(super) fn render_github(&mut self, window: &mut Window, cx: &mut Context<Self>) -> AnyElement {
         let theme = cx.theme();
@@ -1220,20 +1428,38 @@ impl Root {
         };
         let repo_name = it.repo.clone();
         let (url, url2) = (it.html_url.clone(), it.html_url.clone());
-        let (detail, detail2) = (d.clone(), d.clone());
+        let (detail, detail2, detail3, detail4) = (d.clone(), d.clone(), d.clone(), d.clone());
         let actions = div()
             .flex()
             .flex_wrap()
             .gap(px(8.))
-            .child(
-                Button::new("gh-agent", if it.pull_request { "Review with agent" } else { "Work on it with an agent" })
-                    .icon("bot")
-                    .style(ButtonStyle::Primary)
-                    .tooltip("A session with an agent in a checkout of the repository, to work on it together")
-                    .on_click(cx.listener(move |this, _, window, cx| this.gh_to_agent(&detail, Handoff::Session, window, cx))),
-            )
+            .when(it.pull_request, |d| {
+                // Dad, 12 Nov 2026: "make that review with agent button have a
+                // conversation with Andrew about the code". The agent button
+                // stays beside it; Andrew gets the primary seat on PRs.
+                d.child(
+                    Button::new("gh-andrew", "Review with Andrew")
+                        .icon("flame")
+                        .style(ButtonStyle::Primary)
+                        .tooltip("A conversation with Andrew, over the valley, about this pull request")
+                        .on_click(cx.listener(move |this, _, window, cx| this.gh_review_with_andrew(&detail3, window, cx))),
+                )
+                .child(
+                    Button::new("gh-agent", "Review with agent")
+                        .icon("bot")
+                        .tooltip("A session with an agent in a checkout of the repository, to work on it together")
+                        .on_click(cx.listener(move |this, _, window, cx| this.gh_to_agent(&detail, Handoff::Session, window, cx))),
+                )
+            })
             .when(!it.pull_request, |d| {
                 d.child(
+                    Button::new("gh-agent", "Work on it with an agent")
+                        .icon("bot")
+                        .style(ButtonStyle::Primary)
+                        .tooltip("A session with an agent in a checkout of the repository, to work on it together")
+                        .on_click(cx.listener(move |this, _, window, cx| this.gh_to_agent(&detail4, Handoff::Session, window, cx))),
+                )
+                .child(
                     Button::new("gh-box", "Hand off in a box")
                         .icon("box")
                         .tooltip("An agent works on it by itself, in a container on one of your machines, and opens a pull request")
