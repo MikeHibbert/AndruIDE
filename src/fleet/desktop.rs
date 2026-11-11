@@ -234,7 +234,7 @@ impl Engine {
         } else {
             super::sessions::agent::ensure(&spec, probe.as_ref()).await?;
             let reply = super::sessions::agent::ctl(&spec, &json!({ "op": "displays" })).await?;
-            serde_json::from_value(reply["displays"].clone()).map_err(|_| format!("{} gave a list of displays Muxin can't read.", spec.name))?
+            serde_json::from_value(reply["displays"].clone()).map_err(|_| format!("{} gave a list of displays AndruIDE can't read.", spec.name))?
         };
         self.set_displays(&spec.id, found.clone());
         Ok(found)
@@ -248,7 +248,7 @@ impl Engine {
         }
         super::sessions::agent::ensure(&spec, probe.as_ref()).await?;
         let reply = super::sessions::agent::ctl(&spec, &json!({ "op": "windows" })).await?;
-        serde_json::from_value(reply["windows"].clone()).map_err(|_| format!("{} gave a list of windows Muxin can't read.", spec.name))
+        serde_json::from_value(reply["windows"].clone()).map_err(|_| format!("{} gave a list of windows AndruIDE can't read.", spec.name))
     }
 
     /// Adds a virtual monitor (`width`×`height`) to the machine's desktop.
@@ -271,7 +271,7 @@ impl Engine {
     }
 
     /// What to call one of a machine's displays (kept on the machine, so every
-    /// Muxin sees it). An empty name goes back to its own.
+    /// AndruIDE sees it). An empty name goes back to its own.
     pub async fn rename_display(self: &Arc<Self>, machine_id: &str, display: &str, name: &str) -> Result<(), String> {
         let (spec, probe) = self.machine(machine_id).ok_or_else(|| format!("No machine called {machine_id}."))?;
         if self.demo_world().is_some() {
@@ -311,12 +311,12 @@ impl Engine {
     }
 
     /// The user's password on a machine, for adding and removing its virtual
-    /// monitors (Linux asks sudo). Kept in memory while Muxin runs, nowhere else.
+    /// monitors (Linux asks sudo). Kept in memory while AndruIDE runs, nowhere else.
     pub fn remember_password(&self, machine_id: &str, password: String) {
         passwords().lock().unwrap().insert(machine_id.to_string(), password);
     }
 
-    /// Removes a virtual monitor Muxin added.
+    /// Removes a virtual monitor AndruIDE added.
     pub async fn remove_display(self: &Arc<Self>, machine_id: &str, display: &str) -> Result<(), AddDisplayError> {
         let (spec, probe) = self.machine(machine_id).ok_or_else(|| format!("No machine called {machine_id}."))?;
         if self.demo_world().is_some() {

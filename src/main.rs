@@ -39,10 +39,10 @@ use crate::config::{Paths, display_path};
 use crate::fleet::Engine;
 
 /// One app for all your machines: agent sessions, desktops, files, GitHub,
-/// workspaces and self-hosted runners. Agents can drive it too (`muxin mcp`,
+/// workspaces and self-hosted runners. Agents can drive it too (`andruide mcp`,
 /// or any command with --json).
 #[derive(Parser)]
-#[command(name = "muxin", version, about, args_conflicts_with_subcommands = true)]
+#[command(name = "andruide", version, about, args_conflicts_with_subcommands = true)]
 struct Cli {
     #[command(subcommand)]
     command: Option<Command>,
@@ -67,7 +67,7 @@ enum Command {
     RemoveMachine(MachineArgs),
     /// Give a machine a new name (its id stays the same)
     RenameMachine(RenameMachineArgs),
-    /// Stop connecting to a machine (its sessions go on there) until `muxin connect`
+    /// Stop connecting to a machine (its sessions go on there) until `andruide connect`
     Disconnect(MachineArgs),
     /// Connect to a machine again (and check it)
     Connect(MachineArgs),
@@ -91,10 +91,10 @@ enum Command {
     Settings(SettingsArgs),
     /// Host aliases from ~/.ssh/config, for add-machine
     SshHosts(AgentArgs),
-    /// What's in a folder on a machine: `muxin files beelink:~/build`
+    /// What's in a folder on a machine: `andruide files beelink:~/build`
     #[command(alias = "ls")]
     Files(FilesArgs),
-    /// Copy files and folders between machines: `muxin cp beelink:~/build/app.tar.gz mac-studio:~/Downloads`
+    /// Copy files and folders between machines: `andruide cp beelink:~/build/app.tar.gz mac-studio:~/Downloads`
     Cp(CpArgs),
     /// Agent workspaces: persistent work environments on your machines
     #[command(alias = "ws", subcommand)]
@@ -107,9 +107,9 @@ enum Command {
     /// Whether git on a machine can commit and push, and setting that up
     #[command(subcommand)]
     Git(GitCommand),
-    /// How Muxin reaches a machine (direct, ssh link); --direct on|off to change it
+    /// How AndruIDE reaches a machine (direct, ssh link); --direct on|off to change it
     Connection(ConnectionArgs),
-    /// iPhones and iPads that reach your machines (Muxin for iPhone and for iPad): pair one with a QR code, list them, unpair one
+    /// iPhones and iPads that reach your machines (AndruIDE for iPhone and for iPad): pair one with a QR code, list them, unpair one
     #[command(subcommand)]
     Ipad(IpadCommand),
     /// A machine's desktop: a screenshot, or mouse and keyboard input
@@ -154,21 +154,21 @@ enum Command {
     Boxes(BoxCommand),
     /// Run the MCP server on stdio for AI agents (Claude Code, Codex, ...)
     Mcp(McpArgs),
-    /// The Muxin skill that teaches agents (Claude Code, Codex, Hermes, ...) this CLI: its guide, and a stub in their skills folders that reads it
+    /// The AndruIDE skill that teaches agents (Claude Code, Codex, Hermes, ...) this CLI: its guide, and a stub in their skills folders that reads it
     #[command(subcommand)]
     Skill(SkillCommand),
     /// Check every machine once and print a report
     Check(CheckArgs),
     /// Write a starter config.toml
     Init(InitArgs),
-    /// Print where Muxin keeps its files
+    /// Print where AndruIDE keeps its files
     Paths(CommonArgs),
-    /// Put `muxin` in your PATH (macOS: /usr/local/bin, Linux: ~/.local/bin,
+    /// Put `andruide` in your PATH (macOS: /usr/local/bin, Linux: ~/.local/bin,
     /// Windows: this folder in your user PATH), or take it out
     ShellCommand(ShellCommandArgs),
-    /// Whether a newer Muxin is out, and how to update this copy
+    /// Whether a newer AndruIDE is out, and how to update this copy
     Updates(UpdatesArgs),
-    /// Quit the running Muxin app, wherever its window is (sessions keep running on their machines)
+    /// Quit the running AndruIDE app, wherever its window is (sessions keep running on their machines)
     Quit(CommonArgs),
 }
 
@@ -198,7 +198,7 @@ enum ShellCommandAction {
 
 #[derive(Args, Clone)]
 struct CommonArgs {
-    /// Config directory [default: ~/.config/muxin (%APPDATA%\\muxin on Windows), or $MUXIN_HOME]
+    /// Config directory [default: ~/.config/andruide (%APPDATA%\\andruide on Windows), or $ANDRUIDE_HOME]
     #[arg(long, value_name = "DIR")]
     config_dir: Option<PathBuf>,
 
@@ -273,7 +273,7 @@ struct IgnoreArgs {
     /// Machine id (e.g. mac-studio) or name
     machine_id: String,
 
-    /// The warning's code, as `muxin machine <id>` shows it (e.g. low-disk)
+    /// The warning's code, as `andruide machine <id>` shows it (e.g. low-disk)
     warning: String,
 
     /// Show it again
@@ -387,7 +387,7 @@ struct CancelRunArgs {
     #[command(flatten)]
     agent: AgentArgs,
 
-    /// The job's id (from `muxin jobs --json`)
+    /// The job's id (from `andruide jobs --json`)
     job_id: u64,
 
     /// Return right away with the operation id
@@ -460,9 +460,9 @@ enum GithubCommand {
     Repos(AgentArgs),
     /// A repository's open issues and PRs, recent runs, and local checkouts
     Repo(GhRepoArgs),
-    /// The GitHub CLI accounts you're signed in to, and which one Muxin uses
+    /// The GitHub CLI accounts you're signed in to, and which one AndruIDE uses
     Accounts(AgentArgs),
-    /// Switch Muxin to another of the GitHub CLI's accounts
+    /// Switch AndruIDE to another of the GitHub CLI's accounts
     Use(GhUseArgs),
     /// Add a repository to your favorites (listed first), or remove it with --remove
     #[command(alias = "fav")]
@@ -484,7 +484,7 @@ struct GhRepoArgs {
 enum ScheduleCommand {
     /// The schedules on your machines (--on one), with their last runs
     Ls(ScheduleLsArgs),
-    /// Add one, e.g. `muxin schedule add beelink --name Tests --every day --at 09:00 --command "make test"`
+    /// Add one, e.g. `andruide schedule add beelink --name Tests --every day --at 09:00 --command "make test"`
     Add(ScheduleAddArgs),
     /// Delete one
     Rm(ScheduleRefArgs),
@@ -541,9 +541,9 @@ struct ScheduleRefArgs {
 }
 
 /// `--every` and `--at` as a schedule's `when`.
-fn parse_every(every: &str, at: Option<String>) -> Result<muxen_when::When, String> {
+fn parse_every(every: &str, at: Option<String>) -> Result<andruide_when::When, String> {
     let e = every.trim().to_ascii_lowercase();
-    let num = |s: &str| s.parse::<u32>().map_err(|_| format!("\"{every}\" isn't a schedule Muxin knows."));
+    let num = |s: &str| s.parse::<u32>().map_err(|_| format!("\"{every}\" isn't a schedule AndruIDE knows."));
     let (kind, n, days): (&str, Option<u32>, Vec<String>) = if let Some(m) = e.strip_suffix('m').filter(|m| m.chars().all(|c| c.is_ascii_digit())) {
         ("minutes", Some(num(m)?), Vec::new())
     } else if let Some(h) = e.strip_suffix('h').filter(|h| h.chars().all(|c| c.is_ascii_digit())) {
@@ -561,10 +561,10 @@ fn parse_every(every: &str, at: Option<String>) -> Result<muxen_when::When, Stri
         (_, Some(a)) => Some(a),
         (_, None) => return Err("Say when with --at HH:MM.".into()),
     };
-    Ok(muxen_when::When { every: kind.into(), n, at, days })
+    Ok(andruide_when::When { every: kind.into(), n, at, days })
 }
 
-mod muxen_when {
+mod andruide_when {
     pub use crate::fleet::schedules::When;
 }
 
@@ -574,7 +574,7 @@ enum VmCommand {
     Options(AgentArgs),
     /// Create a VM and add it to your machines (Windows installs itself: 15-30 minutes)
     Create(VmCreateArgs),
-    /// Delete a VM Muxin made: its container, its disk, and the machine in Muxin
+    /// Delete a VM AndruIDE made: its container, its disk, and the machine in AndruIDE
     Destroy(CloudMachineArgs),
 }
 
@@ -582,7 +582,7 @@ enum VmCommand {
 struct VmCreateArgs {
     #[command(flatten)]
     agent: AgentArgs,
-    /// Its name in Muxin
+    /// Its name in AndruIDE
     name: String,
     /// windows-11, windows-10, windows-server-2025, windows-server-2022, ubuntu-26.04,
     /// ubuntu-24.04, debian-13, fedora, alpine or arch
@@ -609,7 +609,7 @@ struct VmCreateArgs {
 
 #[derive(Subcommand)]
 enum IpadCommand {
-    /// Pair an iPhone or iPad: shows a QR code to scan with Muxin there
+    /// Pair an iPhone or iPad: shows a QR code to scan with AndruIDE there
     Pair(IpadPairArgs),
     /// The iPhones and iPads paired from here
     Ls(AgentArgs),
@@ -633,7 +633,7 @@ struct IpadPairArgs {
 struct IpadRmArgs {
     #[command(flatten)]
     agent: AgentArgs,
-    /// Its name, or its key (`muxin ipad ls --json`)
+    /// Its name, or its key (`andruide ipad ls --json`)
     ipad: String,
 }
 
@@ -645,7 +645,7 @@ enum CloudCommand {
     Usage(AgentArgs),
     /// Create a droplet, set it up, and add it to your machines (it costs money while it exists)
     Create(CloudCreateArgs),
-    /// Delete a cloud machine's droplet and remove it from Muxin
+    /// Delete a cloud machine's droplet and remove it from AndruIDE
     Destroy(CloudMachineArgs),
     /// Power a cloud machine on or off (DigitalOcean still bills it while off)
     Power(CloudPowerArgs),
@@ -713,7 +713,7 @@ struct CloudLoginArgs {
     agent: AgentArgs,
     /// A DigitalOcean API token (kept in the Keychain). `-` reads it from stdin, which
     /// keeps it out of your shell's history and the process list:
-    /// `pbpaste | muxin cloud login --token -`
+    /// `pbpaste | andruide cloud login --token -`
     #[arg(long, conflicts_with_all = ["doctl", "browser"])]
     token: Option<String>,
     /// Use doctl's login
@@ -736,13 +736,13 @@ enum DesktopCommand {
     Windows(MachineArgs),
     /// Add a virtual monitor (like plugging in another screen)
     Add(DesktopAddArgs),
-    /// Remove a virtual monitor Muxin added
+    /// Remove a virtual monitor AndruIDE added
     Remove(DesktopRemoveArgs),
     /// Change a monitor's resolution or scale
     Set(DesktopSetArgs),
-    /// Open the machine's own Remote Desktop (RDP) in your app for it, through Muxin, until Ctrl-C
+    /// Open the machine's own Remote Desktop (RDP) in your app for it, through AndruIDE, until Ctrl-C
     Rdp(MachineArgs),
-    /// Open the machine's own VNC (a Mac's Screen Sharing) in your app for it, through Muxin, until Ctrl-C
+    /// Open the machine's own VNC (a Mac's Screen Sharing) in your app for it, through AndruIDE, until Ctrl-C
     Vnc(MachineArgs),
 }
 
@@ -881,7 +881,7 @@ struct DesktopSetArgs {
     agent: AgentArgs,
     /// Machine id or name
     machine: String,
-    /// The display's id (see `muxin desktop displays`)
+    /// The display's id (see `andruide desktop displays`)
     display: String,
     /// Its resolution, e.g. 3840x2160 (one it offers)
     #[arg(long)]
@@ -911,7 +911,7 @@ struct DesktopRemoveArgs {
     agent: AgentArgs,
     /// Machine id or name
     machine: String,
-    /// The display's id (see `muxin desktop displays`)
+    /// The display's id (see `andruide desktop displays`)
     display: String,
 }
 
@@ -924,7 +924,7 @@ struct DesktopShotArgs {
     /// Where to save it (default: <machine>-desktop.jpg)
     #[arg(short, long)]
     output: Option<std::path::PathBuf>,
-    /// One of its displays (see `muxin desktop displays`)
+    /// One of its displays (see `andruide desktop displays`)
     #[arg(long)]
     display: Option<String>,
 }
@@ -937,7 +937,7 @@ struct DesktopInputArgs {
     machine: String,
     /// The events, as JSON
     events: String,
-    /// One of its displays (see `muxin desktop displays`)
+    /// One of its displays (see `andruide desktop displays`)
     #[arg(long)]
     display: Option<String>,
 }
@@ -1012,7 +1012,7 @@ struct GitSetupArgs {
 struct GhUseArgs {
     #[command(flatten)]
     agent: AgentArgs,
-    /// A GitHub login (see `muxin github accounts`)
+    /// A GitHub login (see `andruide github accounts`)
     #[arg(required_unless_present = "machine")]
     login: Option<String>,
     /// Use this machine's GitHub CLI login instead
@@ -1082,7 +1082,7 @@ enum SessionCommand {
     Restart(SessionIdArgs),
     /// Give a session a new title ("" goes back to the one it started with)
     Rename(SessionRenameArgs),
-    /// Hand a session's work (or a box's) to another agent, here or on another machine: `muxin session handoff this-mac/claude-3f9a codex --on beelink`
+    /// Hand a session's work (or a box's) to another agent, here or on another machine: `andruide session handoff this-mac/claude-3f9a codex --on beelink`
     Handoff(SessionHandoffArgs),
     /// End a session
     #[command(alias = "rm")]
@@ -1094,7 +1094,7 @@ enum BoxCommand {
     /// List boxes: running or paused, and what each one changed
     #[command(alias = "list")]
     Ls(BoxLsArgs),
-    /// Hand a task to an agent in a new box: `muxin box new acme/api "Fix the login redirect"`
+    /// Hand a task to an agent in a new box: `andruide box new acme/api "Fix the login redirect"`
     New(BoxNewArgs),
     /// Ask a box's agent something more (starting the box again when it's paused)
     Send(BoxSendArgs),
@@ -1160,7 +1160,7 @@ struct BoxNewArgs {
 struct BoxSendArgs {
     #[command(flatten)]
     agent: AgentArgs,
-    /// A box id from `muxin box ls` (box-ab12cd)
+    /// A box id from `andruide box ls` (box-ab12cd)
     box_id: String,
     /// What to ask its agent
     #[arg(num_args = 1..)]
@@ -1171,7 +1171,7 @@ struct BoxSendArgs {
 struct BoxIdArgs {
     #[command(flatten)]
     agent: AgentArgs,
-    /// A box id from `muxin box ls` (box-ab12cd)
+    /// A box id from `andruide box ls` (box-ab12cd)
     box_id: String,
 }
 
@@ -1232,7 +1232,7 @@ struct SessionAnswerArgs {
     agent: AgentArgs,
     /// Session id (<machine-id>/<name>) or unique name
     session_id: String,
-    /// The option's key, as `muxin session question` shows it (1, 2, … or #0, #1, …)
+    /// The option's key, as `andruide session question` shows it (1, 2, … or #0, #1, …)
     choice: String,
 }
 
@@ -1536,7 +1536,7 @@ struct McpArgs {
 enum SkillCommand {
     /// Print the guide for agents (the installed skill runs this), or one of its topics
     Show(SkillShowArgs),
-    /// Put the skill in agents' skills folders (every agent found here, or --agent): a stub that runs `muxin skill show`
+    /// Put the skill in agents' skills folders (every agent found here, or --agent): a stub that runs `andruide skill show`
     Install(SkillArgs),
     /// Take it out of those folders again
     Remove(SkillArgs),
@@ -1560,7 +1560,7 @@ struct SkillArgs {
     /// [default: every agent found on this computer]
     #[arg(long = "agent", value_name = "AGENT")]
     agents: Vec<String>,
-    /// Another skills folder instead (the skill goes in <DIR>/muxin)
+    /// Another skills folder instead (the skill goes in <DIR>/andruide)
     #[arg(long, value_name = "DIR", conflicts_with = "agents")]
     dir: Option<PathBuf>,
     /// Print machine-readable JSON
@@ -1599,11 +1599,11 @@ struct InitArgs {
 fn main() -> ExitCode {
     #[cfg(unix)]
     probe::find_ssh_agent();
-    crash::install(concat!("muxin ", env!("CARGO_PKG_VERSION")), config::dir_from_env().join("crash.log"));
+    crash::install(concat!("andruide ", env!("CARGO_PKG_VERSION")), config::dir_from_env().join("crash.log"));
     // Logs always go to stderr: stdout is reserved for --json output and MCP messages.
     tracing_subscriber::fmt()
         .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_env("MUXEN_LOG").unwrap_or_else(|_| "muxin=info".into()),
+            tracing_subscriber::EnvFilter::try_from_env("ANDRUIDE_LOG").unwrap_or_else(|_| "andruide=info".into()),
         )
         .with_writer(std::io::stderr)
         .with_ansi(std::io::stderr().is_terminal())
@@ -1611,10 +1611,10 @@ fn main() -> ExitCode {
         .without_time()
         .init();
 
-    // A share link opened with Muxin: Linux and Windows hand it over as the
+    // A share link opened with AndruIDE: Linux and Windows hand it over as the
     // argument (macOS through the app, see ui::run_app).
     let mut argv: Vec<std::ffi::OsString> = std::env::args_os().collect();
-    if let Some(url) = argv.get(1).and_then(|a| a.to_str()).filter(|a| a.starts_with("muxin://join")).map(String::from) {
+    if let Some(url) = argv.get(1).and_then(|a| a.to_str()).filter(|a| a.starts_with("andruide://join")).map(String::from) {
         argv = vec![argv[0].clone(), "open".into(), "--view".into(), format!("join:{url}").into()];
     }
     let cli = Cli::parse_from(argv);
@@ -1653,13 +1653,13 @@ fn main() -> ExitCode {
         }
         Some(Command::Disconnect(a)) => {
             let req = api::ConnectMachineRequest { machine_id: a.machine_id, connected: false };
-            run(&runtime, &a.agent, async move |e| api::connect_machine(&e, req).await, |m| format!("Disconnected from {}. Its sessions go on there; `muxin connect {}` connects again.\n", m.name, m.id))
+            run(&runtime, &a.agent, async move |e| api::connect_machine(&e, req).await, |m| format!("Disconnected from {}. Its sessions go on there; `andruide connect {}` connects again.\n", m.name, m.id))
         }
         Some(Command::Ignore(a)) => {
             let (warning, ignored) = (a.warning.clone(), !a.undo);
             let req = api::IgnoreWarningRequest { machine_id: a.machine_id, warning: a.warning, ignored };
             run(&runtime, &a.agent, async move |e| api::ignore_warning(&e, req).await, move |m| match ignored {
-                true => format!("{} won't warn about {warning} anymore. `muxin ignore {} {warning} --undo` shows it again.\n", m.summary.name, m.summary.id),
+                true => format!("{} won't warn about {warning} anymore. `andruide ignore {} {warning} --undo` shows it again.\n", m.summary.name, m.summary.id),
                 false => format!("{} warns about {warning} again.\n", m.summary.name),
             })
         }
@@ -1776,7 +1776,7 @@ fn main() -> ExitCode {
         }
         Some(Command::Wake(a)) => {
             let req = api::WakeRequest { machine_id: a.machine_id };
-            run(&runtime, &a.agent, async move |e| api::wake_machine(&e, req).await, |v| format!("Sent the wake signal from {}. Muxin checks it again in 20 and 40 seconds.\n", v["sent_from"].as_str().unwrap_or("here")))
+            run(&runtime, &a.agent, async move |e| api::wake_machine(&e, req).await, |v| format!("Sent the wake signal from {}. AndruIDE checks it again in 20 and 40 seconds.\n", v["sent_from"].as_str().unwrap_or("here")))
         }
         Some(Command::Edit(a)) => {
             let (machine, path) = a.target.split_once(':').map(|(m, p)| (m.to_string(), p.to_string())).unwrap_or((a.target.clone(), "~".into()));
@@ -1845,7 +1845,7 @@ fn main() -> ExitCode {
             }
             ScheduleCommand::Run(a) => {
                 let req = api::ScheduleRequest { machine_id: a.machine, schedule_id: a.id, started: None };
-                run(&runtime, &a.agent, async move |e| api::schedule_run(&e, req).await, |_| "✓ Started. See it with `muxin schedule log`.\n".to_string())
+                run(&runtime, &a.agent, async move |e| api::schedule_run(&e, req).await, |_| "✓ Started. See it with `andruide schedule log`.\n".to_string())
             }
             ScheduleCommand::Log(a) => {
                 let req = api::ScheduleRequest { machine_id: a.machine, schedule_id: a.id, started: None };
@@ -1912,13 +1912,13 @@ fn main() -> ExitCode {
         Some(Command::Quit(args)) => {
             let dir = args.paths().dir;
             if !instance::is_running(&dir) {
-                println!("Muxin isn't running.");
+                println!("AndruIDE isn't running.");
                 0
             } else if runtime.block_on(instance::tell(&dir, &instance::Request::Quit)) == instance::Told::NoAnswer {
-                eprintln!("error: Muxin didn't answer.");
+                eprintln!("error: AndruIDE didn't answer.");
                 1
             } else {
-                println!("Muxin is quitting.");
+                println!("AndruIDE is quitting.");
                 0
             }
         }
@@ -1930,11 +1930,11 @@ fn main() -> ExitCode {
                     0
                 }
                 (Ok(None), false) => {
-                    println!("Muxin {current} is the latest version.");
+                    println!("AndruIDE {current} is the latest version.");
                     0
                 }
                 (Ok(Some(u)), false) => {
-                    println!("Muxin {} is out (you have {current}).", u.version);
+                    println!("AndruIDE {} is out (you have {current}).", u.version);
                     match (&u.command, &u.download) {
                         (Some(command), _) => println!("Update it with: {command}"),
                         (None, Some(url)) => println!("Download: {url}"),
@@ -1966,8 +1966,8 @@ fn main() -> ExitCode {
                 }
                 (Ok(s), false) => {
                     let line = match s.state {
-                        "installed" => format!("muxin is installed: {}", s.path),
-                        "missing" => format!("Not installed (it would go in {}). Run `muxin shell-command install`.", s.path),
+                        "installed" => format!("andruide is installed: {}", s.path),
+                        "missing" => format!("Not installed (it would go in {}). Run `andruide shell-command install`.", s.path),
                         "other" => format!("{} is something else{}", s.path, s.target.as_deref().map(|t| format!(" (-> {t})")).unwrap_or_default()),
                         _ => "Not available here.".to_string(),
                     };
@@ -1993,7 +1993,7 @@ fn main() -> ExitCode {
 
 /// Windows: started from Explorer or the Start menu, the window comes with a
 /// console of its own (a terminal window). Start again without one: a
-/// console that has no window, which every ssh and PowerShell Muxin starts
+/// console that has no window, which every ssh and PowerShell AndruIDE starts
 /// then shares instead of each opening a window. True when it did (this
 /// process should end).
 #[cfg(windows)]
@@ -2001,7 +2001,7 @@ fn without_console_window() -> bool {
     use std::os::windows::process::CommandExt;
     use windows_sys::Win32::System::Console::GetConsoleProcessList;
     const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-    if std::env::var_os("MUXEN_NO_CONSOLE").is_some() {
+    if std::env::var_os("ANDRUIDE_NO_CONSOLE").is_some() {
         return false;
     }
     // Someone else on this console: started from a terminal, which stays.
@@ -2011,7 +2011,7 @@ fn without_console_window() -> bool {
     }
     let Ok(exe) = std::env::current_exe() else { return false };
     let mut cmd = std::process::Command::new(exe);
-    cmd.args(std::env::args_os().skip(1)).env("MUXEN_NO_CONSOLE", "1").creation_flags(CREATE_NO_WINDOW);
+    cmd.args(std::env::args_os().skip(1)).env("ANDRUIDE_NO_CONSOLE", "1").creation_flags(CREATE_NO_WINDOW);
     cmd.spawn().is_ok()
 }
 
@@ -2023,7 +2023,7 @@ fn open(args: OpenArgs, runtime: &tokio::runtime::Runtime) -> u8 {
     // The engine runs on tokio; the window runs on GPUI's main-thread executor.
     let _guard = runtime.enter();
     let paths = args.common.paths();
-    // One window per Muxin home: opening it again brings that one forward.
+    // One window per AndruIDE home: opening it again brings that one forward.
     #[cfg(feature = "gui")]
     let listener = if args.demo {
         None
@@ -2062,15 +2062,15 @@ fn open(args: OpenArgs, runtime: &tokio::runtime::Runtime) -> u8 {
     #[cfg(not(feature = "gui"))]
     {
         let _ = (engine, args.view);
-        eprintln!("This build of Muxin has no window (built without the `gui` feature).");
-        eprintln!("Use the commands (`muxin --help`) or the MCP server (`muxin mcp`).");
+        eprintln!("This build of AndruIDE has no window (built without the `gui` feature).");
+        eprintln!("Use the commands (`andruide --help`) or the MCP server (`andruide mcp`).");
         2
     }
 }
 
 /// Runs one agent-facing command: JSON or human output on stdout, errors with a
 /// code (0 ok, 1 failed, 2 bad input / not found).
-/// `muxin cp <machine>:<path>... <machine>:<folder>`
+/// `andruide cp <machine>:<path>... <machine>:<folder>`
 fn cp(a: CpArgs, runtime: &tokio::runtime::Runtime) -> u8 {
     let place = |s: &str| s.split_once(':').map(|(m, p)| (m.to_string(), p.to_string()));
     let (dest, sources) = a.paths.split_last().expect("clap requires two");
@@ -2224,7 +2224,7 @@ fn workspace(cmd: WorkspaceCommand, runtime: &tokio::runtime::Runtime) -> u8 {
 
 /// `workspace exec`: passes the command's output through and exits with its exit code
 /// (124 when it timed out, like `timeout(1)`), so it composes in scripts.
-/// `muxin run`: each machine's output under its name; exits 1 when any failed.
+/// `andruide run`: each machine's output under its name; exits 1 when any failed.
 fn fleet_run(a: FleetRunArgs, runtime: &tokio::runtime::Runtime) -> u8 {
     let _guard = runtime.enter();
     let engine = Engine::new(a.agent.common.paths(), a.agent.demo);
@@ -2296,9 +2296,9 @@ fn workspace_exec(a: WsExecArgs, runtime: &tokio::runtime::Runtime) -> u8 {
                 if let Some(log) = &out.log_path {
                     eprintln!("started in the background (pid {}), log: {log}", out.background_pid.map(|p| p.to_string()).unwrap_or_else(|| "?".into()));
                 } else if out.timed_out {
-                    eprintln!("muxin: timed out after {}s", out.duration_ms / 1000);
+                    eprintln!("andruide: timed out after {}s", out.duration_ms / 1000);
                 } else if out.truncated {
-                    eprintln!("muxin: output was truncated (the middle was dropped)");
+                    eprintln!("andruide: output was truncated (the middle was dropped)");
                 }
             }
             match (out.exit_code, out.timed_out) {
@@ -2407,7 +2407,7 @@ fn ipad_pair(a: IpadPairArgs, runtime: &tokio::runtime::Runtime) -> u8 {
             match v.state.as_str() {
                 "waiting" if !json => {
                     if !asked {
-                        println!("Scan this with Muxin on your iPhone or iPad, or paste the link there:\n");
+                        println!("Scan this with AndruIDE on your iPhone or iPad, or paste the link there:\n");
                         if std::io::stdout().is_terminal() {
                             print!("{}", terminal_qr(&v.link));
                         }
@@ -2545,7 +2545,7 @@ fn read_token(input: &mut impl std::io::BufRead) -> Result<String, String> {
     let mut line = String::new();
     input.read_line(&mut line).map_err(|e| format!("Couldn't read the token from stdin: {e}"))?;
     match line.trim() {
-        "" => Err("No token came in on stdin. Pipe it in, e.g. muxin cloud login --token - < token.txt".into()),
+        "" => Err("No token came in on stdin. Pipe it in, e.g. andruide cloud login --token - < token.txt".into()),
         token => Ok(token.to_string()),
     }
 }
@@ -2629,7 +2629,7 @@ fn desktop(cmd: DesktopCommand, runtime: &tokio::runtime::Runtime) -> u8 {
     }
 }
 
-/// `muxin desktop rdp|vnc`: the machine's own remote desktop in this
+/// `andruide desktop rdp|vnc`: the machine's own remote desktop in this
 /// computer's app for it, its port open here until Ctrl-C.
 fn remote_desktop(a: MachineArgs, protocol: crate::fleet::remote_desktop::Protocol, runtime: &tokio::runtime::Runtime) -> u8 {
     let req = api::RemoteDesktopRequest { machine_id: a.machine_id, protocol: Some(protocol) };
@@ -2657,7 +2657,7 @@ fn services(a: ServicesArgs, runtime: &tokio::runtime::Runtime) -> u8 {
             run(runtime, &a.agent, async move |e| api::service_action(&e, req).await, |v| format!("{} {}.\n", past(v["action"].as_str().unwrap_or("")), v["name"].as_str().unwrap_or("")))
         }
         (Some(_), None) => {
-            eprintln!("error: which service or container? muxin services <machine> <action> <name>");
+            eprintln!("error: which service or container? andruide services <machine> <action> <name>");
             2
         }
     }
@@ -2797,7 +2797,7 @@ fn session(cmd: SessionCommand, runtime: &tokio::runtime::Runtime) -> u8 {
             run(runtime, &a.agent, async move |e| api::session_question(&e, req).await, |q| {
                 let mut out: String = q.text.iter().map(|l| format!("{l}\n")).collect();
                 if q.options.is_empty() {
-                    out.push_str("(waiting for a message: muxin session send)\n");
+                    out.push_str("(waiting for a message: andruide session send)\n");
                 }
                 for o in &q.options {
                     let mark = if q.selected.as_deref() == Some(o.key.as_str()) { "›" } else { " " };
@@ -2972,10 +2972,10 @@ fn skill(cmd: SkillCommand) -> u8 {
         .map(|(agent, dir)| if installing { skill::install(agent, &dir) } else { skill::remove(agent, &dir) })
         .collect();
     if args.json {
-        let out = serde_json::json!({ "skill": "muxin", "version": env!("CARGO_PKG_VERSION"), "results": results });
+        let out = serde_json::json!({ "skill": "andruide", "version": env!("CARGO_PKG_VERSION"), "results": results });
         println!("{}", serde_json::to_string_pretty(&out).unwrap_or_default());
     } else if results.is_empty() {
-        println!("The Muxin skill isn't in any agent's skills folder here.");
+        println!("The AndruIDE skill isn't in any agent's skills folder here.");
     } else {
         for r in &results {
             println!("{:<9} {:<10} {}", r.agent, r.result, r.path);
@@ -3030,7 +3030,7 @@ fn init(args: InitArgs) -> u8 {
         return 1;
     }
     println!("Wrote {}", display_path(&paths.inventory));
-    println!("Add your machines, then run `muxin` to open the dashboard.");
+    println!("Add your machines, then run `andruide` to open the dashboard.");
     0
 }
 
@@ -3046,8 +3046,8 @@ mod tests {
 
     #[test]
     fn crash_log_goes_in_the_config_dir_asked_for() {
-        let dir = std::env::temp_dir().join(format!("muxen-crash-dir-{}", std::process::id()));
-        let cli = Cli::try_parse_from(["muxin", "machines", "--config-dir", dir.to_str().unwrap()]).unwrap();
+        let dir = std::env::temp_dir().join(format!("andruide-crash-dir-{}", std::process::id()));
+        let cli = Cli::try_parse_from(["andruide", "machines", "--config-dir", dir.to_str().unwrap()]).unwrap();
         let Some(Command::Machines(a)) = cli.command else { panic!("not machines") };
         assert_eq!(a.common.paths().dir, dir);
         assert_eq!(crash::current_log(), Some(dir.join("crash.log")));
@@ -3063,7 +3063,7 @@ mod tests {
 
     #[test]
     fn parses_workspace_commands() {
-        let cli = Cli::try_parse_from(["muxin", "ws", "exec", "ws-abc123", "--env", "A=1", "--", "npm", "test"]).unwrap();
+        let cli = Cli::try_parse_from(["andruide", "ws", "exec", "ws-abc123", "--env", "A=1", "--", "npm", "test"]).unwrap();
         match cli.command {
             Some(Command::Workspace(WorkspaceCommand::Exec(a))) => {
                 assert_eq!(a.workspace_id, "ws-abc123");
@@ -3072,12 +3072,12 @@ mod tests {
             }
             _ => panic!("expected workspace exec"),
         }
-        assert!(Cli::try_parse_from(["muxin", "workspace", "sync", "ws-1", "."]).is_err(), "needs --push or --pull");
-        assert!(Cli::try_parse_from(["muxin", "workspace", "sync", "ws-1", ".", "--push", "--pull"]).is_err());
-        assert!(Cli::try_parse_from(["muxin", "workspace", "create", "--platform", "linux", "--repo", "acme/api", "--ref", "main", "--json"]).is_ok());
+        assert!(Cli::try_parse_from(["andruide", "workspace", "sync", "ws-1", "."]).is_err(), "needs --push or --pull");
+        assert!(Cli::try_parse_from(["andruide", "workspace", "sync", "ws-1", ".", "--push", "--pull"]).is_err());
+        assert!(Cli::try_parse_from(["andruide", "workspace", "create", "--platform", "linux", "--repo", "acme/api", "--ref", "main", "--json"]).is_ok());
     }
 
-    /// The skill (skills/muxin) shows only commands and flags that exist:
+    /// The skill (skills/andruide) shows only commands and flags that exist:
     /// whole commands in code blocks parse, and inline ones name real flags.
     #[test]
     fn skill_uses_real_commands() {
@@ -3089,14 +3089,14 @@ mod tests {
                 if line.trim_start().starts_with("```") {
                     fenced = !fenced;
                 } else if fenced {
-                    if line.starts_with("muxin ") {
+                    if line.starts_with("andruide ") {
                         let words = shell_words(line);
                         if let Err(e) = Cli::try_parse_from(&words) {
                             panic!("{path}: `{line}` doesn't parse:\n{e}");
                         }
                     }
                 } else {
-                    for span in line.split('`').skip(1).step_by(2).filter(|s| s.starts_with("muxin ")) {
+                    for span in line.split('`').skip(1).step_by(2).filter(|s| s.starts_with("andruide ")) {
                         let words = shell_words(span);
                         let (mut cmd, mut rest) = (&root, &words[1..]);
                         while let Some(sub) = rest.first().and_then(|w| cmd.find_subcommand(w)) {
@@ -3142,8 +3142,8 @@ mod tests {
 
     #[test]
     fn splits_shell_words() {
-        assert_eq!(shell_words(r#"muxin session send a/b "Yes, and add a test" --json   # type it"#), ["muxin", "session", "send", "a/b", "Yes, and add a test", "--json"]);
-        assert_eq!(shell_words("muxin session rename a/b \"\" --cwd '~/x' acme/api#142"), ["muxin", "session", "rename", "a/b", "", "--cwd", "~/x", "acme/api#142"]);
+        assert_eq!(shell_words(r#"andruide session send a/b "Yes, and add a test" --json   # type it"#), ["andruide", "session", "send", "a/b", "Yes, and add a test", "--json"]);
+        assert_eq!(shell_words("andruide session rename a/b \"\" --cwd '~/x' acme/api#142"), ["andruide", "session", "rename", "a/b", "", "--cwd", "~/x", "acme/api#142"]);
     }
 
     #[test]
@@ -3152,9 +3152,9 @@ mod tests {
             Some(Command::Cloud(CloudCommand::Login(a))) => a.token,
             _ => panic!("expected cloud login"),
         };
-        assert_eq!(token(&["muxin", "cloud", "login", "--token", "-"]).as_deref(), Some("-"));
-        assert_eq!(token(&["muxin", "cloud", "login", "--token", "dop_v1_abc"]).as_deref(), Some("dop_v1_abc"));
-        assert!(Cli::try_parse_from(["muxin", "cloud", "login", "--token", "-", "--doctl"]).is_err());
+        assert_eq!(token(&["andruide", "cloud", "login", "--token", "-"]).as_deref(), Some("-"));
+        assert_eq!(token(&["andruide", "cloud", "login", "--token", "dop_v1_abc"]).as_deref(), Some("dop_v1_abc"));
+        assert!(Cli::try_parse_from(["andruide", "cloud", "login", "--token", "-", "--doctl"]).is_err());
 
         let read = |input: &str| read_token(&mut std::io::Cursor::new(input.as_bytes()));
         assert_eq!(read("dop_v1_abc\n").as_deref(), Ok("dop_v1_abc"));

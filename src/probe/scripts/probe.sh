@@ -1,6 +1,6 @@
-# Muxin machine probe (macOS / Linux). Read-only.
+# AndruIDE machine probe (macOS / Linux). Read-only.
 # Prints key=value lines; runner N is reported as rN.<key>=<value>.
-# OR_DIRS (newline-separated glob patterns) is prepended by Muxin.
+# OR_DIRS (newline-separated glob patterns) is prepended by AndruIDE.
 
 LC_ALL=C
 export LC_ALL
@@ -219,14 +219,14 @@ linux)
 esac
 
 # --- Docker -------------------------------------------------------------------
-# Runner containers: the ones Muxin made (label muxen.runner, or
+# Runner containers: the ones AndruIDE made (label andruide.runner, or
 # openrunner.runner from before the rename) and any other container running
 # GitHub's actions-runner image.
 if command -v docker >/dev/null 2>&1; then
   dv=$(docker version --format '{{.Server.Version}}' 2>/dev/null)
   if [ -n "$dv" ]; then
     kv docker "$dv"
-    docker ps -a --no-trunc --format '{{.Names}}|{{.State}}|{{.Image}}|{{.Label "muxen.runner"}}{{.Label "openrunner.runner"}}|{{.Label "muxen.scope"}}{{.Label "openrunner.scope"}}' 2>/dev/null | {
+    docker ps -a --no-trunc --format '{{.Names}}|{{.State}}|{{.Image}}|{{.Label "andruide.runner"}}{{.Label "openrunner.runner"}}|{{.Label "andruide.scope"}}{{.Label "openrunner.scope"}}' 2>/dev/null | {
       j=0
       while IFS='|' read -r cname cstate cimage rname rscope; do
         case "$cimage" in
@@ -250,7 +250,7 @@ if command -v docker >/dev/null 2>&1; then
         j=$((j + 1))
       done
     }
-    # Containers that publish ports here, running or not: a machine Muxin
+    # Containers that publish ports here, running or not: a machine AndruIDE
     # reaches through one (a VM in Docker, say) runs in it.
     ids=$(docker ps -aq 2>/dev/null)
     if [ -n "$ids" ]; then

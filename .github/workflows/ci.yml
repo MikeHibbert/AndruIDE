@@ -58,4 +58,4 @@ jobs:
         shell: bash
         run: "! git ls-files --eol '*.sh' | grep crlf"
       - run: cargo build --workspace --locked
-      - run: cargo test -p muxen-agent --locked
+      - run: cargo test -p andruide-agent --locked

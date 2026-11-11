@@ -41,7 +41,7 @@ pub(super) fn set_in_front(session: Option<String>) {
 pub(super) fn start(engine: Arc<Engine>, enabled: bool) {
     ENABLED.store(enabled, Ordering::SeqCst);
     // For trying them out: the demo notifies too, and what waits at launch is news.
-    let testing = std::env::var_os("MUXIN_TEST_NOTIFICATIONS").is_some();
+    let testing = std::env::var_os("ANDRUIDE_TEST_NOTIFICATIONS").is_some();
     if STARTED.swap(true, Ordering::SeqCst) || (engine.is_demo() && !testing) {
         return;
     }
@@ -152,7 +152,7 @@ mod imp {
     /// UNAuthorizationOptionBadge | Sound | Alert.
     const ASK_FOR: u64 = 1 | 2 | 4;
     /// UNNotificationPresentationOptionSound | List | Banner: shown even while
-    /// Muxin is in front (the session on screen never gets one).
+    /// AndruIDE is in front (the session on screen never gets one).
     const PRESENT: u64 = 2 | 8 | 16;
 
     /// The center, once it's set up (only in a bundle).
@@ -174,7 +174,7 @@ mod imp {
                 let _: () = msg_send![center, setDelegate: delegate];
                 let asked = ConcreteBlock::new(|granted: BOOL, _error: id| {
                     if granted == NO {
-                        tracing::info!("notifications are turned off for Muxin in System Settings");
+                        tracing::info!("notifications are turned off for AndruIDE in System Settings");
                     }
                 })
                 .copy();
@@ -185,11 +185,11 @@ mod imp {
     }
 
     /// Answers the center: a click opens the session, and one comes in while
-    /// Muxin is in front shows anyway.
+    /// AndruIDE is in front shows anyway.
     fn delegate_class() -> &'static Class {
         static CLASS: OnceLock<usize> = OnceLock::new();
         let class = *CLASS.get_or_init(|| {
-            let mut decl = ClassDecl::new("MuxinNotificationDelegate", class!(NSObject)).expect("one delegate class");
+            let mut decl = ClassDecl::new("AndruIDENotificationDelegate", class!(NSObject)).expect("one delegate class");
             extern "C" fn clicked(_: &Object, _: Sel, _center: id, response: id, done: id) {
                 unsafe {
                     let notification: id = msg_send![response, notification];
@@ -275,7 +275,7 @@ mod imp {
 
 #[cfg(windows)]
 mod imp {
-    //! Toasts, under an app id Muxin registers for the user (no administrator
+    //! Toasts, under an app id AndruIDE registers for the user (no administrator
     //! needed): Windows shows only notifications of apps it knows. They're
     //! made on a thread of their own, set up for WinRT.
     use std::collections::HashMap;
@@ -288,7 +288,7 @@ mod imp {
 
     use super::Notice;
 
-    const APP_ID: &str = "LumaryLabs.Muxin";
+    const APP_ID: &str = "LumaryLabs.AndruIDE";
     const GROUP: &str = "sessions";
 
     enum Msg {
@@ -399,10 +399,10 @@ mod imp {
         text.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;").replace('"', "&quot;")
     }
 
-    /// Muxin's name and icon under its app id, in the user's part of the registry.
+    /// AndruIDE's name and icon under its app id, in the user's part of the registry.
     fn register() -> Result<(), String> {
         use windows_sys::Win32::System::Registry::{HKEY, HKEY_CURRENT_USER, KEY_WRITE, REG_OPTION_NON_VOLATILE, REG_SZ, RegCloseKey, RegCreateKeyExW, RegSetValueExW};
-        let dir = std::env::var_os("LOCALAPPDATA").map(std::path::PathBuf::from).ok_or("LOCALAPPDATA isn't set")?.join("Muxin");
+        let dir = std::env::var_os("LOCALAPPDATA").map(std::path::PathBuf::from).ok_or("LOCALAPPDATA isn't set")?.join("AndruIDE");
         std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
         let icon = dir.join("notification-icon.png");
         if !icon.exists() {
@@ -415,7 +415,7 @@ mod imp {
         if made != 0 {
             return Err(format!("couldn't register the app for notifications (error {made})"));
         }
-        for (name, value) in [("DisplayName", "Muxin".to_string()), ("IconUri", icon.to_string_lossy().into_owned())] {
+        for (name, value) in [("DisplayName", "AndruIDE".to_string()), ("IconUri", icon.to_string_lossy().into_owned())] {
             let value = wide(&value);
             unsafe {
                 RegSetValueExW(key, wide(name).as_ptr(), 0, REG_SZ, value.as_ptr().cast(), (value.len() * 2) as u32);
@@ -503,8 +503,8 @@ mod imp {
                 Msg::Post(n) => {
                     // A newer one for a session replaces the older.
                     let replaces = ids.get(&n.session_id).copied().unwrap_or(0);
-                    let hints: HashMap<&str, zbus::zvariant::Value<'_>> = HashMap::from([("desktop-entry", "muxin".into())]);
-                    let shown: zbus::Result<u32> = proxy.call("Notify", &("Muxin", replaces, "muxin", n.title.as_str(), n.body.as_str(), vec!["default", "Open"], hints, -1i32)).await;
+                    let hints: HashMap<&str, zbus::zvariant::Value<'_>> = HashMap::from([("desktop-entry", "andruide".into())]);
+                    let shown: zbus::Result<u32> = proxy.call("Notify", &("AndruIDE", replaces, "andruide", n.title.as_str(), n.body.as_str(), vec!["default", "Open"], hints, -1i32)).await;
                     match shown {
                         Ok(id) => {
                             sessions.lock().unwrap().insert(id, n.session_id.clone());

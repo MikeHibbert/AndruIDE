@@ -1,5 +1,5 @@
-# Muxin: control one installed runner (Windows).
-# Muxin prepends: $OR_ACTION (start|stop|restart|logs|remove|update), $OR_DIR,
+# AndruIDE: control one installed runner (Windows).
+# AndruIDE prepends: $OR_ACTION (start|stop|restart|logs|remove|update), $OR_DIR,
 # $OR_TOKEN (remove only), $OR_DELETE (bool), and for update $OR_VERSION and
 # $OR_SHA256 (array of "<platform>=<hex>": each package's SHA-256).
 
@@ -21,7 +21,7 @@ function Get-RunnerProcesses {
     Where-Object { $_.ExecutablePath -and $_.ExecutablePath.StartsWith("$OR_DIR\bin\", [StringComparison]::OrdinalIgnoreCase) }
 }
 
-# Starts a program that outlives this session. Muxin runs this script over ssh,
+# Starts a program that outlives this session. AndruIDE runs this script over ssh,
 # and sshd ends everything the connection that started it leaves behind when it
 # closes, so a plain Start-Process leaves nothing running. A process made by WMI
 # isn't in that session; the agent starts itself the same way (agent/src/sys.rs).
@@ -70,15 +70,15 @@ function Send-CtrlC($id) {
 $ProgressPreference = 'SilentlyContinue'
 $ErrorActionPreference = 'Stop'
 try {
-  Add-Type -Namespace Muxin -Name Console -MemberDefinition '
+  Add-Type -Namespace AndruIDE -Name Console -MemberDefinition '
     [DllImport("kernel32.dll")] public static extern bool FreeConsole();
     [DllImport("kernel32.dll")] public static extern bool AttachConsole(uint id);
     [DllImport("kernel32.dll")] public static extern bool SetConsoleCtrlHandler(IntPtr handler, bool add);
     [DllImport("kernel32.dll")] public static extern bool GenerateConsoleCtrlEvent(uint ctrlEvent, uint group);'
-  [void][Muxin.Console]::FreeConsole()
-  if (-not [Muxin.Console]::AttachConsole($id)) { exit 2 }
-  [void][Muxin.Console]::SetConsoleCtrlHandler([IntPtr]::Zero, $true)
-  if (-not [Muxin.Console]::GenerateConsoleCtrlEvent(0, 0)) { exit 3 }
+  [void][AndruIDE.Console]::FreeConsole()
+  if (-not [AndruIDE.Console]::AttachConsole($id)) { exit 2 }
+  [void][AndruIDE.Console]::SetConsoleCtrlHandler([IntPtr]::Zero, $true)
+  if (-not [AndruIDE.Console]::GenerateConsoleCtrlEvent(0, 0)) { exit 3 }
   exit 0
 } catch { exit 1 }
 '@
@@ -146,7 +146,7 @@ switch ($OR_ACTION) {
     }
     if (-not $sha) { throw "GitHub's release notes for actions-runner $OR_VERSION don't list a SHA-256 for $pkg, so it can't be checked. Not updating." }
     # Everything that can fail by itself comes first, with the runner still running.
-    $new = Join-Path $OR_DIR '.muxin-update'
+    $new = Join-Path $OR_DIR '.andruide-update'
     $unpacked = Join-Path $new 'unpacked'
     if (Test-Path $new) { Remove-Item -LiteralPath $new -Recurse -Force }
     New-Item -ItemType Directory -Path $unpacked -Force | Out-Null

@@ -2,7 +2,7 @@
 //! packs what the other machine can't get from the repository's remote:
 //! commits that aren't on origin (a git bundle; the whole history when there's
 //! no origin), uncommitted changes (a patch) and new files git doesn't ignore
-//! (a tar), in ~/.muxen/carry/<id>/. Muxin copies that folder across, and
+//! (a tar), in ~/.andruide/carry/<id>/. AndruIDE copies that folder across, and
 //! `carry_unpack` puts it in a checkout there that starts where the work did
 //! (a clone or worktree at `base`, or an empty folder).
 
@@ -102,9 +102,9 @@ pub fn pack(req: &Value) -> Value {
     if std::fs::metadata(&patch).is_ok_and(|m| m.len() == 0) {
         let _ = std::fs::remove_file(&patch);
     }
-    // New files git doesn't ignore (not Muxin's own notes).
+    // New files git doesn't ignore (not AndruIDE's own notes).
     let listed = git(&root, &["ls-files", "--others", "--exclude-standard", "-z"]).unwrap_or_default();
-    let new: Vec<&str> = listed.split('\0').filter(|f| !f.is_empty() && !f.starts_with(".muxin/") && !f.starts_with(".muxen/")).collect();
+    let new: Vec<&str> = listed.split('\0').filter(|f| !f.is_empty() && !f.starts_with(".andruide/") && !f.starts_with(".andruide/")).collect();
     if !new.is_empty()
         && let Err(e) = tar_files(&root, &new, &out.join("new.tar"))
     {
@@ -112,9 +112,9 @@ pub fn pack(req: &Value) -> Value {
     }
     let bytes: u64 = std::fs::read_dir(&out).into_iter().flatten().flatten().filter_map(|e| e.metadata().ok()).map(|m| m.len()).sum();
     if bytes > MAX_BYTES {
-        return fail(format!("its work is {} MB with its new files, more than Muxin moves: add what shouldn't go (builds, downloads) to .gitignore.", bytes / 1_000_000));
+        return fail(format!("its work is {} MB with its new files, more than AndruIDE moves: add what shouldn't go (builds, downloads) to .gitignore.", bytes / 1_000_000));
     }
-    let uncommitted = git(&root, &["status", "--porcelain"]).map(|s| s.lines().filter(|l| !l.contains(".muxin/") && !l.contains(".muxen/")).count()).unwrap_or(0);
+    let uncommitted = git(&root, &["status", "--porcelain"]).map(|s| s.lines().filter(|l| !l.contains(".andruide/") && !l.contains(".andruide/")).count()).unwrap_or(0);
     json!({
         "ok": true,
         "root": root.to_string_lossy(),
@@ -157,7 +157,7 @@ fn tar_files(root: &Path, files: &[&str], to: &Path) -> Result<(), String> {
 /// (on `branch`), or an empty folder for a repository without a remote. Its
 /// commits go on `branch` (a branch already there that they don't build on
 /// isn't moved: they go on `<branch>-2`), then its changes and new files, and
-/// `note` becomes `.muxin/handoff.md`. Says which branch it ended on.
+/// `note` becomes `.andruide/handoff.md`. Says which branch it ended on.
 pub fn unpack(req: &Value) -> Value {
     let id = req["pack_id"].as_str().unwrap_or("");
     if !valid_id(id) {
@@ -180,7 +180,7 @@ fn unpack_into(pack: &Path, req: &Value) -> Result<Value, String> {
     if !dir.is_dir() {
         return Err(format!("{} isn't a folder here.", dir.display()));
     }
-    let branch = req["branch"].as_str().filter(|b| !b.is_empty()).unwrap_or("muxin/handoff").to_string();
+    let branch = req["branch"].as_str().filter(|b| !b.is_empty()).unwrap_or("andruide/handoff").to_string();
     git(&dir, &["check-ref-format", "--branch", &branch]).map_err(|_| format!("\"{branch}\" can't be a branch name."))?;
     if !dir.join(".git").exists() {
         git(&dir, &["init", "-q"])?;
@@ -260,7 +260,7 @@ mod tests {
     use super::*;
 
     fn tmp(name: &str) -> PathBuf {
-        let d = std::env::temp_dir().join(format!("muxen-carry-{name}-{}", std::process::id()));
+        let d = std::env::temp_dir().join(format!("andruide-carry-{name}-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&d);
         std::fs::create_dir_all(&d).unwrap();
         d
@@ -291,7 +291,7 @@ mod tests {
         std::fs::read_to_string(path).unwrap().replace("\r\n", "\n")
     }
 
-    /// A pack's copy, as Muxin makes it on the other machine.
+    /// A pack's copy, as AndruIDE makes it on the other machine.
     fn copy_pack(id: &str, to: &str) {
         let (from, dest) = (folder(id), folder(to));
         let _ = std::fs::remove_dir_all(&dest);
@@ -314,8 +314,8 @@ mod tests {
         std::fs::write(here.join("a.txt"), "three\n").unwrap();
         std::fs::create_dir_all(here.join("src")).unwrap();
         std::fs::write(here.join("src/new.rs"), "fn main() {}\n").unwrap();
-        std::fs::create_dir_all(here.join(".muxin")).unwrap();
-        std::fs::write(here.join(".muxin/handoff.md"), "old note").unwrap();
+        std::fs::create_dir_all(here.join(".andruide")).unwrap();
+        std::fs::write(here.join(".andruide/handoff.md"), "old note").unwrap();
 
         let id = "t-clone-a";
         let p = pack(&json!({ "pack_id": id, "cwd": here.join("src").to_string_lossy() }));
@@ -334,7 +334,7 @@ mod tests {
         assert_eq!(u["branch"], "feature");
         assert_eq!(text(&there.join("a.txt")), "three\n");
         assert!(there.join("src/new.rs").is_file());
-        assert_eq!(std::fs::read_to_string(there.join(".muxin/handoff.md")).unwrap(), "# Handoff");
+        assert_eq!(std::fs::read_to_string(there.join(".andruide/handoff.md")).unwrap(), "# Handoff");
         let log = Command::new("git").arg("-C").arg(&there).args(["log", "--format=%s"]).output().unwrap();
         assert_eq!(String::from_utf8_lossy(&log.stdout), "two\none\n");
         assert!(!folder("t-clone-b").exists(), "the pack goes once it's in");

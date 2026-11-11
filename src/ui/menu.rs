@@ -366,8 +366,8 @@ impl Root {
                 power.extend(os_power_items(m, busy).into_iter().map(|item| (None, item)));
                 items.push(Item::Separator);
                 items.extend(group("Power", "power", power));
-                // A cloud machine, or a VM Muxin made, goes with its disk.
-                let label = if m.cloud.is_some() || m.vm.is_some() { "Destroy…" } else { "Remove from Muxin…" };
+                // A cloud machine, or a VM AndruIDE made, goes with its disk.
+                let label = if m.cloud.is_some() || m.vm.is_some() { "Destroy…" } else { "Remove from AndruIDE…" };
                 items.push(Item::Action { label: label.into(), glyph: Glyph::Icon("trash-2"), action: Action::Remove(id.clone()), danger: true });
                 items
             }
@@ -385,8 +385,8 @@ impl Root {
                     items.extend(power);
                     items.push(Item::Separator);
                 }
-                // A cloud machine or a VM Muxin made goes with its disk.
-                let label = if m.cloud.is_some() || m.vm.is_some() { "Destroy…" } else { "Remove from Muxin…" };
+                // A cloud machine or a VM AndruIDE made goes with its disk.
+                let label = if m.cloud.is_some() || m.vm.is_some() { "Destroy…" } else { "Remove from AndruIDE…" };
                 items.push(Item::Action { label: label.into(), glyph: Glyph::Icon("trash-2"), action: Action::Remove(id.clone()), danger: true });
                 items
             }
@@ -562,7 +562,7 @@ impl Root {
                     } else {
                         "watching"
                     };
-                    let how = if g.client == "browser" { "browser" } else { "Muxin" };
+                    let how = if g.client == "browser" { "browser" } else { "AndruIDE" };
                     let path = if g.path.is_empty() { String::new() } else { format!(" · {}", g.path) };
                     items.push(Item::Separator);
                     items.push(Item::Note(format!("{} · {state} · {how}{path}", g.name)));
@@ -612,7 +612,7 @@ impl Root {
                 let mut items = vec![Item::Note("Open it in".into())];
                 items.extend(editor_items(&self.engine.settings().editor, machine, path, false));
                 if items.len() == 1 {
-                    items.push(Item::Note("No editor here: Muxin opens folders in Zed, Cursor or VS Code.".into()));
+                    items.push(Item::Note("No editor here: AndruIDE opens folders in Zed, Cursor or VS Code.".into()));
                 }
                 items
             }

@@ -1,11 +1,11 @@
 //! What a new cloud machine runs on its first boot (cloud-init `user_data`):
 //! the user's account with sudo and their SSH key, git, then each extra the
-//! user picked. Progress goes to /var/log/muxen-setup.log as "muxen-step: ..."
-//! lines, and /var/lib/muxen/ready marks the end. A failing extra doesn't stop
+//! user picked. Progress goes to /var/log/andruide-setup.log as "andruide-step: ..."
+//! lines, and /var/lib/andruide/ready marks the end. A failing extra doesn't stop
 //! the rest.
 
-pub const READY: &str = "/var/lib/muxen/ready";
-pub const LOG: &str = "/var/log/muxen-setup.log";
+pub const READY: &str = "/var/lib/andruide/ready";
+pub const LOG: &str = "/var/log/andruide-setup.log";
 
 /// What a new machine can come with: (id, name).
 pub const EXTRAS: &[(&str, &str)] = &[
@@ -74,7 +74,7 @@ pub fn user_name(name: &str) -> String {
     let clean: String = name.to_lowercase().chars().filter(|c| c.is_ascii_alphanumeric() || *c == '_' || *c == '-').take(32).collect();
     match clean.chars().next() {
         Some(c) if c.is_ascii_lowercase() || c == '_' => clean,
-        _ => "muxen".into(),
+        _ => "andruide".into(),
     }
 }
 
@@ -82,11 +82,11 @@ pub fn script(user: &str, extras: &[String]) -> String {
     let extras = resolve(extras);
     let mut s = String::from(
         r#"#!/bin/bash
-# Set up by Muxin. Progress: /var/log/muxen-setup.log
-exec >>/var/log/muxen-setup.log 2>&1
+# Set up by AndruIDE. Progress: /var/log/andruide-setup.log
+exec >>/var/log/andruide-setup.log 2>&1
 export DEBIAN_FRONTEND=noninteractive
-step() { echo "muxen-step: $*"; }
-extra() { name="$1"; shift; ( set -e; "$@" ) || echo "muxen-warn: $name didn't install"; }
+step() { echo "andruide-step: $*"; }
+extra() { name="$1"; shift; ( set -e; "$@" ) || echo "andruide-warn: $name didn't install"; }
 apt_install() { apt-get -o DPkg::Lock::Timeout=600 install -y "$@"; }
 as_user() { sudo -u "$USER_NAME" -H bash -lc "$1"; }
 "#,
@@ -96,7 +96,7 @@ as_user() { sudo -u "$USER_NAME" -H bash -lc "$1"; }
         r#"
 step "Creating your account"
 id -u "$USER_NAME" >/dev/null 2>&1 || useradd -m -s /bin/bash -G sudo "$USER_NAME"
-echo "$USER_NAME ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/90-muxen && chmod 440 /etc/sudoers.d/90-muxen
+echo "$USER_NAME ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/90-andruide && chmod 440 /etc/sudoers.d/90-andruide
 install -d -m 700 -o "$USER_NAME" -g "$USER_NAME" "/home/$USER_NAME/.ssh"
 install -m 600 -o "$USER_NAME" -g "$USER_NAME" /root/.ssh/authorized_keys "/home/$USER_NAME/.ssh/authorized_keys"
 
@@ -105,7 +105,7 @@ apt-get -o DPkg::Lock::Timeout=600 update -y
 apt_install git curl ca-certificates unzip jq build-essential
 
 # Every login shell (terminals, agent sessions) finds what's installed below.
-cat > /etc/profile.d/muxen-paths.sh <<'PATHS'
+cat > /etc/profile.d/andruide-paths.sh <<'PATHS'
 export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$HOME/.bun/bin:$HOME/.deno/bin:/usr/local/go/bin:$HOME/go/bin:$PATH"
 PATHS
 "#,
@@ -214,7 +214,7 @@ extra Tailscale tailscale_
     s.push_str(
         r#"
 step "Ready"
-mkdir -p /var/lib/muxen && touch /var/lib/muxen/ready
+mkdir -p /var/lib/andruide && touch /var/lib/andruide/ready
 "#,
     );
     s
@@ -228,7 +228,7 @@ mod tests {
     fn user_names_and_extras() {
         assert_eq!(user_name("adibhanna"), "adibhanna");
         assert_eq!(user_name("Adib Hanna"), "adibhanna");
-        assert_eq!(user_name("9lives"), "muxen");
+        assert_eq!(user_name("9lives"), "andruide");
         let langs = script("me", &["go", "rust", "php"].map(String::from));
         assert!(langs.contains("go.dev/dl") && langs.contains("sh.rustup.rs") && langs.contains("getcomposer.org"));
         assert!(GROUPS.iter().flat_map(|(_, ids)| ids.iter()).count() == EXTRAS.len(), "every extra is in a group");
@@ -239,6 +239,6 @@ mod tests {
         assert!(!all.contains("get.docker.com") && !all.contains("claude-code"));
         let bare = script("me", &[]);
         assert!(bare.contains("install git") || bare.contains("installing git"));
-        assert!(!bare.contains("docker") && bare.contains("/var/lib/muxen/ready"));
+        assert!(!bare.contains("docker") && bare.contains("/var/lib/andruide/ready"));
     }
 }

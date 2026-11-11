@@ -1,4 +1,4 @@
-//! `muxin mcp`: a Model Context Protocol server over stdio, so agents
+//! `andruide mcp`: a Model Context Protocol server over stdio, so agents
 //! (Claude Code, Codex, any MCP client) can see and work with the user's machines.
 //!
 //! Transport: newline-delimited JSON-RPC 2.0 on stdin/stdout. Stdout carries
@@ -19,7 +19,7 @@ use crate::fleet::Engine;
 const PROTOCOL_VERSIONS: &[&str] = &["2025-06-18", "2025-03-26", "2024-11-05"];
 
 const INSTRUCTIONS: &str = "\
-Muxin is one app for all of the user's machines (reached with the system ssh, or directly for \
+AndruIDE is one app for all of the user's machines (reached with the system ssh, or directly for \
 host \"local\"): agent sessions, desktops, files, GitHub, workspaces, cloud machines, and the \
 self-hosted GitHub Actions runners on them.
 
@@ -50,12 +50,12 @@ done: nothing is deleted automatically. Commands run as the user on a real machi
 anything there you wouldn't do in their own terminal without asking.
 
 Agent sessions: long-running terminals on the user's machines, each running an AI agent CLI (Claude \
-Code, Codex, OpenCode, Gemini CLI, Copilot CLI, Cursor Agent, ...) or a plain shell, kept alive by Muxin's agent on \
-the machine so they survive disconnects. The user watches and types into them in the Muxin app. session_list shows them \
+Code, Codex, OpenCode, Gemini CLI, Copilot CLI, Cursor Agent, ...) or a plain shell, kept alive by AndruIDE's agent on \
+the machine so they survive disconnects. The user watches and types into them in the AndruIDE app. session_list shows them \
 (and which agents each machine has); session_start starts one, optionally with a first prompt; \
 session_read returns its screen as text; session_send types into it; session_stop ends it. \
 Sessions belong to the user: only start, type into or stop one when they asked you to. \
-Helpers: when you run in one of Muxin's sessions yourself, session_start (machine_id can be left out) \
+Helpers: when you run in one of AndruIDE's sessions yourself, session_start (machine_id can be left out) \
 starts a helper for your own task, beside you: same machine and folder unless you say otherwise. It \
 shows under your session in the app and ends when your session does (keep: true lets it go on). \
 Give it its task as prompt, then session_wait for its answer instead of reading its screen over \
@@ -84,7 +84,7 @@ pub struct Session {
 }
 
 impl Session {
-    /// A session for an app calling the tools in-process (Muxin for iPad):
+    /// A session for an app calling the tools in-process (AndruIDE for iPad):
     /// what it makes is the user's, "app", as the Mac app's is.
     #[cfg_attr(not(target_os = "ios"), allow(dead_code))]
     pub fn named(client: &str) -> Session {
@@ -183,7 +183,7 @@ async fn handle(engine: &Arc<Engine>, session: &Session, method: &str, params: V
             Ok(json!({
                 "protocolVersion": version,
                 "capabilities": { "tools": { "listChanged": false } },
-                "serverInfo": { "name": "muxin", "title": "Muxin", "version": env!("CARGO_PKG_VERSION") },
+                "serverInfo": { "name": "andruide", "title": "AndruIDE", "version": env!("CARGO_PKG_VERSION") },
                 "instructions": INSTRUCTIONS,
             }))
         }
@@ -511,7 +511,7 @@ pub fn tools() -> Vec<Value> {
         }),
         json!({
             "name": "add_machine",
-            "description": "Add a machine to Muxin (written to config.toml, comments preserved) and check it. `host` is anything the system ssh accepts (user@host, an ~/.ssh/config alias; see list_ssh_hosts) or \"local\" for this computer. Key-based ssh must work without a password prompt. Checks are read-only; once it answers, Muxin connects to it directly (QUIC: its agent goes on and runs as a service of the user's, listening on UDP) unless `direct` is false or the user turned \"Connect directly\" off.",
+            "description": "Add a machine to AndruIDE (written to config.toml, comments preserved) and check it. `host` is anything the system ssh accepts (user@host, an ~/.ssh/config alias; see list_ssh_hosts) or \"local\" for this computer. Key-based ssh must work without a password prompt. Checks are read-only; once it answers, AndruIDE connects to it directly (QUIC: its agent goes on and runs as a service of the user's, listening on UDP) unless `direct` is false or the user turned \"Connect directly\" off.",
             "inputSchema": schema(json!({
                 "name": { "type": "string", "description": "Display name, e.g. \"Mac Studio\"." },
                 "host": { "type": "string", "description": "ssh destination or \"local\"." },
@@ -547,7 +547,7 @@ pub fn tools() -> Vec<Value> {
         }),
         json!({
             "name": "connect_machine",
-            "description": "Disconnect from a machine (connected: false) or connect to it again. Disconnected, Muxin closes its connection and stops checking it and reading its sessions (status \"disconnected\"); its sessions keep running there, and anything that would reach it fails with \"<name> is disconnected\". Connecting checks it again. Saved in config.toml; nothing on the machine changes. Only when asked.",
+            "description": "Disconnect from a machine (connected: false) or connect to it again. Disconnected, AndruIDE closes its connection and stops checking it and reading its sessions (status \"disconnected\"); its sessions keep running there, and anything that would reach it fails with \"<name> is disconnected\". Connecting checks it again. Saved in config.toml; nothing on the machine changes. Only when asked.",
             "inputSchema": schema(json!({
                 "machine_id": { "type": "string", "description": MACHINE_ID },
                 "connected": { "type": "boolean", "description": "false disconnects; true (the default) connects." }
@@ -612,7 +612,7 @@ pub fn tools() -> Vec<Value> {
         }),
         json!({
             "name": "cloud_destroy",
-            "description": "Destroy a cloud machine Muxin created: deletes the droplet (everything on it is lost) and removes it from Muxin. Confirm with the user first; make sure work there is pushed.",
+            "description": "Destroy a cloud machine AndruIDE created: deletes the droplet (everything on it is lost) and removes it from AndruIDE. Confirm with the user first; make sure work there is pushed.",
             "inputSchema": schema(json!({ "machine_id": { "type": "string" }, "wait": { "type": "boolean" } }), &["machine_id"]),
             "annotations": annotations("Destroy cloud machine", false, true, true, true),
         }),
@@ -624,13 +624,13 @@ pub fn tools() -> Vec<Value> {
         }),
         json!({
             "name": "machine_power",
-            "description": "Power a machine on or off, or restart it. A cloud machine: on and off go through its provider (as cloud_power), restart through its own system. A VM or container that runs in Docker on another of the user's machines (get_machine's `parent` names the machine and its `container`): starts, stops or restarts that container there; stopping gives it two minutes to shut down cleanly, and starting or restarting waits until it answers ssh. Any other machine: off and restart ask its own system (they may need sudo: when it wants a password, this fails with a hint to use the Muxin app, which asks for it), and the operation follows it going down and coming back; `on` isn't possible, so use wake_machine. Its agent sessions and running jobs end. A shut-down machine stays off until someone is at it or it wakes over the network. It doesn't act on this computer. It changes the user's machines: only when asked.",
+            "description": "Power a machine on or off, or restart it. A cloud machine: on and off go through its provider (as cloud_power), restart through its own system. A VM or container that runs in Docker on another of the user's machines (get_machine's `parent` names the machine and its `container`): starts, stops or restarts that container there; stopping gives it two minutes to shut down cleanly, and starting or restarting waits until it answers ssh. Any other machine: off and restart ask its own system (they may need sudo: when it wants a password, this fails with a hint to use the AndruIDE app, which asks for it), and the operation follows it going down and coming back; `on` isn't possible, so use wake_machine. Its agent sessions and running jobs end. A shut-down machine stays off until someone is at it or it wakes over the network. It doesn't act on this computer. It changes the user's machines: only when asked.",
             "inputSchema": schema(json!({ "machine_id": { "type": "string", "description": MACHINE_ID }, "power": { "type": "string", "enum": ["on", "off", "restart"] }, "wait": { "type": "boolean" } }), &["machine_id", "power"]),
             "annotations": annotations("Power a machine on or off, or restart it", false, true, true, true),
         }),
         json!({
             "name": "schedule_list",
-            "description": "Schedules on the user's machines (or one): commands or agent sessions that run there at set times, kept and run by Muxin's agent through the machine's own scheduler (cron, launchd, Task Scheduler), so they run whether or not Muxin is open. Each with `when` (and `when_text`, in the machine's own time), `what`, `enabled`, `running` and `last_run` (ok, exit_code, or the agent session it started). `problem` says when a machine can't run them (no cron). Read-only.",
+            "description": "Schedules on the user's machines (or one): commands or agent sessions that run there at set times, kept and run by AndruIDE's agent through the machine's own scheduler (cron, launchd, Task Scheduler), so they run whether or not AndruIDE is open. Each with `when` (and `when_text`, in the machine's own time), `what`, `enabled`, `running` and `last_run` (ok, exit_code, or the agent session it started). `problem` says when a machine can't run them (no cron). Read-only.",
             "inputSchema": schema(json!({ "machine_id": { "type": "string", "description": MACHINE_ID } }), &[]),
             "annotations": annotations("List schedules", true, false, true, false),
         }),
@@ -681,9 +681,9 @@ pub fn tools() -> Vec<Value> {
         }),
         json!({
             "name": "vm_create",
-            "description": "Create a VM on one of the user's machines and add it to them (shown under that machine). Windows (dockur/windows with KVM) downloads and installs itself, 15-30 minutes the first time: call with wait: false and poll get_operation. Linux is a container with ssh, ready in under a minute (it shares the host's kernel, no systemd). Muxin sets up ssh with this computer's key and its agent, so sessions, files, workspace_exec and the desktop work like on any machine. `host` defaults to the machine with the most free memory that can run it. The result names the new machine_id. It uses the user's machine and disk: only when asked, or when the task needs a fresh machine; destroy it when done unless they want to keep it.",
+            "description": "Create a VM on one of the user's machines and add it to them (shown under that machine). Windows (dockur/windows with KVM) downloads and installs itself, 15-30 minutes the first time: call with wait: false and poll get_operation. Linux is a container with ssh, ready in under a minute (it shares the host's kernel, no systemd). AndruIDE sets up ssh with this computer's key and its agent, so sessions, files, workspace_exec and the desktop work like on any machine. `host` defaults to the machine with the most free memory that can run it. The result names the new machine_id. It uses the user's machine and disk: only when asked, or when the task needs a fresh machine; destroy it when done unless they want to keep it.",
             "inputSchema": schema(json!({
-                "name": { "type": "string", "description": "Its name in Muxin, e.g. \"win-test\"." },
+                "name": { "type": "string", "description": "Its name in AndruIDE, e.g. \"win-test\"." },
                 "system": { "type": "string", "description": "A system id from vm_options, e.g. windows-11 or ubuntu-24.04." },
                 "host": { "type": "string", "description": MACHINE_ID },
                 "cpus": { "type": "integer", "minimum": 1, "description": "Default 4." },
@@ -697,7 +697,7 @@ pub fn tools() -> Vec<Value> {
         }),
         json!({
             "name": "vm_destroy",
-            "description": "Destroy a VM Muxin made (vm_create): removes its container and disk on its host (everything in it is lost) and the machine from Muxin. Confirm with the user first unless they asked for it, or you made it for the task; copy out anything worth keeping. machine_power stops one without deleting it.",
+            "description": "Destroy a VM AndruIDE made (vm_create): removes its container and disk on its host (everything in it is lost) and the machine from AndruIDE. Confirm with the user first unless they asked for it, or you made it for the task; copy out anything worth keeping. machine_power stops one without deleting it.",
             "inputSchema": schema(json!({ "machine_id": { "type": "string", "description": MACHINE_ID }, "wait": { "type": "boolean" } }), &["machine_id"]),
             "annotations": annotations("Destroy VM", false, true, true, true),
         }),
@@ -709,7 +709,7 @@ pub fn tools() -> Vec<Value> {
         }),
         json!({
             "name": "box_create",
-            "description": "Hand a task to an agent in a new box: Muxin clones the repo onto a new branch in a container of its own on one of the user's machines (one with Docker; the first box there builds Muxin's image, a few minutes), runs the repo's .agents/setup, and starts the agent CLI there on the prompt with its permission prompts off (the container is its sandbox). It can push and open pull requests with the user's GitHub login. The box pauses by itself when its agent has been quiet for a while; box_send picks it up again. Waits until the agent has started (wait: false returns an operation_id to poll). Only when the user asked for it.",
+            "description": "Hand a task to an agent in a new box: AndruIDE clones the repo onto a new branch in a container of its own on one of the user's machines (one with Docker; the first box there builds AndruIDE's image, a few minutes), runs the repo's .agents/setup, and starts the agent CLI there on the prompt with its permission prompts off (the container is its sandbox). It can push and open pull requests with the user's GitHub login. The box pauses by itself when its agent has been quiet for a while; box_send picks it up again. Waits until the agent has started (wait: false returns an operation_id to poll). Only when the user asked for it.",
             "inputSchema": schema(json!({
                 "repo": { "type": "string", "description": "owner/name on GitHub, a git URL, or a checkout's folder on machine_id (see local_checkouts): the box starts from that checkout with its uncommitted changes." },
                 "prompt": { "type": "string", "description": "The task: what the agent is asked to do (an issue's URL and text works well)." },
@@ -759,7 +759,7 @@ pub fn tools() -> Vec<Value> {
         }),
         json!({
             "name": "get_operation",
-            "description": "Status and output of an install or runner action started by this server (use after wait=false or a timeout). Lines starting with \"▸ \" are Muxin's steps, \"✓ \" successes, \"error: \" problems.",
+            "description": "Status and output of an install or runner action started by this server (use after wait=false or a timeout). Lines starting with \"▸ \" are AndruIDE's steps, \"✓ \" successes, \"error: \" problems.",
             "inputSchema": schema(json!({
                 "operation_id": { "type": "integer" },
                 "tail": { "type": "integer", "minimum": 0, "description": "Log lines from the end. Default 80." }
@@ -783,7 +783,7 @@ pub fn tools() -> Vec<Value> {
         }),
         json!({
             "name": "copy_files",
-            "description": "Copies files and folders from one of the user's machines to another (this computer included), through Muxin: the machines don't need to reach each other. Folders come along whole, with permissions. Files with the same names in the destination folder are replaced, so check it with list_files first and confirm with the user before overwriting. Waits by default and returns the operation(s) with a log; with wait=false poll get_operation, and cancel_operation stops a copy.",
+            "description": "Copies files and folders from one of the user's machines to another (this computer included), through AndruIDE: the machines don't need to reach each other. Folders come along whole, with permissions. Files with the same names in the destination folder are replaced, so check it with list_files first and confirm with the user before overwriting. Waits by default and returns the operation(s) with a log; with wait=false poll get_operation, and cancel_operation stops a copy.",
             "inputSchema": schema(json!({
                 "from": { "type": "string", "description": "Machine with the files." },
                 "paths": { "type": "array", "items": { "type": "string" }, "description": "Files or folders on it, e.g. [\"~/build/app.tar.gz\", \"~/reports\"]." },
@@ -828,7 +828,7 @@ pub fn tools() -> Vec<Value> {
         }),
         json!({
             "name": "list_ssh_hosts",
-            "description": "Hosts to suggest for add_machine: aliases from the user's ~/.ssh/config; computers on their Tailscale network (`tailnet`, when Tailscale is on here: each with the `host` to add it by, whether Tailscale sees it online, and `machine_id` when it's already in Muxin; a machine added by its tailnet name is reachable from anywhere); and computers on this local network that aren't in Muxin yet (`network`: `ssh: false` means a Mac with Remote Login off, which the user turns on in System Settings › General › Sharing). Listens on the network for a few seconds.",
+            "description": "Hosts to suggest for add_machine: aliases from the user's ~/.ssh/config; computers on their Tailscale network (`tailnet`, when Tailscale is on here: each with the `host` to add it by, whether Tailscale sees it online, and `machine_id` when it's already in AndruIDE; a machine added by its tailnet name is reachable from anywhere); and computers on this local network that aren't in AndruIDE yet (`network`: `ssh: false` means a Mac with Remote Login off, which the user turns on in System Settings › General › Sharing). Listens on the network for a few seconds.",
             "inputSchema": schema(json!({}), &[]),
             "annotations": annotations("List ssh hosts", true, false, true, false),
         }),
@@ -836,7 +836,7 @@ pub fn tools() -> Vec<Value> {
             "name": "workspace_create",
             "description": "Check out one of the user's own machines as your work environment, like a remote dev box: creates a persistent folder there (optionally cloning a git repo at a ref, or creating a new branch) and returns a workspace_id for the other workspace_* tools. Omit machine_id to get the least-loaded online machine that allows workspaces, filtered by `platform` (e.g. \"linux\" to run tests on Linux). Use one workspace per task and reuse it across steps. Nothing is deleted automatically: call workspace_destroy when done. Private GitHub repos are cloned with the user's gh login. To work on a repository that's already checked out on a machine (local_checkouts), pass its folder as `worktree_of`: the workspace is then a git worktree of it on its own branch, quicker than a clone, and several agents can work on that repository side by side; workspace_destroy removes the worktree and keeps the branch.",
             "inputSchema": schema(json!({
-                "machine_id": { "type": "string", "description": "Machine to use; omit to let Muxin pick." },
+                "machine_id": { "type": "string", "description": "Machine to use; omit to let AndruIDE pick." },
                 "platform": { "type": "string", "description": "When picking: platform prefix such as \"linux\", \"linux-x64\", \"darwin-arm64\", \"windows\"." },
                 "name": { "type": "string", "description": "Short label, e.g. \"api-tests\". Defaults to the repo name." },
                 "repo": { "type": "string", "description": "Git URL, or \"owner/repo\" for GitHub, to clone into the workspace." },
@@ -942,13 +942,13 @@ pub fn tools() -> Vec<Value> {
         }),
         json!({
             "name": "session_list",
-            "description": format!("Agent sessions on the user's machines: terminals running {agent_names} or a shell, kept alive by Muxin's agent on the machine. Each has an id (<machine-id>/<name>), agent, title, folder, status (running/exited), state (working; needs_you: a question or an approval waits, see session_question; done: it finished its turn; idle), stateSource (hook or escape: the agent said so; screen: a known question is on its screen; output: a guess from its output), conversationId (the agent's own session id, when its hooks said), restored (it came back after its machine or the machine's agent restarted: resumed, its agent continues its conversation; fresh, its agent started again without it; shell, a new shell; exited, it had exited) with restoredAt, busy (state is working; kept for older clients), attention (an unread notice: waiting, bell or exited) and the command a human can paste to attach. Also lists, per machine, the agent CLIs installed. Reads the machines over ssh, so it's always current (and sets up Muxin's agent on a machine the first time)."),
+            "description": format!("Agent sessions on the user's machines: terminals running {agent_names} or a shell, kept alive by AndruIDE's agent on the machine. Each has an id (<machine-id>/<name>), agent, title, folder, status (running/exited), state (working; needs_you: a question or an approval waits, see session_question; done: it finished its turn; idle), stateSource (hook or escape: the agent said so; screen: a known question is on its screen; output: a guess from its output), conversationId (the agent's own session id, when its hooks said), restored (it came back after its machine or the machine's agent restarted: resumed, its agent continues its conversation; fresh, its agent started again without it; shell, a new shell; exited, it had exited) with restoredAt, busy (state is working; kept for older clients), attention (an unread notice: waiting, bell or exited) and the command a human can paste to attach. Also lists, per machine, the agent CLIs installed. Reads the machines over ssh, so it's always current (and sets up AndruIDE's agent on a machine the first time)."),
             "inputSchema": schema(json!({ "machine_id": { "type": "string", "description": MACHINE_ID } }), &[]),
             "annotations": annotations("List agent sessions", true, false, true, true),
         }),
         json!({
             "name": "session_start",
-            "description": "Start an agent CLI (or a shell) in a new session on a machine, in a folder there, optionally with a first prompt. It keeps running until stopped; the user can watch and type into it from the Muxin app. Returns the session. Only start sessions the user asked for, with one exception: when you run in one of Muxin's sessions yourself, you may start helpers for your own task. A helper starts beside you (your machine and folder, unless you pass machine_id or cwd), shows under your session, and ends when your session ends unless keep is true; its `parent` is your session. Wait for its answer with session_wait. It's refused when the user turned helpers off in Muxin (Settings › Agents).",
+            "description": "Start an agent CLI (or a shell) in a new session on a machine, in a folder there, optionally with a first prompt. It keeps running until stopped; the user can watch and type into it from the AndruIDE app. Returns the session. Only start sessions the user asked for, with one exception: when you run in one of AndruIDE's sessions yourself, you may start helpers for your own task. A helper starts beside you (your machine and folder, unless you pass machine_id or cwd), shows under your session, and ends when your session ends unless keep is true; its `parent` is your session. Wait for its answer with session_wait. It's refused when the user turned helpers off in AndruIDE (Settings › Agents).",
             "inputSchema": schema(json!({
                 "machine_id": { "type": "string", "description": format!("{MACHINE_ID} Can be left out from inside a session: a helper starts on its machine.") },
                 "agent": { "type": "string", "enum": agent_ids, "description": "Which CLI to run. session_list shows which are installed on each machine." },
@@ -989,7 +989,7 @@ pub fn tools() -> Vec<Value> {
         }),
         json!({
             "name": "session_action",
-            "description": "Ask a session's agent to do one of Muxin's session actions, by typing that action's prompt (the user may have changed it in Settings) into it: commit (commit its changes, don't push), commit_push, pull_request (push and open or update the branch's pull request), review (review the branch against the default branch, no code changes), fix_comments (address the pull request's review comments), conflicts (bring the branch up to date and resolve conflicts) or recap (summarize the session). session_list's `git` says which fit: a branch, a pull request. Only when the user asked for it.",
+            "description": "Ask a session's agent to do one of AndruIDE's session actions, by typing that action's prompt (the user may have changed it in Settings) into it: commit (commit its changes, don't push), commit_push, pull_request (push and open or update the branch's pull request), review (review the branch against the default branch, no code changes), fix_comments (address the pull request's review comments), conflicts (bring the branch up to date and resolve conflicts) or recap (summarize the session). session_list's `git` says which fit: a branch, a pull request. Only when the user asked for it.",
             "inputSchema": schema(json!({
                 "session": { "type": "string", "description": SESSION_ID },
                 "action": { "type": "string", "enum": ["commit", "commit_push", "pull_request", "review", "fix_comments", "conflicts", "recap"], "description": "Which action." }
@@ -1025,7 +1025,7 @@ pub fn tools() -> Vec<Value> {
         }),
         json!({
             "name": "session_rename",
-            "description": "Give a session a new title (what the app's sidebar and session_list show). The agent on its machine keeps it, so it sticks for every Muxin. An empty title goes back to the one it started with. Doesn't touch what runs in it.",
+            "description": "Give a session a new title (what the app's sidebar and session_list show). The agent on its machine keeps it, so it sticks for every AndruIDE. An empty title goes back to the one it started with. Doesn't touch what runs in it.",
             "inputSchema": schema(json!({
                 "session": { "type": "string", "description": SESSION_ID },
                 "title": { "type": "string", "description": "The new title, e.g. \"API server\"." }
@@ -1034,7 +1034,7 @@ pub fn tools() -> Vec<Value> {
         }),
         json!({
             "name": "session_handoff",
-            "description": "Hand a session's work to another agent (Claude Code to Codex, say), or a box's to another agent in the box: Muxin writes .muxin/handoff.md in its folder (where the git work stands, the agent's to-do list, and the conversation so far from the agent's own transcript: Claude Code, Codex, Gemini CLI and Pi; else what its terminal showed), starts the new agent there asked to read it first, and ends the old session unless keep. With machine_id the work moves to that machine first (git checkouts only; the folder it left stays as it was). Returns the new session, the note's path and what it was made from (`source`). Only when the user asked.",
+            "description": "Hand a session's work to another agent (Claude Code to Codex, say), or a box's to another agent in the box: AndruIDE writes .andruide/handoff.md in its folder (where the git work stands, the agent's to-do list, and the conversation so far from the agent's own transcript: Claude Code, Codex, Gemini CLI and Pi; else what its terminal showed), starts the new agent there asked to read it first, and ends the old session unless keep. With machine_id the work moves to that machine first (git checkouts only; the folder it left stays as it was). Returns the new session, the note's path and what it was made from (`source`). Only when the user asked.",
             "inputSchema": schema(json!({
                 "session": { "type": "string", "description": "A session id, or a box id (box-7k2m9q)." },
                 "agent": { "type": "string", "description": format!("The agent to hand it to: {handoff_list}.") },
@@ -1057,13 +1057,13 @@ pub fn tools() -> Vec<Value> {
         }),
         json!({
             "name": "github_accounts",
-            "description": "The GitHub accounts Muxin can use: the ones the GitHub CLI (gh) here is signed in to, plus each other machine's gh login (`machines`, e.g. a work laptop's work account). `using` (and `machine_id` when it's a machine's login) says which one Muxin uses for GitHub data, managing runners, and cloning into workspaces.",
+            "description": "The GitHub accounts AndruIDE can use: the ones the GitHub CLI (gh) here is signed in to, plus each other machine's gh login (`machines`, e.g. a work laptop's work account). `using` (and `machine_id` when it's a machine's login) says which one AndruIDE uses for GitHub data, managing runners, and cloning into workspaces.",
             "inputSchema": schema(json!({}), &[]),
             "annotations": annotations("GitHub accounts", true, false, true, false),
         }),
         json!({
             "name": "github_use_account",
-            "description": "Switch which GitHub account Muxin uses: one the GitHub CLI here is signed in to (login), or another machine's gh login (machine_id). Changes whose repositories, inbox and runners Muxin sees and manages; doesn't change the account gh uses in the user's terminal. Only when asked. To add an account the user runs `gh auth login`.",
+            "description": "Switch which GitHub account AndruIDE uses: one the GitHub CLI here is signed in to (login), or another machine's gh login (machine_id). Changes whose repositories, inbox and runners AndruIDE sees and manages; doesn't change the account gh uses in the user's terminal. Only when asked. To add an account the user runs `gh auth login`.",
             "inputSchema": schema(json!({
                 "login": { "type": "string", "description": "A login from github_accounts (optional with machine_id)." },
                 "machine_id": { "type": "string", "description": "Use this machine's gh login (from github_accounts.machines)." }
@@ -1072,7 +1072,7 @@ pub fn tools() -> Vec<Value> {
         }),
         json!({
             "name": "github_favorite",
-            "description": "Add a repository to the user's favorites in Muxin (listed first in the app and in github_repos), or remove it with favorite: false. Only when asked.",
+            "description": "Add a repository to the user's favorites in AndruIDE (listed first in the app and in github_repos), or remove it with favorite: false. Only when asked.",
             "inputSchema": schema(json!({
                 "repo": { "type": "string", "description": "\"owner/name\" or a GitHub URL." },
                 "favorite": { "type": "boolean", "description": "false removes it. Default true." }
@@ -1102,7 +1102,7 @@ pub fn tools() -> Vec<Value> {
         }),
         json!({
             "name": "machine_connection",
-            "description": "How Muxin reaches a machine right now: directly over QUIC (once paired), over a live ssh link, or not at all; with a measured round trip to its agent.",
+            "description": "How AndruIDE reaches a machine right now: directly over QUIC (once paired), over a live ssh link, or not at all; with a measured round trip to its agent.",
             "inputSchema": schema(json!({ "machine_id": { "type": "string", "description": MACHINE_ID } }), &["machine_id"]),
             "annotations": annotations("Machine connection", true, false, true, false),
         }),
@@ -1117,7 +1117,7 @@ pub fn tools() -> Vec<Value> {
         }),
         json!({
             "name": "desktop_screenshot",
-            "description": "A picture of a machine's screen (Linux with an X11 desktop, a Mac, or Windows), or of one of its displays. The account Muxin connects as must be signed in there; when nobody is, it says so (the user can open the machine's own Remote Desktop or Screen Sharing from its menu in the app). Coordinates for desktop_input are in its pixels.",
+            "description": "A picture of a machine's screen (Linux with an X11 desktop, a Mac, or Windows), or of one of its displays. The account AndruIDE connects as must be signed in there; when nobody is, it says so (the user can open the machine's own Remote Desktop or Screen Sharing from its menu in the app). Coordinates for desktop_input are in its pixels.",
             "inputSchema": schema(json!({
                 "machine_id": { "type": "string", "description": MACHINE_ID },
                 "display": { "type": "string", "description": DISPLAY_ID }
@@ -1136,7 +1136,7 @@ pub fn tools() -> Vec<Value> {
         }),
         json!({
             "name": "desktop_displays",
-            "description": "A machine's monitors: real ones and virtual ones Muxin added (virtual: true), each with an id to pass as `display`, its name, size and place on the desktop. On Linux, \"all\" is the whole desktop.",
+            "description": "A machine's monitors: real ones and virtual ones AndruIDE added (virtual: true), each with an id to pass as `display`, its name, size and place on the desktop. On Linux, \"all\" is the whole desktop.",
             "inputSchema": schema(json!({ "machine_id": { "type": "string", "description": MACHINE_ID } }), &["machine_id"]),
             "annotations": annotations("List displays", true, false, true, false),
         }),
@@ -1148,7 +1148,7 @@ pub fn tools() -> Vec<Value> {
         }),
         json!({
             "name": "desktop_add_display",
-            "description": "Add a virtual monitor to a machine's desktop, like plugging in another screen (no screen needed): windows can move there, and you can screenshot and use it on its own (pass its id as `display`). Linux (X11) and macOS. On Linux it takes root: when sudo there wants a password, this fails and the user adds the monitor from the Muxin app, which asks for it. Stays until removed or the machine restarts. Only when asked.",
+            "description": "Add a virtual monitor to a machine's desktop, like plugging in another screen (no screen needed): windows can move there, and you can screenshot and use it on its own (pass its id as `display`). Linux (X11) and macOS. On Linux it takes root: when sudo there wants a password, this fails and the user adds the monitor from the AndruIDE app, which asks for it. Stays until removed or the machine restarts. Only when asked.",
             "inputSchema": schema(json!({
                 "machine_id": { "type": "string", "description": MACHINE_ID },
                 "width": { "type": "integer", "minimum": 640, "maximum": 7680, "description": "Default: the main monitor's width." },
@@ -1159,7 +1159,7 @@ pub fn tools() -> Vec<Value> {
         }),
         json!({
             "name": "desktop_remove_display",
-            "description": "Remove a virtual monitor Muxin added (desktop_displays shows them as virtual: true). Windows on it move to the other monitors.",
+            "description": "Remove a virtual monitor AndruIDE added (desktop_displays shows them as virtual: true). Windows on it move to the other monitors.",
             "inputSchema": schema(json!({
                 "machine_id": { "type": "string", "description": MACHINE_ID },
                 "display": { "type": "string", "description": DISPLAY_ID }
@@ -1205,7 +1205,7 @@ pub fn tools() -> Vec<Value> {
         }),
         json!({
             "name": "service_action",
-            "description": "Start, stop or restart a service or container on a machine; enable or disable whether a systemd service starts at boot. The system's services need root: when sudo there wants a password this fails, and the user does it from the Muxin app (which asks). Stopping ssh, tailscaled or the network can cut the machine off. It changes the user's machine: only when asked.",
+            "description": "Start, stop or restart a service or container on a machine; enable or disable whether a systemd service starts at boot. The system's services need root: when sudo there wants a password this fails, and the user does it from the AndruIDE app (which asks). Stopping ssh, tailscaled or the network can cut the machine off. It changes the user's machine: only when asked.",
             "inputSchema": schema(json!({
                 "machine_id": { "type": "string", "description": MACHINE_ID },
                 "name": { "type": "string", "description": "The service's or container's name, as machine_services lists it (e.g. nginx, postgres)." },
@@ -1242,13 +1242,13 @@ pub fn tools() -> Vec<Value> {
         }),
         json!({
             "name": "machine_processes",
-            "description": "A machine's processes, the busiest few hundred: pid, user, name, command line, cpu (percent of one core), memory (bytes), how long it has run, GPU memory when NVIDIA says, and yours (owned by the user Muxin runs as); and its GPUs (NVIDIA, AMD on Linux, Apple): name, busy percent, memory used and total, temperature and power when known. Read-only.",
+            "description": "A machine's processes, the busiest few hundred: pid, user, name, command line, cpu (percent of one core), memory (bytes), how long it has run, GPU memory when NVIDIA says, and yours (owned by the user AndruIDE runs as); and its GPUs (NVIDIA, AMD on Linux, Apple): name, busy percent, memory used and total, temperature and power when known. Read-only.",
             "inputSchema": schema(json!({ "machine_id": { "type": "string", "description": MACHINE_ID } }), &["machine_id"]),
             "annotations": annotations("List a machine's processes and GPUs", true, false, true, false),
         }),
         json!({
             "name": "process_signal",
-            "description": "Stop (SIGTERM, the default) or kill (SIGKILL) a process on a machine, by pid from machine_processes. Another user's process needs root: when sudo wants a password it fails with a hint to use the Muxin app. It ends something on the user's machine: only when asked, and say which process first.",
+            "description": "Stop (SIGTERM, the default) or kill (SIGKILL) a process on a machine, by pid from machine_processes. Another user's process needs root: when sudo wants a password it fails with a hint to use the AndruIDE app. It ends something on the user's machine: only when asked, and say which process first.",
             "inputSchema": schema(json!({
                 "machine_id": { "type": "string", "description": MACHINE_ID },
                 "pid": { "type": "integer" },
@@ -1269,7 +1269,7 @@ pub fn tools() -> Vec<Value> {
         }),
         json!({
             "name": "wake_machine",
-            "description": "Wake a machine that's asleep or shut down (Wake on LAN), when its network card is known (Muxin learns it while the machine is on) and it's set up to wake that way. The signal goes from this computer and from online machines on the same network. Muxin checks it again after 20 and 40 seconds.",
+            "description": "Wake a machine that's asleep or shut down (Wake on LAN), when its network card is known (AndruIDE learns it while the machine is on) and it's set up to wake that way. The signal goes from this computer and from online machines on the same network. AndruIDE checks it again after 20 and 40 seconds.",
             "inputSchema": schema(json!({ "machine_id": { "type": "string", "description": MACHINE_ID } }), &["machine_id"]),
             "annotations": annotations("Wake a machine", false, false, true, true),
         }),
@@ -1284,7 +1284,7 @@ pub fn tools() -> Vec<Value> {
         }),
         json!({
             "name": "machine_ports",
-            "description": "What's listening on a machine: each TCP port (port, address it listens on, host to connect to) with its program or Docker container, and for web servers (web: true) the status and title of their front page. Read-only. The user opens them on their computer from the Muxin app (machine page › Servers), or with `muxin forward <machine> <port>`.",
+            "description": "What's listening on a machine: each TCP port (port, address it listens on, host to connect to) with its program or Docker container, and for web servers (web: true) the status and title of their front page. Read-only. The user opens them on their computer from the AndruIDE app (machine page › Servers), or with `andruide forward <machine> <port>`.",
             "inputSchema": schema(json!({ "machine_id": { "type": "string", "description": MACHINE_ID } }), &["machine_id"]),
             "annotations": annotations("List a machine's servers", true, false, true, false),
         }),
@@ -1346,15 +1346,15 @@ pub fn print_config() -> String {
         .ok()
         .and_then(|p| p.canonicalize().ok())
         .map(|p| p.display().to_string())
-        .unwrap_or_else(|| "muxin".into());
+        .unwrap_or_else(|| "andruide".into());
     let json_block = serde_json::to_string_pretty(&json!({
-        "mcpServers": { "muxin": { "command": exe, "args": ["mcp"] } }
+        "mcpServers": { "andruide": { "command": exe, "args": ["mcp"] } }
     }))
     .unwrap_or_default();
     format!(
-        "# Claude Code\nclaude mcp add muxin -- {exe} mcp\n\n\
-         # Antigravity CLI\nagy mcp add muxin -- {exe} mcp\n\n\
-         # Codex (~/.codex/config.toml)\n[mcp_servers.muxin]\ncommand = \"{exe}\"\nargs = [\"mcp\"]\n\n\
+        "# Claude Code\nclaude mcp add andruide -- {exe} mcp\n\n\
+         # Antigravity CLI\nagy mcp add andruide -- {exe} mcp\n\n\
+         # Codex (~/.codex/config.toml)\n[mcp_servers.andruide]\ncommand = \"{exe}\"\nargs = [\"mcp\"]\n\n\
          # Other MCP clients (Claude Desktop, Cursor, ...)\n{json_block}\n\n\
          # Try it safely first with simulated machines: add \"--demo\" after \"mcp\".\n"
     )
@@ -1367,7 +1367,7 @@ mod tests {
     use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
     fn demo() -> Arc<Engine> {
-        Engine::new(Paths::resolve(Some(std::env::temp_dir().join("muxen-mcp-test")), None), true)
+        Engine::new(Paths::resolve(Some(std::env::temp_dir().join("andruide-mcp-test")), None), true)
     }
 
     #[test]
@@ -1418,8 +1418,8 @@ mod tests {
         .unwrap();
         assert!(text.starts_with("exit code: 1 (1200 ms)"), "{text}");
         assert!(text.contains("stdout:\n```\nok\n```") && text.contains("stderr:\n```\nboom\n```"), "{text}");
-        let bg = readable_text("workspace_exec", &json!({ "background_pid": 42, "log_path": ".muxen/logs/1.log", "duration_ms": 5 })).unwrap();
-        assert!(bg.contains("pid 42") && bg.contains(".muxen/logs/1.log"));
+        let bg = readable_text("workspace_exec", &json!({ "background_pid": 42, "log_path": ".andruide/logs/1.log", "duration_ms": 5 })).unwrap();
+        assert!(bg.contains("pid 42") && bg.contains(".andruide/logs/1.log"));
         assert!(readable_text("status", &json!({})).is_none());
     }
 
@@ -1529,7 +1529,7 @@ mod tests {
         let init: Value = recv().await;
         assert_eq!(init["id"], 1);
         assert_eq!(init["result"]["protocolVersion"], "2025-03-26");
-        assert_eq!(init["result"]["serverInfo"]["name"], "muxin");
+        assert_eq!(init["result"]["serverInfo"]["name"], "andruide");
         assert!(init["result"]["instructions"].as_str().unwrap().contains("Start with status"));
 
         send(json!({"jsonrpc":"2.0","method":"notifications/initialized"})).await;

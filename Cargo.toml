@@ -1,14 +1,23 @@
 [package]
-name = "muxin"
+name = "andruide"
 version = "0.14.0"
 edition = "2024"
 description = "All your machines, one app. For you and your AI agents."
 license = "Apache-2.0"
 publish = false
-repository = "https://github.com/LumaryLabsLLC/muxin"
+repository = "https://github.com/MikeHibbert/AndruIDE"
 readme = "README.md"
 keywords = ["github-actions", "self-hosted", "runners", "ci", "dashboard"]
 categories = ["command-line-utilities", "development-tools"]
+
+# The shipped binary is `andruide` (upstream shipped `muxin`); autobins=false +
+# an explicit [[bin]] makes that explicit. The agent binary andruide-agent
+# keeps following the app name (renamed with the brand).
+autobins = false
+
+[[bin]]
+name = "andruide"
+path = "src/main.rs"
 
 [dependencies]
 anyhow = "1"
@@ -41,7 +50,7 @@ ring = "0.17"
 socket2 = "0.6"
 mdns-sd = "0.21"
 # Sharing a session by link (src/share): WebRTC data channels, peer to peer
-# with the guest's browser or Muxin, introduced through muxin.dev.
+# with the guest's browser or AndruIDE, introduced through muxin.dev.
 webrtc = { version = "0.21", default-features = false, features = ["runtime-tokio", "crypto-ring"] }
 rtc = { version = "0.21", default-features = false, features = ["crypto-ring"] }
 async-trait = "0.1"
@@ -89,7 +98,7 @@ optional = true
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
 
-# Muxin's own ssh client (src/fleet/ssh.rs), where no `ssh` program can run:
+# AndruIDE's own ssh client (src/fleet/ssh.rs), where no `ssh` program can run:
 # an iPad adding a machine. Exact versions: russh pins release candidates.
 # The agent builds ship gzipped in the iPad app (sessions/agent.rs).
 [target.'cfg(target_os = "ios")'.dependencies]

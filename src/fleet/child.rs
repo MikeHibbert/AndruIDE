@@ -1,5 +1,5 @@
-//! A command running on a machine, the way Muxin starts it there: `ssh`
-//! on most computers, Muxin's own ssh client where no program can be started
+//! A command running on a machine, the way AndruIDE starts it there: `ssh`
+//! on most computers, AndruIDE's own ssh client where no program can be started
 //! (an iPad, see `ssh.rs`). Either one is read and written as a child process.
 
 use std::pin::Pin;
@@ -91,7 +91,7 @@ impl Child {
 }
 
 /// Starts `command` on a machine, as `ssh <machine> <command>`: with the
-/// `ssh` program, or on an iPad with Muxin's own client. Errors say "ssh"
+/// `ssh` program, or on an iPad with AndruIDE's own client. Errors say "ssh"
 /// and why, in ssh's words where there are some.
 pub async fn ssh(spec: &MachineSpec, command: &str) -> Result<Child, String> {
     #[cfg(target_os = "ios")]

@@ -1,6 +1,6 @@
 //! Sharing a session or a machine by link, peer to peer from this computer.
 //!
-//! The person sharing gets a link; whoever opens it joins from Muxin or a
+//! The person sharing gets a link; whoever opens it joins from AndruIDE or a
 //! browser, straight to this computer over WebRTC (a data channel; an
 //! encrypted relay only when no direct path works). This app hosts the
 //! share: guests never reach the machine itself, only what the gateway here
@@ -19,7 +19,7 @@
 //! 2. The guest refuses an answer whose certificate fingerprint isn't the
 //!    one in the link, so the server can't sit in the middle.
 //! 3. Over the data channel the guest proves it has the secret:
-//!    `hello.proof = HMAC-SHA256(secret, "muxin-share-v1\n" + host fp + "\n"
+//!    `hello.proof = HMAC-SHA256(secret, "andruide-share-v1\n" + host fp + "\n"
 //!    + guest fp)`, bound to both certificates of this connection.
 //! 4. Both sides show the same 6-digit code, made from the secret and the
 //!    guest's certificate; the host lets the guest in (or a share lets
@@ -79,7 +79,7 @@ pub fn parse_frame(msg: &[u8]) -> Option<(u32, u8, &[u8])> {
 }
 
 /// The share server used when Settings don't name another (or
-/// `MUXIN_SHARE_SERVER`, for a server of your own while developing).
+/// `ANDRUIDE_SHARE_SERVER`, for a server of your own while developing).
 pub fn default_server() -> String {
-    std::env::var("MUXIN_SHARE_SERVER").ok().filter(|s| !s.trim().is_empty()).unwrap_or_else(|| "https://muxin.dev".into())
+    std::env::var("ANDRUIDE_SHARE_SERVER").ok().filter(|s| !s.trim().is_empty()).unwrap_or_else(|| "https://muxin.dev".into())
 }

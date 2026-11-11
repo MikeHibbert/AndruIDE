@@ -186,7 +186,7 @@ fn files() -> Vec<Value> {
     } else {
         add_dir(std::path::Path::new("/var/log"), 2, false);
     }
-    add_dir(&home.join(".muxen"), 1, false);
+    add_dir(&home.join(".andruide"), 1, false);
     if cfg!(target_os = "macos") {
         add_dir(&home.join("Library/Logs"), 3, true);
         add_dir(std::path::Path::new("/Library/Logs"), 2, true);
@@ -227,7 +227,7 @@ fn walk(dir: &std::path::Path, depth: usize, deadline: Instant, found: &mut dyn 
             let name = name.to_string_lossy();
             // Bundles (.app, .photoslibrary, ...) are folders, but not ones with logs.
             let bundle = name.contains('.') && !name.starts_with('.') && path.join("Contents").is_dir();
-            if !SKIP.contains(&name.as_ref()) && !bundle && (!name.starts_with('.') || name == ".muxen") {
+            if !SKIP.contains(&name.as_ref()) && !bundle && (!name.starts_with('.') || name == ".andruide") {
                 walk(&path, depth - 1, deadline, found);
             }
         }
@@ -420,7 +420,7 @@ mod tests {
 
     #[test]
     fn builds_commands() {
-        let file = std::env::temp_dir().join("muxen-logs-test.log");
+        let file = std::env::temp_dir().join("andruide-logs-test.log");
         std::fs::write(&file, "one\ntwo\n").unwrap();
         let path = file.display().to_string();
         let (p, a) = command(&json!({ "kind": "file", "target": path }), 50, true).unwrap();

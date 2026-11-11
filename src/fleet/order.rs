@@ -5,14 +5,14 @@
 //! Until the user puts them in order (drags one, or Move Up, Move Down, Move
 //! to Top), favorites come first, then machines with runners, then the rest.
 //! After that it's the order of the `[[machine]]` tables in config.toml,
-//! which a move rewrites, so `muxin status` and the MCP tools list them the
+//! which a move rewrites, so `andruide status` and the MCP tools list them the
 //! same way.
 
 /// A machine, as far as its place goes.
 #[derive(Debug, Clone)]
 pub struct Entry {
     pub id: String,
-    /// The machine it runs on, when that one is in Muxin too: it's listed under it.
+    /// The machine it runs on, when that one is in AndruIDE too: it's listed under it.
     pub host: Option<String>,
     pub favorite: bool,
     pub runners: bool,

@@ -3,7 +3,7 @@
 //! one the user typed in the app, on sudo's stdin and nowhere else.
 
 /// What a request says when it needs the user's password (the app asks for it).
-pub const NEEDS_PASSWORD: &str = "Muxen needs your password on this machine to do that.";
+pub const NEEDS_PASSWORD: &str = "AndruIDE needs your password on this machine to do that.";
 pub const WRONG_PASSWORD: &str = "That password didn't work.";
 
 /// Whether an error asks for the password (again).
@@ -19,18 +19,18 @@ pub fn as_root(script: &str, args: &[&str], password: Option<&str>) -> Result<()
     // Root already, with or without a sudo here.
     #[cfg(unix)]
     if unsafe { libc::geteuid() } == 0 {
-        let out = Command::new("sh").args(["-c", script, "muxen"]).args(args).stdin(Stdio::null()).stdout(Stdio::null()).output().map_err(|e| e.to_string())?;
+        let out = Command::new("sh").args(["-c", script, "andruide"]).args(args).stdin(Stdio::null()).stdout(Stdio::null()).output().map_err(|e| e.to_string())?;
         return if out.status.success() { Ok(()) } else { Err(last_line(&String::from_utf8_lossy(&out.stderr))) };
     }
     // Whether sudo needs a password here at all (its wording differs between versions).
     let free = Command::new("sudo").args(["-n", "true"]).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).status().is_ok_and(|s| s.success());
     if free {
-        let out = Command::new("sudo").args(["-n", "sh", "-c", script, "muxen"]).args(args).stdin(Stdio::null()).stdout(Stdio::null()).output().map_err(|e| e.to_string())?;
+        let out = Command::new("sudo").args(["-n", "sh", "-c", script, "andruide"]).args(args).stdin(Stdio::null()).stdout(Stdio::null()).output().map_err(|e| e.to_string())?;
         return if out.status.success() { Ok(()) } else { Err(last_line(&String::from_utf8_lossy(&out.stderr))) };
     }
     let password = password.filter(|p| !p.is_empty()).ok_or(NEEDS_PASSWORD)?;
     let mut child = Command::new("sudo")
-        .args(["-S", "-p", "", "sh", "-c", script, "muxen"])
+        .args(["-S", "-p", "", "sh", "-c", script, "andruide"])
         .args(args)
         .stdin(Stdio::piped())
         .stdout(Stdio::null())

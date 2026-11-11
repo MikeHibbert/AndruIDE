@@ -38,7 +38,7 @@ fn go(action: &str, password: Option<&str>) -> Result<(), String> {
 #[cfg(windows)]
 fn go(action: &str, _password: Option<&str>) -> Result<(), String> {
     let flag = if action == "restart" { "/r" } else { "/s" };
-    let out = crate::sys::no_window(std::process::Command::new("shutdown").args([flag, "/t", "3", "/c", "Muxin was asked to do this."])).output().map_err(|e| e.to_string())?;
+    let out = crate::sys::no_window(std::process::Command::new("shutdown").args([flag, "/t", "3", "/c", "AndruIDE was asked to do this."])).output().map_err(|e| e.to_string())?;
     if out.status.success() {
         return Ok(());
     }
@@ -66,7 +66,7 @@ mod tests {
     #[test]
     fn the_script_answers_first_and_goes_a_moment_later() {
         use std::os::unix::fs::PermissionsExt;
-        let dir = std::env::temp_dir().join(format!("muxin-power-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("andruide-power-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let mark = dir.join("mark");
         for tool in ["shutdown", "loginctl"] {
@@ -77,7 +77,7 @@ mod tests {
         }
         let started = std::time::Instant::now();
         let status = std::process::Command::new("sh")
-            .args(["-c", SCRIPT, "muxin", "-r", "reboot"])
+            .args(["-c", SCRIPT, "andruide", "-r", "reboot"])
             .env("PATH", format!("{}:/usr/bin:/bin", dir.display()))
             .env("SUDO_USER", "alice")
             .status()

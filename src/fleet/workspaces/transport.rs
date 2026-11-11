@@ -75,7 +75,7 @@ impl Output {
 }
 
 pub fn new_marker() -> String {
-    format!("__muxen_{}__", super::random_id(12))
+    format!("__andruide_{}__", super::random_id(12))
 }
 
 /// Prepends the marker preamble for `windows` (PowerShell) or sh scripts.
@@ -123,7 +123,7 @@ pub async fn run(
     on_line: Option<&(dyn Fn(&str) + Send + Sync)>,
 ) -> Result<Output, String> {
     spec.refuse_if_disconnected()?;
-    // Muxin on an iPad can't run ssh: a paired machine's scripts go over its
+    // AndruIDE on an iPad can't run ssh: a paired machine's scripts go over its
     // direct link, and output to stream comes when the script is done. (One
     // it's adding, not paired yet, takes them over its own ssh, as below.)
     if cfg!(target_os = "ios") && !spec.is_local() && crate::fleet::direct::paired(&spec.id).is_some() {
@@ -423,7 +423,7 @@ mod tests {
 
     #[test]
     fn drops_profile_noise_and_reads_markers() {
-        let m = "__muxen_test__";
+        let m = "__andruide_test__";
         let (c, text, _) = collect(m, Limits::OUTPUT, &format!("Welcome!{m}\nreal error\nlast{m}:exit=3\n"), true);
         assert!(c.started);
         assert_eq!(c.preamble, Vec::<String>::new(), "noise on the marker's line is dropped");
@@ -438,7 +438,7 @@ mod tests {
 
     #[test]
     fn caps_long_output_keeping_head_and_tail() {
-        let m = "__muxen_cap__";
+        let m = "__andruide_cap__";
         let limits = Limits { head: 20, tail: 20, line: 1000 };
         let body: String = (0..100).map(|i| format!("line {i:03}\n")).collect();
         let (_, text, truncated) = collect(m, limits, &format!("{m}\n{body}"), false);
@@ -450,7 +450,7 @@ mod tests {
 
     #[test]
     fn cuts_huge_lines() {
-        let m = "__muxen_line__";
+        let m = "__andruide_line__";
         let limits = Limits { head: 1 << 20, tail: 0, line: 10 };
         let (_, text, truncated) = collect(m, limits, &format!("{m}\n{}\nok\n", "x".repeat(50)), false);
         assert!(truncated);

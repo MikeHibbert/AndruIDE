@@ -1,23 +1,23 @@
 //! Boxes: one task each, worked on by an agent CLI in a container of its own
-//! on this machine. Muxin creates a box (its image, a checkout of the repo,
+//! on this machine. AndruIDE creates a box (its image, a checkout of the repo,
 //! the container) and then hands it here: this keeps its record, starts its
 //! agent in a session, pauses it, and deletes it.
 //!
-//! A box lives in `~/muxen/boxes/<id>/`: `box.json` (its record), `repo/`
+//! A box lives in `~/andruide/boxes/<id>/`: `box.json` (its record), `repo/`
 //! (the checkout, at the same path inside the container) and `home/` (the
 //! agent's home, /home/box, with this user's agent folders like ~/.claude and
 //! ~/.codex mounted in it, so the agent is signed in as it is here). Its
 //! session runs the agent inside with `docker exec`, by way of
-//! `home/.muxin/start`, which Muxin wrote: the first time it starts the agent
+//! `home/.andruide/start`, which AndruIDE wrote: the first time it starts the agent
 //! on the task, after that it continues the agent's last conversation. Text
-//! for the agent waits in `home/.muxin/next` until it starts.
+//! for the agent waits in `home/.andruide/next` until it starts.
 //!
 //! Requests name a box by `box_id` (a link's requests have an `id` of their own).
 //!
 //! Pausing stops the container (its disk stays, its processes end).
-//! `muxen-agent box-watch` pauses running boxes whose agent has been quiet
+//! `andruide-agent box-watch` pauses running boxes whose agent has been quiet
 //! for a while (an open terminal nobody types in doesn't count), or has
-//! ended; it runs while any box does, so boxes pause whether or not Muxin is
+//! ended; it runs while any box does, so boxes pause whether or not AndruIDE is
 //! open.
 
 use std::path::PathBuf;
@@ -40,7 +40,7 @@ const IDLE_MINUTES: i64 = 15;
 const TYPE_AFTER: Duration = Duration::from_secs(4);
 
 fn dir() -> PathBuf {
-    crate::sys::user_home().join("muxen").join("boxes")
+    crate::sys::user_home().join("andruide").join("boxes")
 }
 
 /// "box-" and lowercase letters or digits.
@@ -78,7 +78,7 @@ fn err(message: impl Into<String>) -> Value {
     json!({ "ok": false, "error": message.into() })
 }
 
-/// The docker command: where Muxin found it when it made the box, else on
+/// The docker command: where AndruIDE found it when it made the box, else on
 /// the PATH (a Mac's Docker Desktop, OrbStack and Colima put it outside the
 /// PATH ssh gives).
 fn docker(b: &Value) -> String {
@@ -116,7 +116,7 @@ fn run_line(b: &Value) -> String {
     let (d, c) = (sh_quote(&docker(b)), b["container"].as_str().unwrap_or(""));
     let repo = folder(b["id"].as_str().unwrap_or("")).join("repo");
     let env: String = ["TERM", "COLORTERM"].iter().chain(SIGN_IN_VARS).map(|v| format!(" -e {v}")).collect();
-    format!("{d} start {c} >/dev/null 2>&1; exec {d} exec -it{env} -w {} {c} sh /home/box/.muxin/start", sh_quote(&repo.display().to_string()))
+    format!("{d} start {c} >/dev/null 2>&1; exec {d} exec -it{env} -w {} {c} sh /home/box/.andruide/start", sh_quote(&repo.display().to_string()))
 }
 
 /// The session server's sessions (none when it isn't running).
@@ -188,7 +188,7 @@ pub fn list() -> Value {
     json!({ "ok": true, "boxes": list_with(&sessions()), "now": crate::now() })
 }
 
-/// Records a box Muxin made (its container is there, its agent not started).
+/// Records a box AndruIDE made (its container is there, its agent not started).
 pub fn save(req: &Value) -> Value {
     let mut b = req["box"].clone();
     let id = b["id"].as_str().unwrap_or("").to_string();
@@ -199,8 +199,8 @@ pub fn save(req: &Value) -> Value {
         return err(format!("{} has no folder here", id));
     }
     let container = b["container"].as_str().unwrap_or("");
-    if !container.starts_with("muxen-box-") || !container.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
-        return err("that isn't a container Muxin made");
+    if !container.starts_with("andruide-box-") || !container.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
+        return err("that isn't a container AndruIDE made");
     }
     b["state"] = json!("paused");
     b["state_at"] = json!(crate::now());
@@ -246,7 +246,7 @@ pub fn resume(req: &Value) -> Value {
         return err(format!("its container didn't start: {e}"));
     }
     let typed = b["type_prompt"].as_bool() == Some(true);
-    let next = folder(id).join("home").join(".muxin").join("next");
+    let next = folder(id).join("home").join(".andruide").join("next");
     match (prompt, typed) {
         (Some(p), false) => {
             if let Err(e) = std::fs::write(&next, p) {
@@ -328,7 +328,7 @@ pub fn pause(req: &Value) -> Value {
 
 /// `{"op": "box_switch", "box_id", "agent", "start", "type_prompt"}`: the box
 /// changes agents (a handoff): its agent's session ends, `start` becomes its
-/// launcher (~/.muxin/start), and the new agent starts fresh, not continuing
+/// launcher (~/.andruide/start), and the new agent starts fresh, not continuing
 /// the last one's conversation, when the box starts again (box_resume).
 pub fn switch(req: &Value) -> Value {
     let id = req["box_id"].as_str().unwrap_or("");
@@ -339,8 +339,8 @@ pub fn switch(req: &Value) -> Value {
         return err("which agent, and how it starts?");
     }
     let _ = crate::client::handle(&json!({ "op": "stop", "name": id }));
-    let muxin = folder(id).join("home").join(".muxin");
-    let launcher = muxin.join("start");
+    let andruide = folder(id).join("home").join(".andruide");
+    let launcher = andruide.join("start");
     if let Err(e) = std::fs::write(&launcher, start) {
         return err(format!("couldn't write its launcher: {e}"));
     }
@@ -349,7 +349,7 @@ pub fn switch(req: &Value) -> Value {
         use std::os::unix::fs::PermissionsExt;
         let _ = std::fs::set_permissions(&launcher, std::fs::Permissions::from_mode(0o755));
     }
-    let _ = std::fs::remove_file(muxin.join("started"));
+    let _ = std::fs::remove_file(andruide.join("started"));
     b["agent"] = json!(agent);
     b["type_prompt"] = json!(req["type_prompt"].as_bool() == Some(true));
     // Just now, so the watcher gives the new agent its grace before it looks.
@@ -389,7 +389,7 @@ pub fn delete(req: &Value) -> Value {
     if !meta.is_dir() {
         return err(format!("{} isn't a box's folder", path.display()));
     }
-    let b = read(id).unwrap_or_else(|| json!({ "id": id, "container": format!("muxen-{id}") }));
+    let b = read(id).unwrap_or_else(|| json!({ "id": id, "container": format!("andruide-{id}") }));
     stop_sessions(id);
     let container = b["container"].as_str().unwrap_or("").to_string();
     if let Err(e) = run_docker(&b, &["rm", "-f", &container])
@@ -465,7 +465,7 @@ pub fn ensure_watch() {
     let _ = crate::sys::spawn_background(&["box-watch"], crate::home_dir().join("box-watch.log"));
 }
 
-/// `muxen-agent box-watch`: pauses idle boxes until none is running.
+/// `andruide-agent box-watch`: pauses idle boxes until none is running.
 pub fn watch() -> i32 {
     let me = std::process::id() as i32;
     let build = crate::self_hash();
@@ -529,11 +529,11 @@ mod tests {
 
     #[test]
     fn the_agent_runs_in_the_checkout_with_the_machines_sign_ins() {
-        let line = run_line(&json!({ "id": "box-ab12cd", "container": "muxen-box-ab12cd", "docker": "/nonexistent/docker" }));
+        let line = run_line(&json!({ "id": "box-ab12cd", "container": "andruide-box-ab12cd", "docker": "/nonexistent/docker" }));
         let repo = folder("box-ab12cd").join("repo").display().to_string();
-        assert!(line.contains(&format!("-w '{repo}' muxen-box-ab12cd sh /home/box/.muxin/start")), "{line}");
+        assert!(line.contains(&format!("-w '{repo}' andruide-box-ab12cd sh /home/box/.andruide/start")), "{line}");
         assert!(line.contains(" -e ANTHROPIC_API_KEY") && line.contains(" -e OPENAI_API_KEY"), "{line}");
-        assert!(line.starts_with("'") && line.contains(" start muxen-box-ab12cd "), "{line}");
+        assert!(line.starts_with("'") && line.contains(" start andruide-box-ab12cd "), "{line}");
     }
 
     #[test]

@@ -1,4 +1,4 @@
-# Muxin share server
+# AndruIDE share server
 
 Introduces the two sides of a shared session (WebRTC signaling) and serves
 the page that joins one from a browser. muxin.dev does the same for
@@ -8,8 +8,8 @@ browsers don't send, and both sides check each other's certificates end to
 end. The interface (a few JSON calls) is described in `src/share/signal.rs`.
 
 ```sh
-cargo run -p muxin-share-server            # http://127.0.0.1:8787
-MUXIN_SHARE_SERVER=http://127.0.0.1:8787 cargo run    # Muxin, sharing through it
+cargo run -p andruide-share-server            # http://127.0.0.1:8787
+ANDRUIDE_SHARE_SERVER=http://127.0.0.1:8787 cargo run    # AndruIDE, sharing through it
 ```
 
 ## Running it for real
@@ -36,11 +36,11 @@ no-cli
 ```
 
 ```sh
-MUXIN_SHARE_LISTEN=127.0.0.1:8787 \
-MUXIN_SHARE_STUN=stun:share.example.com:3478 \
-MUXIN_SHARE_TURN=turn:share.example.com:3478 \
-MUXIN_SHARE_TURN_SECRET=<the same secret> \
-muxin-share-server
+ANDRUIDE_SHARE_LISTEN=127.0.0.1:8787 \
+ANDRUIDE_SHARE_STUN=stun:share.example.com:3478 \
+ANDRUIDE_SHARE_TURN=turn:share.example.com:3478 \
+ANDRUIDE_SHARE_TURN_SECRET=<the same secret> \
+andruide-share-server
 ```
 
 Each side gets TURN credentials of its own that last a day (coturn's REST

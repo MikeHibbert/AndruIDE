@@ -2,7 +2,7 @@
 //! directly (share-server/ in this repository, and muxin.dev's own). HTTP
 //! and JSON under `<server>/share/v1`; a room is a share's id:
 //!
-//! - `POST /rooms/{room}/host`, with `X-Muxin-Host: <key>`: the sharing app
+//! - `POST /rooms/{room}/host`, with `X-AndruIDE-Host: <key>`: the sharing app
 //!   checks in (every couple of seconds) and takes the guests' offers
 //!   waiting: `{ice, offers: [{id, sdp}]}`. 409 when another computer holds
 //!   the room.
@@ -77,7 +77,7 @@ impl Server {
 
     /// The host checks in: the STUN/TURN servers, and the offers waiting.
     pub async fn check_in(&self, room: &str, key: &str) -> Result<(Value, Vec<(String, String)>), Error> {
-        let v = self.call(self.http.post(format!("{}/rooms/{room}/host", self.base)).header("X-Muxin-Host", key).json(&json!({}))).await?;
+        let v = self.call(self.http.post(format!("{}/rooms/{room}/host", self.base)).header("X-AndruIDE-Host", key).json(&json!({}))).await?;
         let offers = v["offers"]
             .as_array()
             .into_iter()
@@ -88,12 +88,12 @@ impl Server {
     }
 
     pub async fn answer(&self, room: &str, key: &str, id: &str, sdp: &str) -> Result<(), Error> {
-        self.call(self.http.post(format!("{}/rooms/{room}/offers/{id}/answer", self.base)).header("X-Muxin-Host", key).json(&json!({ "sdp": sdp }))).await.map(|_| ())
+        self.call(self.http.post(format!("{}/rooms/{room}/offers/{id}/answer", self.base)).header("X-AndruIDE-Host", key).json(&json!({ "sdp": sdp }))).await.map(|_| ())
     }
 
     /// The share ended: guests still knocking hear so.
     pub async fn close(&self, room: &str, key: &str) {
-        let _ = self.call(self.http.delete(format!("{}/rooms/{room}", self.base)).header("X-Muxin-Host", key)).await;
+        let _ = self.call(self.http.delete(format!("{}/rooms/{room}", self.base)).header("X-AndruIDE-Host", key)).await;
     }
 
     /// Whether the share is open, and the STUN/TURN servers to use.

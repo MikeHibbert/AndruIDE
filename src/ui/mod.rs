@@ -68,7 +68,7 @@ pub fn run(engine: Arc<Engine>, initial_view: Option<String>, listener: Option<c
         });
     }
     // After starting over (see `start_afresh`): the page the window was on.
-    let initial_view = match (initial_view, std::env::var("MUXEN_REOPEN_VIEW").ok().filter(|v| !v.is_empty())) {
+    let initial_view = match (initial_view, std::env::var("ANDRUIDE_REOPEN_VIEW").ok().filter(|v| !v.is_empty())) {
         (Some(view), Some(page)) => Some(format!("{view},{page}")),
         (view, page) => view.or(page),
     };
@@ -99,9 +99,9 @@ const REOPENS_PER_PROCESS: u32 = 12;
 
 fn run_app(engine: Arc<Engine>, initial_view: Option<String>) {
     let app = Application::new().with_assets(assets::Assets);
-    // Share links (muxin://join?server=...#...) opened with Muxin.
-    app.on_open_urls(|urls| urls.into_iter().filter(|u| u.starts_with("muxin://join")).for_each(|url| command(AppCommand::Join(url))));
-    // The Dock icon clicked, or Muxin opened again, with no window showing.
+    // Share links (andruide://join?server=...#...) opened with AndruIDE.
+    app.on_open_urls(|urls| urls.into_iter().filter(|u| u.starts_with("andruide://join")).for_each(|url| command(AppCommand::Join(url))));
+    // The Dock icon clicked, or AndruIDE opened again, with no window showing.
     app.on_reopen(show_main_window);
     app.run(move |cx: &mut App| {
         assets::load_fonts(cx);
@@ -201,9 +201,9 @@ fn open_main_window(engine: Arc<Engine>, view: Option<&str>, cx: &mut App) -> Op
     let left = left_as_it_was().lock().unwrap().take();
     let bounds = left.as_ref().and_then(|l| l.bounds).unwrap_or_else(|| WindowBounds::Windowed(Bounds::centered(display, size(px(w), px(h)), cx)));
     let titlebar = if cfg!(target_os = "macos") {
-        TitlebarOptions { title: Some("Muxin".into()), appears_transparent: true, traffic_light_position: Some(point(px(16.), px(19.))) }
+        TitlebarOptions { title: Some("AndruIDE".into()), appears_transparent: true, traffic_light_position: Some(point(px(16.), px(19.))) }
     } else {
-        TitlebarOptions { title: Some("Muxin".into()), appears_transparent: false, traffic_light_position: None }
+        TitlebarOptions { title: Some("AndruIDE".into()), appears_transparent: false, traffic_light_position: None }
     };
     let window = cx.open_window(
         WindowOptions {
@@ -211,7 +211,7 @@ fn open_main_window(engine: Arc<Engine>, view: Option<&str>, cx: &mut App) -> Op
             display_id: display,
             titlebar: Some(titlebar),
             window_min_size: Some(size(px(960.), px(600.))),
-            app_id: Some("muxin".into()),
+            app_id: Some("andruide".into()),
             window_decorations: frame::requested(),
             // A test window (on the laptop's screen) doesn't take the keyboard
             // from whatever the user is typing in.
@@ -221,7 +221,7 @@ fn open_main_window(engine: Arc<Engine>, view: Option<&str>, cx: &mut App) -> Op
         |window, cx| {
             // GPUI gives Wayland no title from the options: without one, a
             // dock or app switcher shows "unknown".
-            window.set_window_title("Muxin");
+            window.set_window_title("AndruIDE");
             theme::apply(window, cx);
             let view_entity = cx.new(|cx| Root::new(engine.clone(), window, cx));
             window.focus(&view_entity.focus_handle(cx));
@@ -300,7 +300,7 @@ fn main_engine(cx: &App) -> Arc<Engine> {
 pub(crate) enum AppCommand {
     Show,
     OpenSession(String),
-    /// A share link opened with Muxin: the window offers to join it.
+    /// A share link opened with AndruIDE: the window offers to join it.
     Join(String),
     Settings,
     /// About, where the answer shows, and a look at GitHub now.
@@ -424,8 +424,8 @@ fn start_afresh() {
     let mut view = left_as_it_was().lock().unwrap().as_ref().map(root::Left::as_view).unwrap_or_default();
     view.retain(|v| !v.is_empty());
     // (Without a share link it was opened with: that one's been dealt with.)
-    let args: Vec<_> = std::env::args_os().skip(1).filter(|a| !a.to_string_lossy().starts_with("muxin://")).collect();
-    let error = std::process::Command::new(exe).args(args).env("MUXEN_REOPEN_VIEW", view.join(",")).exec();
+    let args: Vec<_> = std::env::args_os().skip(1).filter(|a| !a.to_string_lossy().starts_with("andruide://")).collect();
+    let error = std::process::Command::new(exe).args(args).env("ANDRUIDE_REOPEN_VIEW", view.join(",")).exec();
     tracing::warn!("starting over: {error}");
 }
 
@@ -599,7 +599,7 @@ pub(crate) fn pasteboard_state() -> Option<(i64, bool)> {
     None
 }
 
-/// Brings up the Tailscale app (to turn it on or sign in). Muxin itself never
+/// Brings up the Tailscale app (to turn it on or sign in). AndruIDE itself never
 /// changes Tailscale's settings.
 pub(crate) fn open_tailscale() {
     #[cfg(target_os = "macos")]

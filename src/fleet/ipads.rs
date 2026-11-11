@@ -1,8 +1,8 @@
-//! iPhones and iPads paired from this computer: Muxin for iPhone and Muxin
+//! iPhones and iPads paired from this computer: AndruIDE for iPhone and AndruIDE
 //! for iPad reach the machines directly with a key of their own, which each
 //! machine's agent trusts. This app vouches for it, over the connections it
 //! already has (`share::pair` is the device's side of that). `ipads.json` in
-//! Muxin's config folder keeps each one's name, key and the machines that
+//! AndruIDE's config folder keeps each one's name, key and the machines that
 //! trust it, so removing one takes its key off them.
 
 use std::path::{Path, PathBuf};
@@ -81,7 +81,7 @@ pub fn find<'a>(all: &'a [Ipad], name_or_key: &str) -> Result<&'a Ipad, String> 
     match named.as_slice() {
         [one] => Ok(one),
         [] => Err(format!("No iPhone or iPad called {want} is paired.")),
-        _ => Err(format!("More than one paired device is called {want}: use its key (muxin ipad ls --json).")),
+        _ => Err(format!("More than one paired device is called {want}: use its key (andruide ipad ls --json).")),
     }
 }
 
@@ -200,7 +200,7 @@ mod tests {
 
     #[test]
     fn pairing_again_adds_machines_and_finds_by_name_or_key() {
-        let dir = std::env::temp_dir().join(format!("muxin-ipads-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("andruide-ipads-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let key = "ab".repeat(32);
         record(&dir, "Studio iPad", &key, &["beelink".into()]).unwrap();

@@ -1,15 +1,15 @@
 #!/bin/sh
-# Brings Muxin's Homebrew cask up to a published release: Casks/muxin.rb in
+# Brings AndruIDE's Homebrew cask up to a published release: Casks/andruide.rb in
 # LumaryLabsLLC/homebrew-tap, with the release's version and the checksums
 # from its SHA256SUMS.txt. One cask for macOS (the app, in Applications) and
 # Linux (the app in Homebrew's folder, with an entry in the app menu); both
-# put `muxin` (and `muxen`, its name from before) in the PATH.
+# put `andruide` (and `andruide`, its name from before) in the PATH.
 #
 #   scripts/homebrew.sh 0.5.1           # write it in a clone of the tap and commit
 #   scripts/homebrew.sh 0.5.1 --push    # and push it
 #
 # HOMEBREW_TAP_DIR=<folder> uses a clone you already have. For a local test,
-# MUXIN_CASK_URL replaces the download folder and MUXIN_SUMS_FILE the
+# ANDRUIDE_CASK_URL replaces the download folder and ANDRUIDE_SUMS_FILE the
 # checksums. See RELEASING.md.
 set -eu
 
@@ -24,16 +24,16 @@ case "${2:-}" in
     *) echo "$usage" >&2; exit 2 ;;
 esac
 
-sums=$(if [ -n "${MUXIN_SUMS_FILE:-}" ]; then cat "$MUXIN_SUMS_FILE"; else gh release download "v$version" -p SHA256SUMS.txt -O -; fi)
+sums=$(if [ -n "${ANDRUIDE_SUMS_FILE:-}" ]; then cat "$ANDRUIDE_SUMS_FILE"; else gh release download "v$version" -p SHA256SUMS.txt -O -; fi)
 sha() { echo "$sums" | awk -v f="$1" '$2 == f || $2 == "*" f { print $1 }'; }
-macos=$(sha "Muxin-$version-macos.dmg")
-x86_64=$(sha "Muxin-$version-linux-x86_64.tar.gz")
-aarch64=$(sha "Muxin-$version-linux-aarch64.tar.gz")
+macos=$(sha "AndruIDE-$version-macos.dmg")
+x86_64=$(sha "AndruIDE-$version-linux-x86_64.tar.gz")
+aarch64=$(sha "AndruIDE-$version-linux-aarch64.tar.gz")
 [ -n "$macos" ] && [ -n "$x86_64" ] && [ -n "$aarch64" ] || {
     echo "error: v$version's SHA256SUMS.txt doesn't have the macOS and Linux files" >&2
     exit 1
 }
-base=${MUXIN_CASK_URL:-'https://github.com/LumaryLabsLLC/muxin/releases/download/v#{version}'}
+base=${ANDRUIDE_CASK_URL:-'https://github.com/MikeHibbert/AndruIDE/releases/download/v#{version}'}
 
 tap=${HOMEBREW_TAP_DIR:-}
 if [ -z "$tap" ]; then
@@ -41,8 +41,8 @@ if [ -z "$tap" ]; then
     gh repo clone LumaryLabsLLC/homebrew-tap "$tap" -- --quiet
 fi
 mkdir -p "$tap/Casks"
-cat > "$tap/Casks/muxin.rb" <<EOF
-cask "muxin" do
+cat > "$tap/Casks/andruide.rb" <<EOF
+cask "andruide" do
   arch arm: "aarch64", intel: "x86_64"
 
   version "$version"
@@ -52,28 +52,28 @@ cask "muxin" do
          x86_64_linux: "$x86_64"
 
   on_macos do
-    url "$base/Muxin-#{version}-macos.dmg"
+    url "$base/AndruIDE-#{version}-macos.dmg"
 
     depends_on macos: :monterey
 
-    app "Muxin.app"
-    binary "#{appdir}/Muxin.app/Contents/MacOS/muxin"
-    binary "#{appdir}/Muxin.app/Contents/MacOS/muxin", target: "muxen"
+    app "AndruIDE.app"
+    binary "#{appdir}/AndruIDE.app/Contents/MacOS/andruide"
+    binary "#{appdir}/AndruIDE.app/Contents/MacOS/andruide", target: "andruide"
   end
   on_linux do
-    url "$base/Muxin-#{version}-linux-#{arch}.tar.gz"
+    url "$base/AndruIDE-#{version}-linux-#{arch}.tar.gz"
 
-    binary "Muxin/muxin"
-    binary "Muxin/muxin", target: "muxen"
-    artifact "Muxin/muxin.desktop", target: "~/.local/share/applications/muxin.desktop"
+    binary "AndruIDE/andruide"
+    binary "AndruIDE/andruide", target: "andruide"
+    artifact "AndruIDE/andruide.desktop", target: "~/.local/share/applications/andruide.desktop"
 
     preflight_steps do
-      inreplace "Muxin/muxin.desktop", "Exec=muxin", "Exec={{HOMEBREW_PREFIX}}/bin/muxin"
-      inreplace "Muxin/muxin.desktop", "Icon=muxin", "Icon={{staged_path}}/Muxin/muxin.png"
+      inreplace "AndruIDE/andruide.desktop", "Exec=andruide", "Exec={{HOMEBREW_PREFIX}}/bin/andruide"
+      inreplace "AndruIDE/andruide.desktop", "Icon=andruide", "Icon={{staged_path}}/AndruIDE/andruide.png"
     end
   end
 
-  name "Muxin"
+  name "AndruIDE"
   desc "All your machines in one app, for you and your AI agents"
   homepage "https://muxin.dev/"
 
@@ -83,27 +83,27 @@ cask "muxin" do
   end
 
   zap trash: [
-    "~/.cache/muxen",
-    "~/.config/muxen",
-    "~/.config/muxin",
-    "~/.muxen",
-    "~/Library/Caches/muxen",
-    "~/Library/Preferences/com.lumarylabs.muxen.plist",
+    "~/.cache/andruide",
+    "~/.config/andruide",
+    "~/.config/andruide",
+    "~/.andruide",
+    "~/Library/Caches/andruide",
+    "~/Library/Preferences/com.lumarylabs.andruide.plist",
   ]
 end
 EOF
-echo "▸ $tap/Casks/muxin.rb: $version"
+echo "▸ $tap/Casks/andruide.rb: $version"
 
 cd "$tap"
-if git diff --quiet -- Casks/muxin.rb && git ls-files --error-unmatch Casks/muxin.rb >/dev/null 2>&1; then
+if git diff --quiet -- Casks/andruide.rb && git ls-files --error-unmatch Casks/andruide.rb >/dev/null 2>&1; then
     echo "▸ already at $version"
     exit 0
 fi
-git add Casks/muxin.rb
-git commit --quiet -m "muxin $version"
+git add Casks/andruide.rb
+git commit --quiet -m "andruide $version"
 if [ -n "$push" ]; then
     git push --quiet origin HEAD
-    echo "▸ pushed: brew upgrade --cask muxin gets it"
+    echo "▸ pushed: brew upgrade --cask andruide gets it"
 else
     echo "Push it from $tap: git push origin HEAD"
 fi

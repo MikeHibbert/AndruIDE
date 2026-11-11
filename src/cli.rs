@@ -50,7 +50,7 @@ pub fn status(s: &StatusResponse) -> String {
 
 pub fn machines(list: &[MachineSummary]) -> String {
     if list.is_empty() {
-        return "No machines. Add one with `muxin add-machine --name <name> --host <ssh-host>`.\n".into();
+        return "No machines. Add one with `andruide add-machine --name <name> --host <ssh-host>`.\n".into();
     }
     let rows: Vec<Vec<String>> = list
         .iter()
@@ -267,7 +267,7 @@ pub fn schedules(list: &Vec<crate::fleet::schedules::MachineSchedules>) -> Strin
         }
     }
     if out.is_empty() {
-        out.push_str("No schedules. Add one with `muxin schedule add <machine> --name ... --every day --at 09:00 --command ...`.\n");
+        out.push_str("No schedules. Add one with `andruide schedule add <machine> --name ... --every day --at 09:00 --command ...`.\n");
     }
     out
 }
@@ -325,7 +325,7 @@ pub fn cloud_options(o: &crate::cloud::CloudOptions) -> String {
     match (&o.account, o.signed_in) {
         (Some(a), _) => out.push_str(&format!("DigitalOcean: {} ({method})\n", a.email)),
         (None, true) => out.push_str(&format!("DigitalOcean: signed in ({method})\n")),
-        (None, false) => out.push_str("DigitalOcean: not signed in. Run `muxin cloud login --token -` with the token on stdin (or --doctl, --browser).\n"),
+        (None, false) => out.push_str("DigitalOcean: not signed in. Run `andruide cloud login --token -` with the token on stdin (or --doctl, --browser).\n"),
     }
     if let Some(e) = &o.error {
         out.push_str(&format!("  {e}\n"));
@@ -417,7 +417,7 @@ pub fn settings(s: &SettingsOut) -> String {
 pub fn workspaces(r: &WorkspacesResponse) -> String {
     let mut out = format!("{}\n", r.summary);
     if r.workspaces.is_empty() {
-        out.push_str("Create one with `muxin workspace create [--machine <id>] [--repo owner/repo]`.\n");
+        out.push_str("Create one with `andruide workspace create [--machine <id>] [--repo owner/repo]`.\n");
         return out;
     }
     out.push('\n');
@@ -448,7 +448,7 @@ pub fn workspaces(r: &WorkspacesResponse) -> String {
 pub fn workspace_created(r: &WorkspaceCreated) -> String {
     let w = &r.workspace;
     format!(
-        "✓ {} ({}) on {} · {}\n  shell: {}\nRun commands with `muxin workspace exec {} -- <command>`; destroy it with `muxin workspace rm {}`.\n",
+        "✓ {} ({}) on {} · {}\n  shell: {}\nRun commands with `andruide workspace exec {} -- <command>`; destroy it with `andruide workspace rm {}`.\n",
         w.id, w.name, w.machine_name, w.path, w.shell, w.id, w.id
     )
 }
@@ -556,7 +556,7 @@ fn table(headers: &[&str], rows: &[Vec<String>]) -> String {
 pub fn sessions(r: &crate::api::SessionsOut) -> String {
     let mut out = String::new();
     if r.sessions.is_empty() {
-        out.push_str("No agent sessions. Start one with `muxin session start <machine> claude [--cwd ~/code/app]`.\n");
+        out.push_str("No agent sessions. Start one with `andruide session start <machine> claude [--cwd ~/code/app]`.\n");
     } else {
         // Helpers under the session that started them.
         let all: Vec<&crate::fleet::sessions::SessionInfo> = r.sessions.iter().collect();
@@ -589,7 +589,7 @@ pub fn sessions(r: &crate::api::SessionsOut) -> String {
 pub fn boxes(r: &crate::api::BoxesOut) -> String {
     let mut out = String::new();
     if r.boxes.is_empty() {
-        out.push_str("No boxes. Hand a task to an agent with `muxin box new <owner/repo> \"<what to do>\"`.\n");
+        out.push_str("No boxes. Hand a task to an agent with `andruide box new <owner/repo> \"<what to do>\"`.\n");
     } else {
         let rows: Vec<Vec<String>> = r
             .boxes
@@ -637,9 +637,9 @@ pub fn session_started(s: &crate::fleet::sessions::SessionInfo) -> String {
     let mut out = format!("Started {} ({}) in {}.\n", s.id, s.agent_name, s.cwd);
     if let Some(p) = &s.parent {
         out.push_str(&if s.keep { format!("A helper of {p}; it goes on after {p} ends.\n") } else { format!("A helper of {p}; it ends when {p} does.\n") });
-        out.push_str(&format!("Wait for its answer: muxin session wait {}\n", s.id));
+        out.push_str(&format!("Wait for its answer: andruide session wait {}\n", s.id));
     }
-    out.push_str(&format!("Watch it in the Muxin app, or attach here: {}\n", s.attach_command));
+    out.push_str(&format!("Watch it in the AndruIDE app, or attach here: {}\n", s.attach_command));
     out
 }
 
@@ -665,7 +665,7 @@ pub fn session_waited(w: &crate::api::SessionWaitOut) -> String {
 pub fn handed_off(h: &crate::fleet::sessions::handoff::HandedOff) -> String {
     let from = match h.source.as_str() {
         "transcript" => "the conversation so far",
-        "terminal" => "what its terminal showed (no transcript Muxin can read)",
+        "terminal" => "what its terminal showed (no transcript AndruIDE can read)",
         _ => "the git state only (no conversation found)",
     };
     let mut out = format!("Handed off to {} ({}) in {}.\nThe note, from {from}: {}\n", s_id(h), h.session.agent_name, h.session.cwd, h.note);
@@ -678,7 +678,7 @@ pub fn handed_off(h: &crate::fleet::sessions::handoff::HandedOff) -> String {
     if let Some(k) = &h.kept {
         out.push_str(&format!("{k} is still running.\n"));
     }
-    out.push_str(&format!("Watch it in the Muxin app, or attach here: {}\n", h.session.attach_command));
+    out.push_str(&format!("Watch it in the AndruIDE app, or attach here: {}\n", h.session.attach_command));
     out
 }
 
@@ -733,10 +733,10 @@ pub fn github_repos(r: &[crate::github::hub::Repo]) -> String {
 pub fn github_accounts(a: &crate::api::AccountsOut) -> String {
     let mut out = match (&a.using, a.token_source.as_str()) {
         (Some(l), "gh") => match a.machines.iter().find(|m| Some(&m.machine_id) == a.machine_id.as_ref()) {
-            Some(m) => format!("Muxin uses {l} (the GitHub CLI login on {}).\n", m.machine),
-            None => format!("Muxin uses {l}.\n"),
+            Some(m) => format!("AndruIDE uses {l} (the GitHub CLI login on {}).\n", m.machine),
+            None => format!("AndruIDE uses {l}.\n"),
         },
-        (Some(l), var) => format!("Muxin uses {l} (the token in ${var}).\n"),
+        (Some(l), var) => format!("AndruIDE uses {l} (the token in ${var}).\n"),
         (None, _) => "Not signed in to GitHub. Run `gh auth login`.\n".into(),
     };
     if !a.accounts.is_empty() {
@@ -768,7 +768,7 @@ pub fn github_accounts(a: &crate::api::AccountsOut) -> String {
         out.push_str(&table(&["ACCOUNT", "MACHINE", "ID"], &rows));
     }
     if !a.accounts.is_empty() || !a.machines.is_empty() {
-        out.push_str("\nSwitch with `muxin github use <login>` or `--machine <id>`; add an account with `gh auth login`.\n");
+        out.push_str("\nSwitch with `andruide github use <login>` or `--machine <id>`; add an account with `gh auth login`.\n");
     }
     out
 }
@@ -783,7 +783,7 @@ pub fn github_favorites(f: &crate::api::FavoritesOut) -> String {
 pub fn github_repo(r: &crate::api::RepoOut) -> String {
     let mut out = format!("{} · {}\n", r.repo.full_name, r.repo.description.clone().unwrap_or_default());
     match &r.repo.parent {
-        Some(p) => out.push_str(&format!("Fork of {} ({} open there). See it with `muxin github repo {}`.\n", p.full_name, p.open_issues, p.full_name)),
+        Some(p) => out.push_str(&format!("Fork of {} ({} open there). See it with `andruide github repo {}`.\n", p.full_name, p.open_issues, p.full_name)),
         None if r.repo.fork => out.push_str("Fork of a repository GitHub doesn't name to this login.\n"),
         None => {}
     }
@@ -815,7 +815,7 @@ pub fn github_item(d: &crate::github::hub::Detail) -> String {
 
 pub fn ipads(o: &crate::api::IpadsOut) -> String {
     if o.ipads.is_empty() {
-        return "No iPhones or iPads are paired. Pair one with `muxin ipad pair`.\n".into();
+        return "No iPhones or iPads are paired. Pair one with `andruide ipad pair`.\n".into();
     }
     o.ipads.iter().map(|i| format!("{}  paired {}  with {}\n", i.name, ago(i.paired_at), i.machines.join(", "))).collect()
 }
@@ -852,7 +852,7 @@ pub fn connection(c: &crate::fleet::connection::Connection) -> String {
         out.push_str(&format!("  note            {n}\n"));
     }
     if !c.direct {
-        out.push_str(&format!("\nConnect directly with `muxin connection {} --direct on`.\n", c.machine_id));
+        out.push_str(&format!("\nConnect directly with `andruide connection {} --direct on`.\n", c.machine_id));
     }
     out
 }
@@ -877,12 +877,12 @@ pub fn git_setup(g: &crate::api::GitSetupOut) -> String {
             (Some(n), Some(e)) => format!(" (sets {n} <{e}>)"),
             _ => String::new(),
         };
-        fixes.push(format!("muxin git setup {} --identity{who}", g.machine_id));
+        fixes.push(format!("andruide git setup {} --identity{who}", g.machine_id));
     }
     if g.push != "gh" {
         fixes.push(match &g.gh_account {
-            Some(_) => format!("muxin git setup {} --credentials", g.machine_id),
-            None => format!("sign in to gh on {} (gh auth login), then: muxin git setup {} --credentials", g.machine_id, g.machine_id),
+            Some(_) => format!("andruide git setup {} --credentials", g.machine_id),
+            None => format!("sign in to gh on {} (gh auth login), then: andruide git setup {} --credentials", g.machine_id, g.machine_id),
         });
     }
     if !fixes.is_empty() {

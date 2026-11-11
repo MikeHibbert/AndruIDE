@@ -60,13 +60,13 @@ enum VmPower {
 impl Engine {
     /// Powers a machine on or off, however that's done for it.
     pub fn machine_power(self: &Arc<Self>, machine_id: &str, on: bool) -> Result<u64, String> {
-        let (spec, _) = self.machine(machine_id).ok_or("That machine isn't in Muxin anymore.")?;
+        let (spec, _) = self.machine(machine_id).ok_or("That machine isn't in AndruIDE anymore.")?;
         if spec.cloud.is_some() {
             return self.cloud_power(&spec.id, on);
         }
         match self.vm_parent(&spec.id) {
             Some(p) => self.vm_power(&spec, p, if on { VmPower::Start } else { VmPower::Stop }),
-            None => Err(format!("Muxin can't turn {} on from here: wake it over its network, if it's set up for that.", spec.name)),
+            None => Err(format!("AndruIDE can't turn {} on from here: wake it over its network, if it's set up for that.", spec.name)),
         }
     }
 
@@ -80,7 +80,7 @@ impl Engine {
     /// (sudo): `NeedsPassword` is the app's to ask for, and then this again. The
     /// operation it starts follows the machine going down and coming back.
     pub async fn machine_os_power(self: &Arc<Self>, machine_id: &str, action: OsPower) -> Result<u64, AddDisplayError> {
-        let (spec, _) = self.machine(machine_id).ok_or("That machine isn't in Muxin anymore.")?;
+        let (spec, _) = self.machine(machine_id).ok_or("That machine isn't in AndruIDE anymore.")?;
         if self.demo_world().is_some() {
             return Err(format!("The demo doesn't {} machines.", if action == OsPower::Shutdown { "shut down" } else { "restart" }).into());
         }
@@ -92,7 +92,7 @@ impl Engine {
             return Ok(self.vm_power(&spec, p, if action == OsPower::Shutdown { VmPower::Stop } else { VmPower::Restart })?);
         }
         if spec.is_local() {
-            return Err("That's the computer Muxin is running on: use its own menu.".into());
+            return Err("That's the computer AndruIDE is running on: use its own menu.".into());
         }
         if self.machine_busy(&spec.id) {
             return Err("An operation is still running on this machine. Wait for it to finish.".into());
@@ -183,9 +183,9 @@ impl Engine {
     fn vm_power(self: &Arc<Self>, spec: &MachineSpec, parent: ParentMachine, what: VmPower) -> Result<u64, String> {
         let container = parent.container.clone().unwrap_or_default();
         if !valid_container(&container) {
-            return Err(format!("\"{container}\" isn't a container name Muxin can use."));
+            return Err(format!("\"{container}\" isn't a container name AndruIDE can use."));
         }
-        let (host, host_probe) = self.machine(&parent.machine_id).ok_or_else(|| format!("{} isn't in Muxin anymore.", parent.name))?;
+        let (host, host_probe) = self.machine(&parent.machine_id).ok_or_else(|| format!("{} isn't in AndruIDE anymore.", parent.name))?;
         host.refuse_if_disconnected()?;
         if self.machine_busy(&spec.id) || self.machine_busy(&host.id) {
             return Err("An operation is still running on this machine. Wait for it to finish.".into());
@@ -277,8 +277,8 @@ fn power_words(f: &PowerFacts) -> String {
         words.push(count(f.guests, "machine that runs on it goes down too.", "machines that run on it go down too."));
     }
     match f.action {
-        OsPower::Shutdown if f.cloud => words.push("Turn it on again from Muxin. Its provider still bills it while it's off.".into()),
-        OsPower::Shutdown if f.vm => words.push("Start it again from Muxin.".into()),
+        OsPower::Shutdown if f.cloud => words.push("Turn it on again from AndruIDE. Its provider still bills it while it's off.".into()),
+        OsPower::Shutdown if f.vm => words.push("Start it again from AndruIDE.".into()),
         OsPower::Shutdown => words.push("Turning it back on takes someone at the machine, or Wake on LAN if it's set up.".into()),
         OsPower::Restart if f.vm => {}
         OsPower::Restart => {
@@ -329,7 +329,7 @@ mod tests {
     #[test]
     fn the_warning_knows_cloud_machines_and_vms() {
         assert!(power_words(&PowerFacts { cloud: true, ..facts(OsPower::Shutdown, "linux-x64") }).contains("bills"));
-        assert!(power_words(&PowerFacts { vm: true, ..facts(OsPower::Shutdown, "linux-x64") }).ends_with("Start it again from Muxin."));
+        assert!(power_words(&PowerFacts { vm: true, ..facts(OsPower::Shutdown, "linux-x64") }).ends_with("Start it again from AndruIDE."));
         assert_eq!(power_words(&PowerFacts { vm: true, ..facts(OsPower::Restart, "windows-x64") }), "Forge restarts now.");
     }
 

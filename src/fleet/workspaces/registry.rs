@@ -1,4 +1,4 @@
-//! `workspaces.json`: the workspaces every Muxin process shares (the
+//! `workspaces.json`: the workspaces every AndruIDE process shares (the
 //! window, the CLI, each agent's MCP server). Writers take a lock file, re-read,
 //! change, and write atomically, so two processes never drop each other's edits.
 
@@ -29,7 +29,7 @@ pub struct WorkspaceRecord {
     /// The machine speaks PowerShell.
     #[serde(default)]
     pub windows: bool,
-    /// Numbers the background logs: `.muxen/logs/<n>.log`.
+    /// Numbers the background logs: `.andruide/logs/<n>.log`.
     #[serde(default)]
     pub next_log: u32,
     /// Docker workspaces: the host's docker socket is shared with the container
@@ -105,7 +105,7 @@ impl Lock {
                         continue;
                     }
                     if started.elapsed() > LOCK_WAIT {
-                        return Err(format!("{} is locked by another Muxin process.", display_path(path)));
+                        return Err(format!("{} is locked by another AndruIDE process.", display_path(path)));
                     }
                     std::thread::sleep(Duration::from_millis(15));
                 }
@@ -135,7 +135,7 @@ mod tests {
                 machine_name: "Box".into(),
                 host: "box".into(),
                 platform: "linux-x64".into(),
-                path: format!("/home/ci/muxen/workspaces/{id}"),
+                path: format!("/home/ci/andruide/workspaces/{id}"),
                 repo: None,
                 git_ref: None,
                 branch: None,
@@ -161,7 +161,7 @@ mod tests {
     }
 
     fn temp(name: &str) -> PathBuf {
-        let dir = std::env::temp_dir().join(format!("muxen-reg-{name}-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("andruide-reg-{name}-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         dir.join("workspaces.json")

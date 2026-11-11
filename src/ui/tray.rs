@@ -309,32 +309,32 @@ fn logo_rgba(size: u32) -> Option<Vec<u8>> {
     Some(image::imageops::resize(&image, size, size, image::imageops::FilterType::Lanczos3).into_raw())
 }
 
-const SHOW_LABEL: &str = "Show Muxin";
+const SHOW_LABEL: &str = "Show AndruIDE";
 const SETTINGS_LABEL: &str = "Settings…";
 const COPY_LABEL: &str = "Copy Versions";
-/// Agent sessions live on their machines, held by Muxin's agent there.
-const QUIT_LABEL: &str = "Quit Muxin (sessions keep running)";
+/// Agent sessions live on their machines, held by AndruIDE's agent there.
+const QUIT_LABEL: &str = "Quit AndruIDE (sessions keep running)";
 
 fn updates_label(newer: Option<&str>) -> String {
     match newer {
-        Some(version) => format!("Update to Muxin {version}…"),
+        Some(version) => format!("Update to AndruIDE {version}…"),
         None => "Check for Updates…".into(),
     }
 }
 
 fn versions_line(agent: Option<&str>) -> String {
     match agent {
-        Some(agent) => format!("Muxin {APP_VERSION} · Agent {agent}"),
-        None => format!("Muxin {APP_VERSION}"),
+        Some(agent) => format!("AndruIDE {APP_VERSION} · Agent {agent}"),
+        None => format!("AndruIDE {APP_VERSION}"),
     }
 }
 
 /// What Copy Versions puts on the clipboard, for a bug report: the app (and
 /// its build, for a release), this computer's agent, and the system.
 fn versions_report(agent: Option<&str>) -> String {
-    let build = option_env!("MUXEN_BUILD").filter(|b| *b != APP_VERSION).map(|b| format!(" (build {b})")).unwrap_or_default();
+    let build = option_env!("ANDRUIDE_BUILD").filter(|b| *b != APP_VERSION).map(|b| format!(" (build {b})")).unwrap_or_default();
     let agent = agent.map_or_else(|| "Agent: unknown".to_string(), |a| format!("Agent {a}"));
-    format!("Muxin {APP_VERSION}{build}\n{agent}\n{}", this_system())
+    format!("AndruIDE {APP_VERSION}{build}\n{agent}\n{}", this_system())
 }
 
 /// "macOS 27.2, aarch64", "Windows 11 (build 26100), x86_64", "Ubuntu 26.04
@@ -400,7 +400,7 @@ fn system_name() -> String {
 /// The tooltip: the icon's name and how things stand (Windows shows it on a
 /// hover, where the menu takes a right click).
 fn tooltip(state: &MenuState) -> String {
-    format!("Muxin · {}", state.status)
+    format!("AndruIDE · {}", state.status)
 }
 
 /// The icon as RGBA at this size, with the dot when something's waiting.
@@ -512,7 +512,7 @@ mod imp {
         let builder = TrayIconBuilder::new().with_tooltip(tooltip(&state)).with_menu_on_left_click(cfg!(target_os = "macos")).with_menu(Box::new(menu));
         // Tinted by the menu bar, and kept where it was dragged.
         #[cfg(target_os = "macos")]
-        let builder = builder.with_icon_templated(first_icon).with_autosave_name("muxin");
+        let builder = builder.with_icon_templated(first_icon).with_autosave_name("andruide");
         #[cfg(windows)]
         let builder = builder.with_icon(first_icon);
         let icon = match builder.build() {
@@ -660,7 +660,7 @@ mod imp {
         status.set_text(plain(&state.status));
     }
 
-    /// The first line, as Rex has it: the logo at full size, "Muxin" in
+    /// The first line, as Rex has it: the logo at full size, "AndruIDE" in
     /// bold, and under it a colored dot and how things stand.
     #[cfg(target_os = "macos")]
     #[allow(unexpected_cfgs)] // objc's msg_send! checks a cfg this crate doesn't declare
@@ -699,12 +699,12 @@ mod imp {
             let small_font: id = msg_send![class!(NSFont), systemFontOfSize: 11.0f64];
             let label: id = msg_send![class!(NSColor), labelColor];
             let secondary: id = msg_send![class!(NSColor), secondaryLabelColor];
-            let text = format!("Muxin\n● {}", state.status);
+            let text = format!("AndruIDE\n● {}", state.status);
             let whole: id = msg_send![class!(NSMutableAttributedString), alloc];
             let whole: id = msg_send![whole, initWithString: NSString::alloc(nil).init_str(&text).autorelease()];
             // In UTF-16 units, as NSString counts.
             let units = |s: &str| s.encode_utf16().count() as u64;
-            let (name, dot_at, rest_at) = (units("Muxin"), units("Muxin\n"), units("Muxin\n● "));
+            let (name, dot_at, rest_at) = (units("AndruIDE"), units("AndruIDE\n"), units("AndruIDE\n● "));
             let all = units(&text);
             let font_key = NSString::alloc(nil).init_str("NSFont").autorelease();
             let color_key = NSString::alloc(nil).init_str("NSColor").autorelease();
@@ -850,11 +850,11 @@ mod imp {
 
     impl ksni::Tray for LinuxTray {
         fn id(&self) -> String {
-            "muxin".into()
+            "andruide".into()
         }
 
         fn title(&self) -> String {
-            "Muxin".into()
+            "AndruIDE".into()
         }
 
         fn icon_pixmap(&self) -> Vec<ksni::Icon> {
@@ -862,7 +862,7 @@ mod imp {
         }
 
         fn tool_tip(&self) -> ksni::ToolTip {
-            ksni::ToolTip { title: "Muxin".into(), description: self.state.status.clone(), ..Default::default() }
+            ksni::ToolTip { title: "AndruIDE".into(), description: self.state.status.clone(), ..Default::default() }
         }
 
         fn activate(&mut self, _x: i32, _y: i32) {
@@ -1004,8 +1004,8 @@ mod tests {
     fn the_labels_say_what_they_do() {
         assert_eq!(SETTINGS_LABEL, "Settings…");
         assert_eq!(updates_label(None), "Check for Updates…");
-        assert_eq!(updates_label(Some("0.9.1")), "Update to Muxin 0.9.1…", "once a look found a newer one");
-        assert!(QUIT_LABEL.starts_with("Quit Muxin") && QUIT_LABEL.contains("sessions keep running"));
+        assert_eq!(updates_label(Some("0.9.1")), "Update to AndruIDE 0.9.1…", "once a look found a newer one");
+        assert!(QUIT_LABEL.starts_with("Quit AndruIDE") && QUIT_LABEL.contains("sessions keep running"));
         let entries = menu_entries(&MenuState { newer: Some("0.9.1".into()), ..state(Vec::new()) });
         assert!(entries.contains(&Entry::Updates(Some("0.9.1".into()))));
     }
@@ -1101,12 +1101,12 @@ mod tests {
         let snapshot = Snapshot { machines: vec![machine("beelink", "online", false, Some("0.5.0")), machine("here", "online", true, Some("0.6.0"))], ..Default::default() };
         let state = menu_state(&snapshot, None);
         assert_eq!(state.agent.as_deref(), Some("0.6.0"), "this computer's, not another machine's");
-        assert_eq!(versions_line(state.agent.as_deref()), format!("Muxin {APP_VERSION} · Agent 0.6.0"));
-        assert_eq!(versions_line(None), format!("Muxin {APP_VERSION}"), "this computer isn't one of the machines");
+        assert_eq!(versions_line(state.agent.as_deref()), format!("AndruIDE {APP_VERSION} · Agent 0.6.0"));
+        assert_eq!(versions_line(None), format!("AndruIDE {APP_VERSION}"), "this computer isn't one of the machines");
         let report = versions_report(Some("0.6.0"));
         let lines: Vec<&str> = report.lines().collect();
         assert_eq!(lines.len(), 3, "{report}");
-        assert!(lines[0].starts_with(&format!("Muxin {APP_VERSION}")));
+        assert!(lines[0].starts_with(&format!("AndruIDE {APP_VERSION}")));
         assert_eq!(lines[1], "Agent 0.6.0");
         assert!(lines[2].ends_with(std::env::consts::ARCH), "{report}");
         #[cfg(target_os = "macos")]
@@ -1116,7 +1116,7 @@ mod tests {
 
     #[test]
     fn the_tooltip_says_how_things_stand() {
-        assert_eq!(tooltip(&state(Vec::new())), "Muxin · 1 machine online");
+        assert_eq!(tooltip(&state(Vec::new())), "AndruIDE · 1 machine online");
     }
 
     #[test]

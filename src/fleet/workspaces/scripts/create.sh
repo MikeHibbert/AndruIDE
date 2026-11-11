@@ -40,8 +40,8 @@ if [ -n "$OR_REPO" ]; then
   if [ -n "$OR_BRANCH" ]; then
     git checkout -b "$OR_BRANCH" 2>&1 || { echo "error: couldn't create branch $OR_BRANCH" >&2; exit 5; }
   fi
-  printf '.muxen/\n' >> .git/info/exclude 2>/dev/null
+  printf '.andruide/\n' >> .git/info/exclude 2>/dev/null
   echo "Checked out $(git rev-parse --abbrev-ref HEAD 2>/dev/null) at $(git rev-parse --short HEAD 2>/dev/null)"
 fi
-mkdir -p .muxen/logs
+mkdir -p .andruide/logs
 echo "ready"

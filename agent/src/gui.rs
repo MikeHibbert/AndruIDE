@@ -39,7 +39,7 @@ pub fn serve() {
     let listener = match UnixListener::bind(&path) {
         Ok(l) => l,
         Err(e) => {
-            eprintln!("muxen-agent: can't serve {}: {e}", path.display());
+            eprintln!("andruide-agent: can't serve {}: {e}", path.display());
             return;
         }
     };

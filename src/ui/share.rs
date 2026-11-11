@@ -280,7 +280,7 @@ impl ShareDialog {
                                 })),
                         )
                     })
-                    .child(div().text_size(px(11.5)).text_color(theme.text_placeholder).child("They open in Muxin, at localhost on their computer.")),
+                    .child(div().text_size(px(11.5)).text_color(theme.text_placeholder).child("They open in AndruIDE, at localhost on their computer.")),
             )
             .into_any_element()
     }
@@ -298,9 +298,9 @@ impl ShareDialog {
             off_checkbox(theme, type_label)
         };
         let intro = match (self.copied, machine) {
-            (true, false) => "Link copied. Send it to anyone: it opens in their browser or in Muxin.".to_string(),
-            (false, false) => "Send the link to anyone: it opens in their browser or in Muxin.".to_string(),
-            (copied, true) => format!("{}They see {}'s sessions, in their browser or in Muxin.", if copied { "Link copied. " } else { "" }, self.target.machine_name),
+            (true, false) => "Link copied. Send it to anyone: it opens in their browser or in AndruIDE.".to_string(),
+            (false, false) => "Send the link to anyone: it opens in their browser or in AndruIDE.".to_string(),
+            (copied, true) => format!("{}They see {}'s sessions, in their browser or in AndruIDE.", if copied { "Link copied. " } else { "" }, self.target.machine_name),
         };
         let what = if machine { "its sessions" } else { "this session" };
         let problem = view.problem.clone().map(|p| format!("Guests can't reach {} right now: {p}", self.target.machine_name));
@@ -857,7 +857,7 @@ impl Root {
                 let (share_id, guest_id) = (share.id.clone(), g.id);
                 let share_id2 = share_id.clone();
                 let (a, b) = g.code.split_at(3.min(g.code.len()));
-                let how = if g.client == "browser" { "In a browser" } else { "In Muxin" };
+                let how = if g.client == "browser" { "In a browser" } else { "In AndruIDE" };
                 let wants = match (share.target.is_machine(), share.can_type) {
                     (true, _) => format!("wants to use {}", share.target.title),
                     (false, true) => format!("wants to join {}", share.target.title),

@@ -53,7 +53,7 @@ pub struct Theme {
     pub text_placeholder: Hsla,
     pub text_accent: Hsla,
     pub accent: Hsla,
-    /// The second brand color (Muxin Dusk and Dawn: the icon's orange); the
+    /// The second brand color (AndruIDE Dusk and Dawn: the icon's orange); the
     /// accent itself in other themes.
     pub accent2: Hsla,
     pub accent_text: Hsla,
@@ -168,7 +168,7 @@ pub struct Appearance {
     /// How many times an app's window here said how to close it (it stops after a few).
     pub close_hints: u32,
     /// The icon in the menu bar or tray. On Linux and Windows, it's what keeps
-    /// Muxin running when the window closes (see tray.rs).
+    /// AndruIDE running when the window closes (see tray.rs).
     pub tray: bool,
     /// System notifications when a session needs you or is done (notify.rs).
     pub notifications: bool,

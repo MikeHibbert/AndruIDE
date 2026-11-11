@@ -357,7 +357,7 @@ async fn turns_away(spec: &MachineSpec) -> bool {
     cmd.args(ssh_args(spec)).arg("true");
     cmd.env("SSH_ASKPASS", askpass).env("SSH_ASKPASS_REQUIRE", "force");
     cmd.stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::piped()).kill_on_drop(true);
-    // Without the terminal Muxin may have been started from: an older ssh
+    // Without the terminal AndruIDE may have been started from: an older ssh
     // would ask there instead of through SSH_ASKPASS.
     unsafe {
         cmd.pre_exec(|| {
@@ -380,9 +380,9 @@ async fn turns_away(_spec: &MachineSpec) -> bool {
 /// ssh's stderr) and ends ssh, its parent, before an answer goes out. An
 /// askpass that only fails would have ssh send an empty one.
 #[cfg(unix)]
-const ASKPASS_STOP: &str = "#!/bin/sh\necho \"muxin: asked: $1\" >&2\nkill -TERM \"$PPID\"\nexit 1\n";
+const ASKPASS_STOP: &str = "#!/bin/sh\necho \"andruide: asked: $1\" >&2\nkill -TERM \"$PPID\"\nexit 1\n";
 #[cfg_attr(not(unix), allow(dead_code))]
-const ASKED: &str = "muxin: asked:";
+const ASKED: &str = "andruide: asked:";
 
 /// ASKPASS_STOP as a file to run, in this user's cache folder.
 #[cfg(unix)]
@@ -390,7 +390,7 @@ fn askpass_stop() -> Option<std::path::PathBuf> {
     static PATH: std::sync::OnceLock<Option<std::path::PathBuf>> = std::sync::OnceLock::new();
     PATH.get_or_init(|| {
         use std::os::unix::fs::PermissionsExt;
-        let dir = dirs::cache_dir()?.join("muxen");
+        let dir = dirs::cache_dir()?.join("andruide");
         std::fs::create_dir_all(&dir).ok()?;
         let path = dir.join("askpass-stop");
         let tmp = dir.join(format!("askpass-stop.{}", std::process::id()));
@@ -527,7 +527,7 @@ impl std::fmt::Display for RunError {
 async fn run(spec: &MachineSpec, shell: Shell) -> Result<String, RunError> {
     let script = script_for(spec, shell);
     // Over the machine's live link when one is up (no ssh handshake). A check
-    // doesn't make an ssh link (it's also how Muxin first reaches a machine),
+    // doesn't make an ssh link (it's also how AndruIDE first reaches a machine),
     // only a direct one to a paired machine.
     if shell == Shell::Sh && !spec.is_local() {
         if let Some(link) = crate::fleet::link::current_or_direct(spec).await {
@@ -561,7 +561,7 @@ async fn run(spec: &MachineSpec, shell: Shell) -> Result<String, RunError> {
         };
         match crate::fleet::child::ssh(spec, &shell).await {
             Ok(c) => c,
-            // Muxin's own client: it didn't get in (what ssh says on stderr, exiting 255).
+            // AndruIDE's own client: it didn't get in (what ssh says on stderr, exiting 255).
             Err(e) if cfg!(target_os = "ios") => return Err(RunError::Output { code: Some(255), stderr: e }),
             Err(e) => return Err(RunError::Spawn(e)),
         }
@@ -621,7 +621,7 @@ pub async fn ssh_key_for(spec: &MachineSpec) -> Option<String> {
 /// at a usual place: an app started from a launcher doesn't get what a shell's
 /// profile exports, so ssh works in a terminal and not here. In the environment
 /// and not as ssh's `-o IdentityAgent`, so `IdentityAgent` in the user's ssh
-/// config still wins, and all Muxin starts gets it (ssh, sftp, rsync, an editor).
+/// config still wins, and all AndruIDE starts gets it (ssh, sftp, rsync, an editor).
 ///
 /// `main` calls it first: the environment can't change once there are threads.
 #[cfg(all(unix, not(target_os = "ios")))]
@@ -846,7 +846,7 @@ impl ContainerLines {
         if self.container.is_empty() {
             return None;
         }
-        // The runner's own config wins; then Muxin's label; then the container name.
+        // The runner's own config wins; then AndruIDE's label; then the container name.
         let (config_name, config_url) = self.config.unwrap_or_default();
         let name = [config_name, self.label_name, self.container.clone()].into_iter().find(|n| !n.is_empty())?;
         let url = config_url.or_else(|| (!self.label_scope.is_empty()).then(|| format!("https://github.com/{}", self.label_scope)));
@@ -987,8 +987,8 @@ r1.listener=
         assert!(closed_before_asking("Connection closed by fe80::1c2b:3d4e:5f60:7a8b%en0 port 22\n"));
         assert!(closed_before_asking("Connection closed by 192.168.1.20 port 22\r\n"));
         // It asked: the account is there.
-        assert!(!closed_before_asking("muxin: asked: (ahanna@mac-webtech-025.local) Password:\n"));
-        assert!(!closed_before_asking("muxin: asked: (ahanna@host) Password:\nConnection closed by 10.0.0.2 port 22\n"));
+        assert!(!closed_before_asking("andruide: asked: (ahanna@mac-webtech-025.local) Password:\n"));
+        assert!(!closed_before_asking("andruide: asked: (ahanna@host) Password:\nConnection closed by 10.0.0.2 port 22\n"));
         // It doesn't offer keyboard-interactive, or never got that far: can't tell.
         assert!(!closed_before_asking("adib@box: Permission denied (publickey,password).\n"));
         assert!(!closed_before_asking("kex_exchange_identification: Connection closed by remote host\n"));
@@ -1002,7 +1002,7 @@ probe=1
 os=linux
 sudo=password
 docker=29.8.1
-c0.container=muxen-beelink-01
+c0.container=andruide-beelink-01
 c0.state=running
 c0.image=ghcr.io/actions/actions-runner:2.338.0
 c0.name=beelink-01
@@ -1025,8 +1025,8 @@ c1.restarts=7
         assert_eq!(r.runners.len(), 2);
         let a = &r.runners[0];
         assert_eq!(a.name, "beelink-01");
-        assert_eq!(a.dir, "docker://muxen-beelink-01");
-        assert_eq!(a.container.as_deref(), Some("muxen-beelink-01"));
+        assert_eq!(a.dir, "docker://andruide-beelink-01");
+        assert_eq!(a.container.as_deref(), Some("andruide-beelink-01"));
         assert_eq!((a.listener_pid, a.worker_pid), (Some(4242), Some(4300)));
         assert_eq!(a.version.as_deref(), Some("2.339.1"), "the running binary wins over the image tag");
         assert_eq!(a.url.as_deref(), Some("https://github.com/acme"));
@@ -1087,7 +1087,7 @@ c1.restarts=7
     #[cfg(unix)]
     #[tokio::test]
     async fn tells_a_key_with_a_passphrase() {
-        let dir = std::env::temp_dir().join(format!("muxin-passphrase-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("andruide-passphrase-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let make = |name: &str, passphrase: &str| {
             let key = dir.join(name);
@@ -1106,7 +1106,7 @@ c1.restarts=7
     #[test]
     fn finds_an_agent_for_a_launcher_started_app() {
         use std::os::unix::net::UnixListener;
-        let dir = std::env::temp_dir().join(format!("muxin-agent-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("andruide-agent-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let live = dir.join("live");
         let _agent = UnixListener::bind(&live).unwrap();

@@ -28,11 +28,11 @@ use crate::share::guest;
 
 const CONTEXT: &str = "Desktop";
 /// Also in the view's context while this computer's own shortcuts go to the
-/// machine (see `crate::capture`): then Muxin's go there too.
+/// machine (see `crate::capture`): then AndruIDE's go there too.
 const TAKEN: &str = "DesktopKeys";
 const TAKEN_CONTEXT: &str = "Desktop DesktopKeys";
 
-/// Keys that would otherwise run Muxin's own shortcuts go to the machine.
+/// Keys that would otherwise run AndruIDE's own shortcuts go to the machine.
 pub fn bind_keys(cx: &mut App) {
     let mut keys: Vec<String> = ["escape", "/", "tab", "shift-tab"].map(String::from).to_vec();
     if cfg!(target_os = "macos") {
@@ -43,7 +43,7 @@ pub fn bind_keys(cx: &mut App) {
     cx.bind_keys(keys.iter().map(|k| KeyBinding::new(k, NoAction, Some(CONTEXT))));
 }
 
-/// While the keyboard's shortcuts go to the machine, so does every key Muxin
+/// While the keyboard's shortcuts go to the machine, so does every key AndruIDE
 /// has a shortcut on (⌘W, ⌘Q, ⌃1, the user's own): the release key gives
 /// them back. Bound after everything else, as it reads what's bound.
 pub fn bind_taken_keys(cx: &mut App) {
@@ -104,7 +104,7 @@ pub const NATIVE: u32 = 16384;
 const SIZES: [((u32, u32), &str); 4] = [((1280, 720), "720p"), ((1920, 1080), "1080p"), ((2560, 1440), "1440p"), ((3840, 2160), "4K")];
 
 /// The sizes the bar offers for a monitor, smallest first: the named ones it
-/// has, the size it's at, and the one it had before Muxin changed it (so
+/// has, the size it's at, and the one it had before AndruIDE changed it (so
 /// there's always a way back, whatever that size is).
 fn size_choices(d: &DisplayInfo) -> Vec<((u32, u32), String)> {
     let mut choices: Vec<((u32, u32), String)> = SIZES.iter().filter(|(size, _)| d.any_size || d.modes.contains(size)).map(|(size, label)| (*size, label.to_string())).collect();
@@ -137,7 +137,7 @@ pub enum Shortcuts {
     There,
     /// They're this computer's; they can go to the machine.
     Here,
-    /// A Mac: they can once Muxin is allowed under Accessibility.
+    /// A Mac: they can once AndruIDE is allowed under Accessibility.
     NeedsPermission,
     /// Nothing to offer: a desktop only watched, an app's window, a system
     /// that can't.
@@ -1282,7 +1282,7 @@ impl DesktopView {
 
     /// The release key or the toolbar: this computer's shortcuts change
     /// sides. `clicked`: from the toolbar, where a Mac that hasn't allowed
-    /// Muxin under Accessibility yet is asked to.
+    /// AndruIDE under Accessibility yet is asked to.
     pub fn switch_keyboard(&mut self, clicked: bool, window: &mut Window, cx: &mut Context<Self>) {
         if self.capture.is_some() {
             self.given_back = true;
@@ -1992,7 +1992,7 @@ pub fn toolbar_with_menu(view: &Entity<DesktopView>, extra: Vec<AnyElement>, men
         let to = if name.is_empty() { "the machine" } else { name.as_str() };
         let tip = match shortcuts {
             Shortcuts::There => format!("{examples} go to {to}. Click, or press {release} by themselves, to get them back."),
-            Shortcuts::NeedsPermission => format!("{examples} act on this computer. Click to send them to {to}: macOS asks to allow Muxin under Accessibility first."),
+            Shortcuts::NeedsPermission => format!("{examples} act on this computer. Click to send them to {to}: macOS asks to allow AndruIDE under Accessibility first."),
             _ => format!("{examples} act on this computer. Click, or press {release} by themselves, to send them to {to}."),
         };
         let label = desktop_keys::switch_label(there, &name);
@@ -2130,7 +2130,7 @@ pub fn open_window(engine: Arc<Engine>, machine_id: String, display: Option<Stri
         window_bounds: Some(gpui::WindowBounds::Windowed(bounds)),
         titlebar: Some(gpui::TitlebarOptions { title: Some(title.clone().into()), appears_transparent: cfg!(target_os = "macos"), traffic_light_position: None }),
         window_min_size: Some(gpui::size(px(480.), px(320.))),
-        app_id: Some("muxin".into()),
+        app_id: Some("andruide".into()),
         window_decorations: super::frame::requested(),
         ..Default::default()
     };
@@ -2198,7 +2198,7 @@ pub fn open_app_window(engine: Arc<Engine>, machine_id: String, app: crate::flee
         window_bounds: Some(gpui::WindowBounds::Windowed(bounds)),
         titlebar: Some(gpui::TitlebarOptions { title: Some(title.clone().into()), appears_transparent: cfg!(target_os = "macos"), traffic_light_position: None }),
         window_min_size: Some(gpui::size(px(320.), px(240.))),
-        app_id: Some("muxin".into()),
+        app_id: Some("andruide".into()),
         window_decorations: super::frame::requested(),
         ..Default::default()
     };
@@ -2283,7 +2283,7 @@ mod tests {
         let modes = [(2560, 1707), (1920, 1080), (1280, 720)];
         // At its own size: that, and the named sizes it has.
         assert_eq!(labels(&monitor((2560, 1707), &modes, None)), ["720p", "1080p", "2560×1707"]);
-        // Switched to 1080p by Muxin: the way back is still there.
+        // Switched to 1080p by AndruIDE: the way back is still there.
         assert_eq!(labels(&monitor((1920, 1080), &modes, Some((2560, 1707)))), ["720p", "1080p", "2560×1707"]);
         // Even when the machine's list is short (an older agent) and the
         // size it came from has a name.

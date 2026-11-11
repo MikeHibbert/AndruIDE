@@ -1,4 +1,4 @@
-//! The share server: introduces the two sides of a Muxin share, and serves
+//! The share server: introduces the two sides of a AndruIDE share, and serves
 //! the page that joins one from a browser. muxin.dev runs the same thing
 //! (its own code, the same interface); this one is for running your own,
 //! and for tests.
@@ -14,14 +14,14 @@
 //!
 //! Configuration, from the environment:
 //!
-//! - `MUXIN_SHARE_LISTEN`: where to listen (`127.0.0.1:8787`). Put TLS in
+//! - `ANDRUIDE_SHARE_LISTEN`: where to listen (`127.0.0.1:8787`). Put TLS in
 //!   front (Caddy, nginx); browsers need https.
-//! - `MUXIN_SHARE_STUN`: STUN servers, comma-separated (`stun:host:3478`).
-//! - `MUXIN_SHARE_TURN`: TURN servers, comma-separated (`turn:host:3478`),
-//!   with `MUXIN_SHARE_TURN_SECRET` (coturn's `static-auth-secret`): each
+//! - `ANDRUIDE_SHARE_STUN`: STUN servers, comma-separated (`stun:host:3478`).
+//! - `ANDRUIDE_SHARE_TURN`: TURN servers, comma-separated (`turn:host:3478`),
+//!   with `ANDRUIDE_SHARE_TURN_SECRET` (coturn's `static-auth-secret`): each
 //!   side gets short-lived credentials for the relay.
 //!
-//! Alerts for Muxin for iPad (`/push/v1`) take the same requests as on
+//! Alerts for AndruIDE for iPad (`/push/v1`) take the same requests as on
 //! muxin.dev, which hands them to Apple's push service. This one sends them
 //! nowhere: it keeps the last few to read back (`GET /push/v1/sent`), for tests.
 
@@ -90,12 +90,12 @@ async fn main() {
     let app = Arc::new(App {
         state: Mutex::new(Rooms::default()),
         pushes: Mutex::new(VecDeque::new()),
-        stun: list("MUXIN_SHARE_STUN"),
-        turn: list("MUXIN_SHARE_TURN"),
-        turn_secret: std::env::var("MUXIN_SHARE_TURN_SECRET").ok().filter(|s| !s.is_empty()),
+        stun: list("ANDRUIDE_SHARE_STUN"),
+        turn: list("ANDRUIDE_SHARE_TURN"),
+        turn_secret: std::env::var("ANDRUIDE_SHARE_TURN_SECRET").ok().filter(|s| !s.is_empty()),
     });
     if !app.turn.is_empty() && app.turn_secret.is_none() {
-        tracing::warn!("MUXIN_SHARE_TURN is set without MUXIN_SHARE_TURN_SECRET: the relay won't be offered");
+        tracing::warn!("ANDRUIDE_SHARE_TURN is set without ANDRUIDE_SHARE_TURN_SECRET: the relay won't be offered");
     }
     // Rooms and offers nobody came back for.
     let sweeping = app.clone();
@@ -107,7 +107,7 @@ async fn main() {
             st.offers.retain(|_, o| o.at.elapsed() < OFFER_TTL);
         }
     });
-    let addr: SocketAddr = std::env::var("MUXIN_SHARE_LISTEN").unwrap_or_else(|_| "127.0.0.1:8787".into()).parse().expect("MUXIN_SHARE_LISTEN: an address like 127.0.0.1:8787");
+    let addr: SocketAddr = std::env::var("ANDRUIDE_SHARE_LISTEN").unwrap_or_else(|_| "127.0.0.1:8787".into()).parse().expect("ANDRUIDE_SHARE_LISTEN: an address like 127.0.0.1:8787");
     let router = Router::new()
         .route("/", get(home))
         .route("/s", get(page))
@@ -126,7 +126,7 @@ async fn main() {
         .route("/push/v1/sent", get(push_sent))
         .with_state(app);
     let listener = tokio::net::TcpListener::bind(addr).await.expect("can't listen");
-    tracing::info!("muxin share server on http://{addr}");
+    tracing::info!("andruide share server on http://{addr}");
     axum::serve(listener, router)
         .with_graceful_shutdown(async {
             let _ = tokio::signal::ctrl_c().await;
@@ -166,7 +166,7 @@ fn secure(mut res: Response) -> Response {
 }
 
 async fn home() -> Response {
-    secure((StatusCode::OK, [(header::CONTENT_TYPE, "text/plain; charset=utf-8")], "Muxin share server. Open a share link to join.\n").into_response())
+    secure((StatusCode::OK, [(header::CONTENT_TYPE, "text/plain; charset=utf-8")], "AndruIDE share server. Open a share link to join.\n").into_response())
 }
 
 async fn page() -> Response {
@@ -203,9 +203,9 @@ fn valid_id(id: &str) -> bool {
     id.len() == 16 && id.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
 }
 
-/// The host's key, from `X-Muxin-Host`, as kept (its SHA-256).
+/// The host's key, from `X-AndruIDE-Host`, as kept (its SHA-256).
 fn host_key(headers: &HeaderMap) -> Option<String> {
-    let key = headers.get("x-muxin-host")?.to_str().ok()?;
+    let key = headers.get("x-andruide-host")?.to_str().ok()?;
     if key.len() < 32 || key.len() > 128 {
         return None;
     }

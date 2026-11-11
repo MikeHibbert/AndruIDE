@@ -9,11 +9,11 @@ function Or-Fail($msg) { [Console]::Error.WriteLine("error: $msg"); [Console]::E
 try { Set-Location -LiteralPath $OR_DIR -ErrorAction Stop } catch { Or-Fail "the workspace folder is gone: $OR_DIR" }
 if ($OR_CWD) { try { Set-Location -LiteralPath $OR_CWD -ErrorAction Stop } catch { Or-Fail "there's no folder $OR_CWD in the workspace" } }
 $here = (Get-Location).Path
-$env:MUXEN_WORKSPACE = $OR_ID
+$env:ANDRUIDE_WORKSPACE = $OR_ID
 $env:NO_COLOR = '1'
 $env:GIT_TERMINAL_PROMPT = '0'
 
-$runs = Join-Path $OR_DIR '.muxen'
+$runs = Join-Path $OR_DIR '.andruide'
 New-Item -ItemType Directory -Force -Path (Join-Path $runs 'logs') | Out-Null
 $f = Join-Path $runs ('run-' + [guid]::NewGuid().ToString('N').Substring(0, 8) + '.ps1')
 # A string literal: PowerShell takes U+2018, U+2019, U+201A and U+201B for
@@ -25,7 +25,7 @@ if ($OR_BG) {
   # session started); WMI passes no environment, so the script sets it up.
   $log = Join-Path $OR_DIR $OR_LOG
   $body = "[Console]::OutputEncoding = [Text.Encoding]::UTF8`n" + $OR_ENVPS +
-    "`$env:MUXEN_WORKSPACE = $(& $q $OR_ID)`n`$env:NO_COLOR = '1'`n`$env:GIT_TERMINAL_PROMPT = '0'`n" +
+    "`$env:ANDRUIDE_WORKSPACE = $(& $q $OR_ID)`n`$env:NO_COLOR = '1'`n`$env:GIT_TERMINAL_PROMPT = '0'`n" +
     "Set-Location -LiteralPath $(& $q $here)`n" + $OR_CMD
   Set-Content -LiteralPath $f -Value $body -Encoding UTF8
   $line = "cmd.exe /d /c powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File `"$f`" > `"$log`" 2>&1"

@@ -1,22 +1,22 @@
 <p align="center">
-  <img src="assets/brand/icon-512.png" width="128" height="128" alt="Muxin">
+  <img src="assets/brand/icon-512.png" width="128" height="128" alt="AndruIDE">
 </p>
 
-<h1 align="center">Muxin</h1>
+<h1 align="center">AndruIDE</h1>
 
 <p align="center">One app for all your machines, run by you <b>or by your AI agents</b>.<br>
 <a href="https://muxin.dev">muxin.dev</a> · free and open source (Apache-2.0)</p>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/readme/overview-dark.webp">
-  <img src="assets/readme/overview-light.webp" alt="Muxin's overview: each machine, what's running on it, its CPU, memory and disk, and what needs a look.">
+  <img src="assets/readme/overview-light.webp" alt="AndruIDE's overview: each machine, what's running on it, its CPU, memory and disk, and what needs a look.">
 </picture>
 
-Point it at the machines you own (a Mac Studio under the desk, a NUC, a Linux box, a few MacBooks, a Windows laptop) and Muxin becomes the hub for all of them:
+Point it at the machines you own (a Mac Studio under the desk, a NUC, a Linux box, a few MacBooks, a Windows laptop) and AndruIDE becomes the hub for all of them:
 
 - **Agent sessions:** Claude Code, Codex, OpenCode, Gemini CLI, Antigravity, Amp, Pi, Copilot CLI, Cursor Agent, Qwen Code, Droid, Kimi Code or a shell on any machine, in a real terminal, still running after you close the app.
 - **Boxes:** hand a task to an agent that works on it by itself, in a container of its own on one of your machines. A box pauses when it's quiet and picks up where it left off when you ask it more.
-- **Desktops:** see a Linux machine's screen live and use it, beside an agent's terminal or in its own window. While a desktop has the keyboard, the shortcuts your own computer keeps (⌘Tab and Mission Control on a Mac, Alt+Tab and the Windows key elsewhere) go to the machine; Ctrl+Alt (⌃⌥) by themselves gives them back, and the **Keys** menu sends combinations by a click. On a Mac, that needs Muxin allowed under Privacy & Security › Accessibility.
+- **Desktops:** see a Linux machine's screen live and use it, beside an agent's terminal or in its own window. While a desktop has the keyboard, the shortcuts your own computer keeps (⌘Tab and Mission Control on a Mac, Alt+Tab and the Windows key elsewhere) go to the machine; Ctrl+Alt (⌃⌥) by themselves gives them back, and the **Keys** menu sends combinations by a click. On a Mac, that needs AndruIDE allowed under Privacy & Security › Accessibility.
 - **Files and clipboard:** copy files and folders between any two machines, and copy on your Mac to paste on a machine (and back).
 - **GitHub:** your inbox, repositories, issues and pull requests, with one click to hand an issue to an agent on the machine you pick.
 - **Self-hosted runners:** which runners are working, idle or offline, which jobs no runner can take, and installing, starting, stopping or removing runners.
@@ -25,48 +25,48 @@ Point it at the machines you own (a Mac Studio under the desk, a NUC, a Linux bo
 Agents can also **borrow a machine as a work environment**: an [agent workspace](#agent-workspaces) is a persistent folder (optionally a git checkout) on one of your machines where an agent runs commands, edits files and syncs code.
 
 - **Native and fast.** The window is built with [GPUI](https://www.gpui.rs), the GPU-accelerated UI framework behind the Zed editor. It runs on macOS, Linux and Windows.
-- **Keeps running when you close the window.** Muxin goes on checking your machines and holding your connections and port forwards, with an icon in the menu bar or system tray. A dot on it shows when a session is waiting for you. Its menu lists those sessions and has **Show Muxin** and **Quit Muxin**. Opening Muxin again brings the window back too, from a terminal as well: there is one running copy. A desktop's stream stops while the window is closed and picks up when it's back, and shares you started end. Your sessions keep running on their machines either way.
-  - **Mac:** the Dock brings the window back as you left it too (**Window › Show Muxin** if another Muxin window is open). ⌘Q quits. **Settings › General › Menu bar** hides the icon.
+- **Keeps running when you close the window.** AndruIDE goes on checking your machines and holding your connections and port forwards, with an icon in the menu bar or system tray. A dot on it shows when a session is waiting for you. Its menu lists those sessions and has **Show AndruIDE** and **Quit AndruIDE**. Opening AndruIDE again brings the window back too, from a terminal as well: there is one running copy. A desktop's stream stops while the window is closed and picks up when it's back, and shares you started end. Your sessions keep running on their machines either way.
+  - **Mac:** the Dock brings the window back as you left it too (**Window › Show AndruIDE** if another AndruIDE window is open). ⌘Q quits. **Settings › General › Menu bar** hides the icon.
   - **Windows:** the window comes back as you left it. Click the icon for the window, right-click it for the menu. Windows 11 starts new icons under the **^** arrow by the clock; drag it out to keep it in view. Turn off **Settings › General › Tray** and closing it quits.
-  - **Linux:** the window really closes, and comes back on the same page and splits, with terminals reattached. Open dialogs and half-typed text don't come back, and a session running without Muxin's agent ends with the window. Turn off **Settings › General › Tray** and closing it quits. So does a desktop with no tray: GNOME shows tray icons only with the AppIndicator extension (Ubuntu has it on). If the tray goes away while the window is closed, the window comes back by itself.
-  - `muxin quit` quits from a terminal, wherever the window is.
-- **Agent-first.** Every capability is available as an MCP server (`muxin mcp`) and as scriptable commands with `--json`. Claude Code, Codex and other agents can check your machines, explain problems and fix them.
-- **Uses what you already have.** Machines are first reached with your system `ssh`, so your keys, agent and `~/.ssh/config` aliases just work; after that Muxin talks to its own small agent there, directly or through [Tailscale](#tailscale-and-moving-between-networks). GitHub access uses your `gh` login.
+  - **Linux:** the window really closes, and comes back on the same page and splits, with terminals reattached. Open dialogs and half-typed text don't come back, and a session running without AndruIDE's agent ends with the window. Turn off **Settings › General › Tray** and closing it quits. So does a desktop with no tray: GNOME shows tray icons only with the AppIndicator extension (Ubuntu has it on). If the tray goes away while the window is closed, the window comes back by itself.
+  - `andruide quit` quits from a terminal, wherever the window is.
+- **Agent-first.** Every capability is available as an MCP server (`andruide mcp`) and as scriptable commands with `--json`. Claude Code, Codex and other agents can check your machines, explain problems and fix them.
+- **Uses what you already have.** Machines are first reached with your system `ssh`, so your keys, agent and `~/.ssh/config` aliases just work; after that AndruIDE talks to its own small agent there, directly or through [Tailscale](#tailscale-and-moving-between-networks). GitHub access uses your `gh` login.
 
 ## Install
 
-Download the app from the [latest release](https://github.com/LumaryLabsLLC/muxin/releases/latest):
+Download the app from the [latest release](https://github.com/MikeHibbert/AndruIDE/releases/latest):
 
-- **macOS** 12 or later, Apple silicon and Intel: `Muxin-<version>-macos.dmg`. Open it and drag Muxin to Applications. It's signed and notarized.
+- **macOS** 12 or later, Apple silicon and Intel: `AndruIDE-<version>-macos.dmg`. Open it and drag AndruIDE to Applications. It's signed and notarized.
 - **Linux** with glibc 2.35 or newer (Ubuntu 22.04, Debian 12, Fedora 36, openSUSE Tumbleweed, RHEL 10 and later), for Intel and AMD (`x86_64`) or Arm (`aarch64`):
-  - Debian and Ubuntu: `Muxin-<version>-linux-x86_64.deb`, then `sudo apt install ./Muxin-<version>-linux-x86_64.deb`.
-  - Fedora, openSUSE and RHEL: `Muxin-<version>-linux-x86_64.rpm`, then `sudo dnf install ./Muxin-<version>-linux-x86_64.rpm` (or `zypper install`).
-  - Arch: `yay -S muxin-bin` from the [AUR](https://aur.archlinux.org/packages/muxin-bin), or `Muxin-<version>-linux-x86_64.pkg.tar.zst` with `sudo pacman -U`.
-  - Any distribution: `Muxin-<version>-linux-x86_64.AppImage`. Make it executable and run it; it needs no FUSE 2.
-  - Or `Muxin-<version>-linux-x86_64.tar.gz`: unpack it and run `./Muxin/install.sh`, which installs it for you, no root needed.
-- **Windows 11**: `Muxin-<version>-windows-x64-setup.exe`, or `windows-arm64` on Windows on Arm. The installer isn't signed yet, so Windows may say "Windows protected your PC": click **More info**, then **Run anyway**.
+  - Debian and Ubuntu: `AndruIDE-<version>-linux-x86_64.deb`, then `sudo apt install ./AndruIDE-<version>-linux-x86_64.deb`.
+  - Fedora, openSUSE and RHEL: `AndruIDE-<version>-linux-x86_64.rpm`, then `sudo dnf install ./AndruIDE-<version>-linux-x86_64.rpm` (or `zypper install`).
+  - Arch: `yay -S andruide-bin` from the [AUR](https://aur.archlinux.org/packages/andruide-bin), or `AndruIDE-<version>-linux-x86_64.pkg.tar.zst` with `sudo pacman -U`.
+  - Any distribution: `AndruIDE-<version>-linux-x86_64.AppImage`. Make it executable and run it; it needs no FUSE 2.
+  - Or `AndruIDE-<version>-linux-x86_64.tar.gz`: unpack it and run `./AndruIDE/install.sh`, which installs it for you, no root needed.
+- **Windows 11**: `AndruIDE-<version>-windows-x64-setup.exe`, or `windows-arm64` on Windows on Arm. The installer isn't signed yet, so Windows may say "Windows protected your PC": click **More info**, then **Run anyway**.
 
 Or with [Homebrew](https://brew.sh), on macOS and Linux:
 
 ```sh
-brew install --cask lumarylabsllc/tap/muxin
+brew install --cask lumarylabsllc/tap/andruide
 ```
 
 `SHA256SUMS.txt` in each release has the files' checksums.
 
-Muxin tells you when a new version is out: the sidebar says so, and About shows how to update the copy you have (with Homebrew or the AUR, or the new file to download). It asks GitHub for the latest release when it opens and twice a day; turn that off in **Settings › General › Updates**. `muxin updates` checks from a terminal.
+AndruIDE tells you when a new version is out: the sidebar says so, and About shows how to update the copy you have (with Homebrew or the AUR, or the new file to download). It asks GitHub for the latest release when it opens and twice a day; turn that off in **Settings › General › Updates**. `andruide updates` checks from a terminal.
 
-Muxin was called Muxen before 0.5.1. Updating keeps your settings, machines and sessions, and the `muxen` command still works. On a Mac, the old Muxen app goes to the Trash the first time Muxin opens.
+AndruIDE was called AndruIDE before 0.5.1. Updating keeps your settings, machines and sessions, and the `andruide` command still works. On a Mac, the old AndruIDE app goes to the Trash the first time AndruIDE opens.
 
 ### Build from source
 
 ```sh
-git clone https://github.com/LumaryLabsLLC/muxin && cd muxin
+git clone https://github.com/MikeHibbert/AndruIDE && cd andruide
 cargo build --release --workspace
-./target/release/muxin            # opens the window
+./target/release/andruide            # opens the window
 ```
 
-`--workspace` also builds Muxin's agent for this computer, which the app sets up on it. For your other machines' platforms, `./scripts/build-agents.sh` builds every agent into `dist/agents` (it needs zig and cargo-zigbuild).
+`--workspace` also builds AndruIDE's agent for this computer, which the app sets up on it. For your other machines' platforms, `./scripts/build-agents.sh` builds every agent into `dist/agents` (it needs zig and cargo-zigbuild).
 
 Requirements:
 
@@ -83,12 +83,12 @@ cargo build --release --no-default-features
 
 There's nothing else to set up. Fonts and icons are compiled into the binary.
 
-To run `muxin` from a terminal, use **Settings › General › Command line › Install**, or `muxin shell-command install`. On macOS it links `/usr/local/bin/muxin` to the app (macOS asks for your password when that folder needs it), on Linux `~/.local/bin/muxin`, and on Windows it adds Muxin's folder to your user PATH. `muxen`, its name from before, runs it too. `muxin shell-command remove` takes it out again.
+To run `andruide` from a terminal, use **Settings › General › Command line › Install**, or `andruide shell-command install`. On macOS it links `/usr/local/bin/andruide` to the app (macOS asks for your password when that folder needs it), on Linux `~/.local/bin/andruide`, and on Windows it adds AndruIDE's folder to your user PATH. `andruide`, its name from before, runs it too. `andruide shell-command remove` takes it out again.
 
-To get a real app with the Muxin icon:
+To get a real app with the AndruIDE icon:
 
-- **macOS:** `./scripts/bundle-macos.sh` builds `dist/Muxin.app`, signed with the Developer ID when it's in your keychain. Drag it to Applications. Agents can still use the binary inside it: `Muxin.app/Contents/MacOS/muxin mcp`.
-- **Linux:** `./scripts/package-linux.sh` makes a tarball; its `install.sh` puts Muxin in `~/.local` with an entry in your app menu.
+- **macOS:** `./scripts/bundle-macos.sh` builds `dist/AndruIDE.app`, signed with the Developer ID when it's in your keychain. Drag it to Applications. Agents can still use the binary inside it: `AndruIDE.app/Contents/MacOS/andruide mcp`.
+- **Linux:** `./scripts/package-linux.sh` makes a tarball; its `install.sh` puts AndruIDE in `~/.local` with an entry in your app menu.
 - **Windows:** `scripts\package-windows.ps1` makes the installer.
 
 Releases (a notarized DMG, and for Linux and Windows a tarball and an installer each for Intel/AMD and Arm) are built by GitHub Actions from a version tag: see [RELEASING.md](RELEASING.md).
@@ -96,42 +96,42 @@ Releases (a notarized DMG, and for Linux and Windows a tarball and an installer 
 ## Quick start
 
 ```sh
-muxin --demo                       # explore simulated machines first; nothing real is touched
-muxin                              # your machines: starts with this computer in config.toml
-muxin add-machine --name "Mac Studio" --host ci@mac-studio.local
-muxin watch acme                   # live runner status and jobs for the acme org
-muxin install mac-studio --count 2 # two runners, registered with acme, as services
-muxin status
+andruide --demo                       # explore simulated machines first; nothing real is touched
+andruide                              # your machines: starts with this computer in config.toml
+andruide add-machine --name "Mac Studio" --host ci@mac-studio.local
+andruide watch acme                   # live runner status and jobs for the acme org
+andruide install mac-studio --count 2 # two runners, registered with acme, as services
+andruide status
 ```
 
 ## The app
 
 - **Overview:** the day in one line (machines online, agents working, runners busy), a few notices for what needs a look (each with a button that fixes or explains it), a card per machine with what's running on it (its agents, desktop and runners) and live CPU, memory and disk, and every agent session across your machines. The Jobs page shows how busy your runners have been over the last few minutes.
-- **Machines and runners:** install runners on a machine, and start, stop, restart, show logs for or remove each one. A machine that's off or out of reach says so in plain words (offline, Remote Login off, ssh key not accepted, Tailscale off on this Mac, …), with when it was last seen and what to do; Muxin picks it back up by itself when it returns.
+- **Machines and runners:** install runners on a machine, and start, stop, restart, show logs for or remove each one. A machine that's off or out of reach says so in plain words (offline, Remote Login off, ssh key not accepted, Tailscale off on this Mac, …), with when it was last seen and what to do; AndruIDE picks it back up by itself when it returns.
 - **Adding machines (⌘N):** suggestions from your `~/.ssh/config`, your Tailscale network, and this network (machines advertising ssh over Bonjour, and Macs that would be addable once Remote Login is on).
 - **Agent sessions (⌘T):** a real terminal on any machine running Claude Code, Codex, OpenCode, Gemini CLI, Antigravity, Amp, Pi, Copilot CLI, Cursor Agent, Qwen Code, Droid, Kimi Code or a shell. Sessions are listed under their machine in the sidebar (a spinner while the agent works, an amber dot when it needs you, a dot in the accent color when it's done), with its open desktop and one line for its runners, and keep running when you quit the app. Terminal font size, line height and a blinking cursor are in Settings.
 - **Usage (⌃5):** what Claude Code and Codex used on all your machines today or over the last 7, 30 or 90 days, read from their own logs there: tokens and requests by day, model, machine and folder, and what it would cost at Anthropic's and OpenAI's API list prices. With a Claude or ChatGPT plan you don't pay per token; it's what the same use would cost through the API.
 - **Run (⌃6):** one command on several machines at once (`df -h /`, `brew upgrade`, `git -C ~/code/api pull`), each one's output side by side as it comes, and its exit status. It runs in your login shell from your home folder; right-click a machine › **Run a command…** to start with just that one.
-- **Open in your editor:** sessions, workspaces, GitHub checkouts and Compose projects have a button that lists the editors on this computer (Zed, Cursor, VS Code) and opens their folder in the one you pick, over the editor's own ssh support. Settings › General › Editor picks which comes first (and which `muxin edit` uses).
+- **Open in your editor:** sessions, workspaces, GitHub checkouts and Compose projects have a button that lists the editors on this computer (Zed, Cursor, VS Code) and opens their folder in the one you pick, over the editor's own ssh support. Settings › General › Editor picks which comes first (and which `andruide edit` uses).
 - **What's running:** a machine's **Services › Processes** lists its busiest processes (CPU, memory, how long they've run, GPU memory on NVIDIA) and stops or kills one; its page shows its GPU (NVIDIA, AMD on Linux, Apple), how busy it is and its memory.
-- **Fleet warnings and Wake:** a machine's page and the Overview say when it wants a reboot (Linux updates) or has failed services. A machine that's asleep or off has a **Wake** button (Wake on LAN, sent from this computer and from your machines on its network) once Muxin has seen its network card.
+- **Fleet warnings and Wake:** a machine's page and the Overview say when it wants a reboot (Linux updates) or has failed services. A machine that's asleep or off has a **Wake** button (Wake on LAN, sent from this computer and from your machines on its network) once AndruIDE has seen its network card.
 - **Copy files:** a two-pane dialog to copy files and folders from one machine to another (see [Files and the clipboard](#files-and-the-clipboard)); or drop files from the Finder onto a machine in the sidebar.
 - **Activity (⌘J):** one timeline of everything happening on your machines: operations started in the app (with live output) and every command agents ran in workspaces, filterable by kind or failures.
-- **Boxes (⌃3):** tasks you hand to an agent that works on them by itself, each in a container on one of your machines (see [Boxes](#boxes)). Below them, **Agents' workspaces**: folders that AI tools you use elsewhere work in through Muxin. Open one to see every command it ran, with its exit code and output, review its git changes, copy a shell command to step in, or destroy it.
+- **Boxes (⌃3):** tasks you hand to an agent that works on them by itself, each in a container on one of your machines (see [Boxes](#boxes)). Below them, **Agents' workspaces**: folders that AI tools you use elsewhere work in through AndruIDE. Open one to see every command it ran, with its exit code and output, review its git changes, copy a shell command to step in, or destroy it.
 - **Jobs:** queued and running self-hosted jobs, and which queued jobs no online runner can take.
 - **Appearance:** follow the system, or pin light or dark, each with its own theme. Built-in themes:
-  - dark: Muxin Graphite, macOS Dark, Gruvbox Dark, Catppuccin Mocha / Macchiato / Frappé, Tokyo Night, Nord, Rosé Pine, Solarized Dark, Dracula, Everforest Dark, Kanagawa Wave, GitHub Dark, Terminal, Terminal Midnight;
-  - light: Muxin Paper, macOS Light, Gruvbox Light, Catppuccin Latte, Tokyo Night Day, Nord Light, Rosé Pine Dawn, Solarized Light, Everforest Light, Kanagawa Lotus, GitHub Light, Terminal Paper.
+  - dark: AndruIDE Graphite, macOS Dark, Gruvbox Dark, Catppuccin Mocha / Macchiato / Frappé, Tokyo Night, Nord, Rosé Pine, Solarized Dark, Dracula, Everforest Dark, Kanagawa Wave, GitHub Dark, Terminal, Terminal Midnight;
+  - light: AndruIDE Paper, macOS Light, Gruvbox Light, Catppuccin Latte, Tokyo Night Day, Nord Light, Rosé Pine Dawn, Solarized Light, Everforest Light, Kanagawa Lotus, GitHub Light, Terminal Paper.
 
-  The macOS themes also switch to the system fonts (SF Pro, and SF Mono when it's installed). The Terminal themes make Muxin look like a TUI in a terminal: one monospace font, square corners, `[ Buttons ]` and `── Headings ──`. The choice is saved in `config.toml` (`[ui]`).
+  The macOS themes also switch to the system fonts (SF Pro, and SF Mono when it's installed). The Terminal themes make AndruIDE look like a TUI in a terminal: one monospace font, square corners, `[ Buttons ]` and `── Headings ──`. The choice is saved in `config.toml` (`[ui]`).
 
-Keyboard: ⌘P goes to any machine, session or desktop by name, and ⇧⌘P (or ⌘P then `>`) runs any command, including **Theme: Choose…**, which previews each theme as you move through the list · ⌘1…⌘9 go to your machines · ⌃1…⌃7 overview, jobs, boxes, GitHub, usage, run, schedules (Alt on Linux and Windows) · ⌘J activity · ⌘R check machines · ⇧⌘R sync GitHub · ⌘N add machine · ⌘T new session · ⌘F or `/` search your machines and sessions · ⌘B sidebar · ⌘[ / ⌘] back / forward · ⇧⌘] / ⇧⌘[ next / previous session · ⌘, settings. Hold ⌘ to see them in the app, and change them in Settings › Keyboard. On Linux and Windows, use Ctrl instead of ⌘. Coming from herdr? **Keys like › herdr** at the top of Settings › Keyboard uses herdr's keys wherever Muxin does the same thing (a herdr space is a machine here, a tab a session).
+Keyboard: ⌘P goes to any machine, session or desktop by name, and ⇧⌘P (or ⌘P then `>`) runs any command, including **Theme: Choose…**, which previews each theme as you move through the list · ⌘1…⌘9 go to your machines · ⌃1…⌃7 overview, jobs, boxes, GitHub, usage, run, schedules (Alt on Linux and Windows) · ⌘J activity · ⌘R check machines · ⇧⌘R sync GitHub · ⌘N add machine · ⌘T new session · ⌘F or `/` search your machines and sessions · ⌘B sidebar · ⌘[ / ⌘] back / forward · ⇧⌘] / ⇧⌘[ next / previous session · ⌘, settings. Hold ⌘ to see them in the app, and change them in Settings › Keyboard. On Linux and Windows, use Ctrl instead of ⌘. Coming from herdr? **Keys like › herdr** at the top of Settings › Keyboard uses herdr's keys wherever AndruIDE does the same thing (a herdr space is a machine here, a tab a session).
 
 ## Your settings: `config.toml`
 
-Muxin keeps everything you set in one file, `config.toml`, in `~/.config/muxin/` (`%APPDATA%\muxin\` on Windows), or in `$MUXIN_HOME` if that's set. Run `muxin paths` to see where it is. Older versions kept `fleet.toml`, `settings.json` and `ui.json` in `~/.config/muxen/`; the first run brings them into `config.toml` and leaves the old folder as it was.
+AndruIDE keeps everything you set in one file, `config.toml`, in `~/.config/andruide/` (`%APPDATA%\andruide\` on Windows), or in `$ANDRUIDE_HOME` if that's set. Run `andruide paths` to see where it is. Older versions kept `fleet.toml`, `settings.json` and `ui.json` in `~/.config/andruide/`; the first run brings them into `config.toml` and leaves the old folder as it was.
 
-- `[[machine]]` tables list your machines. Edit them by hand if you like: Muxin also edits them when you add machines or install runners, and keeps your comments.
+- `[[machine]]` tables list your machines. Edit them by hand if you like: AndruIDE also edits them when you add machines or install runners, and keeps your comments.
 - `[settings]` holds the watched GitHub orgs and repos, the polling intervals, whether the clipboard is shared, and cloud machine options.
 - `[ui]` holds the app's look: theme, icons, terminal font and size, shortcuts, favorite machines.
 - `state.json` holds the last machine check, and what Tailscale last said about each machine.
@@ -155,15 +155,15 @@ name = "StudioNAS"   # no runners: shown under "Other machines"
 host = "nas"
 ```
 
-A machine that runs on another one is shown under it: a VM or container reached through that machine (`ProxyJump` to its own address or `127.0.0.1`), or at its address on another port. Muxin works this out from `~/.ssh/config`, what each machine reports about itself (a VM says so), and the Docker containers that publish the port ssh goes to. When it can't be reached, it says whether the machine it's on is off or its container is stopped, and it can start or stop that container (`muxin power win11 on`).
+A machine that runs on another one is shown under it: a VM or container reached through that machine (`ProxyJump` to its own address or `127.0.0.1`), or at its address on another port. AndruIDE works this out from `~/.ssh/config`, what each machine reports about itself (a VM says so), and the Docker containers that publish the port ssh goes to. When it can't be reached, it says whether the machine it's on is off or its container is stopped, and it can start or stop that container (`andruide power win11 on`).
 
 Runners installed in the usual places are discovered automatically: `~/actions-runner*`, `~/actions-runner/*`, `~/runners/*`, `/opt/actions-runner*` and `C:\actions-runner\*`. A runner is found from its `.runner` file and its running `Runner.Listener` / `Runner.Worker` processes.
 
 ## GitHub
 
-Watch an org or a repo in Settings, or with `muxin watch acme` (or `acme/api`). Muxin then reads live runner status (online, busy) and the queued and running jobs of the most recently pushed repos.
+Watch an org or a repo in Settings, or with `andruide watch acme` (or `acme/api`). AndruIDE then reads live runner status (online, busy) and the queued and running jobs of the most recently pushed repos.
 
-The token comes from `MUXEN_GITHUB_TOKEN`, `GITHUB_TOKEN`, `GH_TOKEN`, or `gh auth token`. Like `gh`, Muxin sends those variables only to github.com; for GitHub Enterprise Server it uses `GH_ENTERPRISE_TOKEN` or `GITHUB_ENTERPRISE_TOKEN`. Polling uses conditional requests, so unchanged responses don't count against your rate limit.
+The token comes from `ANDRUIDE_GITHUB_TOKEN`, `GITHUB_TOKEN`, `GH_TOKEN`, or `gh auth token`. Like `gh`, AndruIDE sends those variables only to github.com; for GitHub Enterprise Server it uses `GH_ENTERPRISE_TOKEN` or `GITHUB_ENTERPRISE_TOKEN`. Polling uses conditional requests, so unchanged responses don't count against your rate limit.
 
 Reading and registering **org** runners needs an org admin token with the `admin:org` scope:
 
@@ -171,34 +171,34 @@ Reading and registering **org** runners needs an org admin token with the `admin
 gh auth refresh -h github.com -s admin:org
 ```
 
-Repo runners need admin access to the repo. For GitHub Enterprise Server, set the API URL in Settings or run `muxin settings --api-url https://HOST/api/v3`.
+Repo runners need admin access to the repo. For GitHub Enterprise Server, set the API URL in Settings or run `andruide settings --api-url https://HOST/api/v3`.
 
 ## Use it from AI agents
 
-Muxin ships an [MCP](https://modelcontextprotocol.io) server. Print setup snippets that point at your binary:
+AndruIDE ships an [MCP](https://modelcontextprotocol.io) server. Print setup snippets that point at your binary:
 
 ```sh
-muxin mcp --print-config
+andruide mcp --print-config
 ```
 
 **Claude Code**
 
 ```sh
-claude mcp add muxin -- /path/to/muxin mcp
+claude mcp add andruide -- /path/to/andruide mcp
 ```
 
 **Codex** (`~/.codex/config.toml`)
 
 ```toml
-[mcp_servers.muxin]
-command = "/path/to/muxin"
+[mcp_servers.andruide]
+command = "/path/to/andruide"
 args = ["mcp"]
 ```
 
 **Other MCP clients** (Claude Desktop, Cursor, …)
 
 ```json
-{ "mcpServers": { "muxin": { "command": "/path/to/muxin", "args": ["mcp"] } } }
+{ "mcpServers": { "andruide": { "command": "/path/to/andruide", "args": ["mcp"] } } }
 ```
 
 Add `"--demo"` after `"mcp"` to let an agent practice on the simulated machines.
@@ -261,22 +261,22 @@ Many failures also include a `hint` with the exact command that fixes them. [AGE
 
 ### Agent skill
 
-Agents that load skills (Claude Code, Codex, OpenCode, Gemini CLI, Pi, Hermes, …) can learn Muxin's CLI from the skill in [`skills/muxin`](skills/muxin/SKILL.md), with no MCP server to set up. It has the ground rules (start with `muxin status --json`, confirm before changing things, pass hints on verbatim) and how to work with sessions, boxes, workspaces, runners, machines, cloud machines and VMs. Ask your agent to "review PR 142 in my session on beelink" and it knows what to run.
+Agents that load skills (Claude Code, Codex, OpenCode, Gemini CLI, Pi, Hermes, …) can learn AndruIDE's CLI from the skill in [`skills/andruide`](skills/andruide/SKILL.md), with no MCP server to set up. It has the ground rules (start with `andruide status --json`, confirm before changing things, pass hints on verbatim) and how to work with sessions, boxes, workspaces, runners, machines, cloud machines and VMs. Ask your agent to "review PR 142 in my session on beelink" and it knows what to run.
 
 ```sh
-muxin skill install                   # for every agent found on this computer
-muxin skill install --agent hermes    # just one: claude, codex, opencode, gemini, pi, hermes, copilot, cursor, qwen, droid, kimi, or agents
-muxin skill install --dir ~/my-agent/skills
-muxin skill remove
-muxin skill show                      # the guide the skill reads
+andruide skill install                   # for every agent found on this computer
+andruide skill install --agent hermes    # just one: claude, codex, opencode, gemini, pi, hermes, copilot, cursor, qwen, droid, kimi, or agents
+andruide skill install --dir ~/my-agent/skills
+andruide skill remove
+andruide skill show                      # the guide the skill reads
 ```
 
-What `muxin skill install` puts in place is a short stub: the skill's description, and a line that tells the agent to run `muxin skill show`. The guide comes from the Muxin you have, so it's never out of date, even after an update. Copies that an older Muxin wrote in full are replaced with the stub when you run `muxin skill install` again. It goes in `~/.claude/skills/muxin`, `~/.config/opencode/skills/muxin`, `~/.gemini/skills/muxin`, `~/.pi/agent/skills/muxin`, `~/.hermes/skills/muxin`, or the shared `~/.agents/skills/muxin` for Codex, Copilot CLI, Cursor Agent, Qwen Code, Droid and Kimi Code (and `agents`, for any other agent that reads it).
+What `andruide skill install` puts in place is a short stub: the skill's description, and a line that tells the agent to run `andruide skill show`. The guide comes from the AndruIDE you have, so it's never out of date, even after an update. Copies that an older AndruIDE wrote in full are replaced with the stub when you run `andruide skill install` again. It goes in `~/.claude/skills/andruide`, `~/.config/opencode/skills/andruide`, `~/.gemini/skills/andruide`, `~/.pi/agent/skills/andruide`, `~/.hermes/skills/andruide`, or the shared `~/.agents/skills/andruide` for Codex, Copilot CLI, Cursor Agent, Qwen Code, Droid and Kimi Code (and `agents`, for any other agent that reads it).
 
-To follow this repository instead, copy or link the folder into your agent's skills folder (`muxin skill install` leaves a link alone):
+To follow this repository instead, copy or link the folder into your agent's skills folder (`andruide skill install` leaves a link alone):
 
 ```sh
-ln -s "$PWD/skills/muxin" ~/.claude/skills/muxin
+ln -s "$PWD/skills/andruide" ~/.claude/skills/andruide
 ```
 
 ### The CLI, for scripts and agents without MCP
@@ -288,38 +288,38 @@ Every command takes `--json`. In that mode stdout carries JSON only, and errors 
 - `2`: bad input, or the thing wasn't found.
 
 ```sh
-muxin status [--refresh]                 # overview + what needs attention
-muxin machines | machine <id>
-muxin runners [--machine <id>] [--state offline]
-muxin jobs
-muxin add-machine --name <name> --host <ssh-host> [--no-check]
-muxin remove-machine <id>
-muxin rename-machine <id> <new name>      # the id stays the same
-muxin ports beelink                       # what's listening there (web servers first)
-muxin forward beelink 3000                # its port 3000 at localhost:3000 here, until Ctrl-C
-muxin run --on beelink,mac-studio -- df -h /   # one command on several machines (--all: every one online)
-muxin ps beelink [-n 20]                  # its busiest processes and its GPUs
-muxin kill beelink 4242 [--force]         # stop a process (--force: SIGKILL)
-muxin wake beelink                        # Wake on LAN
-muxin power win11 off                     # shut a machine down (or restart it); a VM or cloud machine also turns on
-muxin vm create win-test --system windows-11 --on beelink   # a VM on one of your machines
-muxin schedule add beelink --name Tests --every day --at 09:00 --command "make test"
-muxin usage [--days 30] [beelink]             # what the agents used, and the cost at API prices
-muxin edit beelink:~/code/api [--editor zed] [--print]   # open a folder there in your editor
-muxin disconnect <id>                     # stop connecting to it (its sessions go on there)
-muxin connect <id>                        # connect again, and check it
-muxin ignore <id> low-disk [--undo]       # stop showing one of its warnings (--undo: show it again)
-muxin install <machine-id> [--scope acme] [--count N | --name a --name b] [--label gpu] [--mode auto|service|background|docker] [--image IMAGE] [--docker-socket] [--no-wait]
-muxin runner <start|stop|restart|logs|remove> <runner-id> [--delete-files]
-muxin watch <org|owner/repo>... / unwatch ...
-muxin settings [--poll 20] [--scan-repos 10] [--check-interval 15]
-muxin ssh-hosts                          # ~/.ssh/config, your tailnet, and this network
-muxin files <machine>[:<folder>]         # what's in a folder (alias: ls)
-muxin cp <machine>:<path>... <machine>:<folder>   # copy between machines
-muxin connection <machine> [--direct on|off]
-muxin ipad pair [--machine <machine>]... # pair an iPad: a QR code to scan (ls, rm <name>)
-muxin check [--json]                     # one-shot full report
-muxin workspace …                        # agent workspaces, see below (alias: ws)
+andruide status [--refresh]                 # overview + what needs attention
+andruide machines | machine <id>
+andruide runners [--machine <id>] [--state offline]
+andruide jobs
+andruide add-machine --name <name> --host <ssh-host> [--no-check]
+andruide remove-machine <id>
+andruide rename-machine <id> <new name>      # the id stays the same
+andruide ports beelink                       # what's listening there (web servers first)
+andruide forward beelink 3000                # its port 3000 at localhost:3000 here, until Ctrl-C
+andruide run --on beelink,mac-studio -- df -h /   # one command on several machines (--all: every one online)
+andruide ps beelink [-n 20]                  # its busiest processes and its GPUs
+andruide kill beelink 4242 [--force]         # stop a process (--force: SIGKILL)
+andruide wake beelink                        # Wake on LAN
+andruide power win11 off                     # shut a machine down (or restart it); a VM or cloud machine also turns on
+andruide vm create win-test --system windows-11 --on beelink   # a VM on one of your machines
+andruide schedule add beelink --name Tests --every day --at 09:00 --command "make test"
+andruide usage [--days 30] [beelink]             # what the agents used, and the cost at API prices
+andruide edit beelink:~/code/api [--editor zed] [--print]   # open a folder there in your editor
+andruide disconnect <id>                     # stop connecting to it (its sessions go on there)
+andruide connect <id>                        # connect again, and check it
+andruide ignore <id> low-disk [--undo]       # stop showing one of its warnings (--undo: show it again)
+andruide install <machine-id> [--scope acme] [--count N | --name a --name b] [--label gpu] [--mode auto|service|background|docker] [--image IMAGE] [--docker-socket] [--no-wait]
+andruide runner <start|stop|restart|logs|remove> <runner-id> [--delete-files]
+andruide watch <org|owner/repo>... / unwatch ...
+andruide settings [--poll 20] [--scan-repos 10] [--check-interval 15]
+andruide ssh-hosts                          # ~/.ssh/config, your tailnet, and this network
+andruide files <machine>[:<folder>]         # what's in a folder (alias: ls)
+andruide cp <machine>:<path>... <machine>:<folder>   # copy between machines
+andruide connection <machine> [--direct on|off]
+andruide ipad pair [--machine <machine>]... # pair an iPad: a QR code to scan (ls, rm <name>)
+andruide check [--json]                     # one-shot full report
+andruide workspace …                        # agent workspaces, see below (alias: ws)
 ```
 
 Ids:
@@ -347,28 +347,28 @@ A place on your machines for an agent you're using elsewhere (Claude Code on you
 
 The machine can be named, or picked for you: the least-loaded online machine that allows workspaces, optionally matching a platform such as `linux` or `darwin-arm64`. Private GitHub repos are cloned with your `gh` login; the token is passed through the environment for that one command and never written to disk or logs.
 
-Every command an agent runs is recorded with its exit code, duration and the end of its output. You can see that history in the app (**Boxes › Agents' workspaces**, or a machine's page), or open a terminal in any workspace with `muxin workspace shell <id>`.
+Every command an agent runs is recorded with its exit code, duration and the end of its output. You can see that history in the app (**Boxes › Agents' workspaces**, or a machine's page), or open a terminal in any workspace with `andruide workspace shell <id>`.
 
 ```sh
-muxin ws create --platform linux --repo acme/api --ref main
-muxin ws create --docker --image node:22 --repo acme/web   # an isolated container
-muxin ws create --machine beelink --worktree-of ~/code/api --branch fix-login   # a worktree of a checkout there
-muxin ws exec ws-7f3a2c -- cargo test          # exits with the command's exit code
-muxin ws exec ws-7f3a2c --background -- npm run dev
-muxin ws cat ws-7f3a2c .muxen/logs/1.log
-echo 'hello' | muxin ws write ws-7f3a2c notes.txt
-muxin ws files ws-7f3a2c src --depth 1
-muxin ws changes ws-7f3a2c
-muxin ws sync ws-7f3a2c ~/code/api --push      # or --pull, add --delete to mirror deletions
-muxin ws shell ws-7f3a2c                       # an interactive shell in the workspace, for you
-muxin ws ls
-muxin ws rm ws-7f3a2c [--keep-files]
-muxin ws allow studionas --off                 # forbid workspaces on a machine
+andruide ws create --platform linux --repo acme/api --ref main
+andruide ws create --docker --image node:22 --repo acme/web   # an isolated container
+andruide ws create --machine beelink --worktree-of ~/code/api --branch fix-login   # a worktree of a checkout there
+andruide ws exec ws-7f3a2c -- cargo test          # exits with the command's exit code
+andruide ws exec ws-7f3a2c --background -- npm run dev
+andruide ws cat ws-7f3a2c .andruide/logs/1.log
+echo 'hello' | andruide ws write ws-7f3a2c notes.txt
+andruide ws files ws-7f3a2c src --depth 1
+andruide ws changes ws-7f3a2c
+andruide ws sync ws-7f3a2c ~/code/api --push      # or --pull, add --delete to mirror deletions
+andruide ws shell ws-7f3a2c                       # an interactive shell in the workspace, for you
+andruide ws ls
+andruide ws rm ws-7f3a2c [--keep-files]
+andruide ws allow studionas --off                 # forbid workspaces on a machine
 ```
 
 `ws exec` passes the command's stdout and stderr through and exits with its exit code (124 if it timed out), so it composes in scripts. With `--json` it prints the full result instead.
 
-**Safety.** Host workspace commands run as the ssh user on your machine, with that user's permissions; they aren't sandboxed. Use Docker isolation for code you don't trust. Workspaces are on by default for every machine with a host. Turn them off per machine with `workspaces = false` in `config.toml`, the toggle on the machine's page in the app, or `muxin workspace allow <machine> --off`. Nothing is deleted automatically: workspaces stay until you or an agent destroys them. Folders live under `~/muxen/workspaces/<id>` on each machine (`workspace_root` in `config.toml` changes that).
+**Safety.** Host workspace commands run as the ssh user on your machine, with that user's permissions; they aren't sandboxed. Use Docker isolation for code you don't trust. Workspaces are on by default for every machine with a host. Turn them off per machine with `workspaces = false` in `config.toml`, the toggle on the machine's page in the app, or `andruide workspace allow <machine> --off`. Nothing is deleted automatically: workspaces stay until you or an agent destroys them. Folders live under `~/andruide/workspaces/<id>` on each machine (`workspace_root` in `config.toml` changes that).
 
 ## Your GitHub, and handing issues to agents
 
@@ -377,66 +377,66 @@ The GitHub page is built for the loop of picking an issue, handing it to an agen
 - **For you:** pull requests waiting for your review, issues assigned to you, and your open pull requests.
 - **Repositories:** everything you own, collaborate on or reach through your orgs, with each one's open issues, pull requests and GitHub Actions runs. Star the ones you work on to keep them at the top, and show the list as one list or grouped by owner (you, then your organizations, then repositories other people shared with you). A fork sits under the repository it came from, even one that isn't yours, so that repository's issues and pull requests are a click away.
 - **On your machines:** each machine's agent finds git checkouts in your code folders (`~/Developer`, `~/code`, `~/src`, … add yours in Settings › General › Code folders) and links them to their GitHub repository, with branch, commits ahead/behind and uncommitted changes. Fetch, Pull and Push from there.
-- **Work on it with an agent:** on any issue (or **Review with agent** on a pull request), one click opens a new session in that repository's checkout on the machine you pick (this computer first), with the issue's link, title and description as the agent's first message. With no checkout there, Muxin clones the repository in a new workspace (an issue gets its own branch, like `issue-910-content-excalidraw`; a pull request checks out its branch, forks included), then starts the agent in it. Right-click a pull request for **Review in a new workspace…** to get a fresh clone anyway. An issue on a repository you can't push to goes through your fork of it, when you have one: its checkout or a clone of it, with the agent told to open the pull request against the original.
+- **Work on it with an agent:** on any issue (or **Review with agent** on a pull request), one click opens a new session in that repository's checkout on the machine you pick (this computer first), with the issue's link, title and description as the agent's first message. With no checkout there, AndruIDE clones the repository in a new workspace (an issue gets its own branch, like `issue-910-content-excalidraw`; a pull request checks out its branch, forks included), then starts the agent in it. Right-click a pull request for **Review in a new workspace…** to get a fresh clone anyway. An issue on a repository you can't push to goes through your fork of it, when you have one: its checkout or a clone of it, with the agent told to open the pull request against the original.
 - **Hand off in a box:** on an issue, opens **New box** filled in: the repository, a task to fix the issue and open a pull request that closes it (its title and description go along), and a branch named for it. An agent then works on it by itself, in a container on one of your machines (see [Boxes](#boxes)).
 
-Muxin uses the GitHub CLI's login (`gh auth login`) or `GITHUB_TOKEN`. Settings has a **Sign in with GitHub** button that runs the CLI's browser sign-in; each machine's page shows whether its own `gh` is signed in (agents there use it for issues and pull requests) and can sign it in too.
+AndruIDE uses the GitHub CLI's login (`gh auth login`) or `GITHUB_TOKEN`. Settings has a **Sign in with GitHub** button that runs the CLI's browser sign-in; each machine's page shows whether its own `gh` is signed in (agents there use it for issues and pull requests) and can sign it in too.
 
 **Git on each machine.** A machine's page has a Git card: whether its GitHub CLI is signed in, who commits there, and how pushes reach GitHub. When something's missing, one click fixes it: **Use my GitHub identity** sets git's name and email to your GitHub name and private noreply address, and **Use the GitHub CLI** runs `gh auth setup-git` so pushes use the machine's `gh` login. Agents working there can then commit and push.
 
 ```sh
-muxin git status beelink
-muxin git setup beelink --identity --credentials
+andruide git status beelink
+andruide git setup beelink --identity --credentials
 ```
 
 **Permissions.** Watching an organization's runners needs the `admin:org` permission on your GitHub login. Settings shows when it's missing, with a **Grant access** button that runs `gh auth refresh -s admin:org` in a terminal (it finishes in your browser), and lists your organizations so watching one is a click.
 
-**More than one account.** Click your name at the top of the GitHub page to switch. The menu lists every account the GitHub CLI here is signed in to, plus each machine's own `gh` login: with a work laptop signed in to your work account, pick "@you-at-work · Work MacBook" and Muxin sees that account's repositories, inbox and runners (the token is fetched over ssh when needed and kept in memory only). Work on it with an agent then prefers checkouts on that machine. Switching doesn't change which account `gh` uses in your terminal. "Add another account…" runs `gh auth login`.
+**More than one account.** Click your name at the top of the GitHub page to switch. The menu lists every account the GitHub CLI here is signed in to, plus each machine's own `gh` login: with a work laptop signed in to your work account, pick "@you-at-work · Work MacBook" and AndruIDE sees that account's repositories, inbox and runners (the token is fetched over ssh when needed and kept in memory only). Work on it with an agent then prefers checkouts on that machine. Switching doesn't change which account `gh` uses in your terminal. "Add another account…" runs `gh auth login`.
 
 ```sh
-muxin github inbox                         # what needs you
-muxin github repos                         # favorites first (★)
-muxin github favorite ZenNotes/zennotes    # --remove to unstar
-muxin github accounts
-muxin github use work-login                # or: --machine work-macbook
-muxin github repo ZenNotes/zennotes        # issues, PRs, runs, and where it's checked out
-muxin github issue ZenNotes/zennotes#632   # or the issue's URL
-muxin checkouts --repo ZenNotes/zennotes
-muxin checkouts --machine beelink --path ~/code/api --git pull
+andruide github inbox                         # what needs you
+andruide github repos                         # favorites first (★)
+andruide github favorite ZenNotes/zennotes    # --remove to unstar
+andruide github accounts
+andruide github use work-login                # or: --machine work-macbook
+andruide github repo ZenNotes/zennotes        # issues, PRs, runs, and where it's checked out
+andruide github issue ZenNotes/zennotes#632   # or the issue's URL
+andruide checkouts --repo ZenNotes/zennotes
+andruide checkouts --machine beelink --path ~/code/api --git pull
 ```
 
 ## Agent sessions
 
 Start an AI agent on one of your machines and come back to it whenever you like, from the app, from your own terminal, or through another agent.
 
-- **Keeps running.** Sessions live in Muxin's agent on the machine (`~/.muxen/bin/muxen-agent`), a small background program that holds each session's terminal, the way tmux would. Quitting the app, sleeping your laptop or losing the network only detaches; the agent keeps working until you end the session, and reopening it shows the screen as it is with its recent scrollback. A restart of the machine ends its sessions, as with tmux.
-- **Nothing to install.** When Muxin connects to a machine it uploads the agent build for that OS and CPU (macOS, Linux and Windows, x86_64 and arm64; a few MB) and keeps it up to date.
-- **Split panes.** ⌘D splits a terminal to the right, ⇧⌘D below it (or the buttons in its header): a new shell on the same machine, in the same folder. ⌥⌘← and ⌥⌘→ move between panes, or click one. ⇧⌘↵ shows one pane alone (again for the whole split), and ⇧⌘W takes it out of the split. Each pane is a session of its own, so it keeps running like any other; type `exit` to close it, or × on its bar to take it out of the split. Splits come back when you reopen Muxin.
-- **A real terminal in the app.** Everything goes to the agent: Esc, Ctrl-C, Tab, arrows, Option/Shift+Enter for newlines. On a Mac, Option types what your keyboard puts on it (`@` on a German one); on US-style keyboards it works as Meta (Option+B goes back a word). ⌘C copies a selection, ⌘V pastes, the wheel scrolls back. Nerd Font icons (Neovim's file icons, prompt glyphs) show with any terminal font: Muxin brings the symbols. Right-click a machine for a new terminal or agent session.
-- **Names you choose.** Right-click a machine or a session and pick **Rename…** (or ⇧⌘P › Rename on its page). A machine keeps its id, so its runners, sessions and favorites stay with it; `config.toml` gets `id = "<old id>"` when the new name would give a different one. A session's title is kept by the agent on its machine (`~/.muxen/titles.json`), so every Muxin sees it; an empty title goes back to the one it started with.
-- **Working, needs you, done.** Claude Code, Codex, Copilot CLI, Qwen Code and Kimi Code tell Muxin what they're doing, through small hooks Muxin adds to their settings on each machine. The hooks do nothing outside a Muxin session and can't break the agent. Other tools' hooks stay as they are. An amber dot means a session needs you (a question or an approval). A dot in the accent color means it's done, until you open it. A folded machine shows its most urgent session. Other agents are read from their output and screen. Any program can say it too, with herdr's escape code: `printf '\e]7501;state=blocked\e\\'` (`working`, `blocked`, `done`, `idle` or `clear`). To take the hooks out, turn off **Settings › General › Agents** (`[settings.agents] hooks` in `config.toml`). Your Mac and iPad agree: each machine keeps the newest choice. How prompts look on screen comes from muxin.dev, checked once a day, so a CLI's new look doesn't need a Muxin release.
-- **Your environment.** The agent starts in your login shell, in the folder you pick, so nvm/fnm/asdf and the CLI's own login work as they do in your terminal. Muxin finds which agent CLIs each machine has: `claude`, `codex`, `opencode`, `gemini`, `agy`, `amp`, `pi`, `copilot`, `cursor-agent`, `qwen`, `droid`, `kimi`.
-- **What it changed.** Each session shows its branch, the lines and files it changed since the default branch, its commits and uncommitted files, and the branch's pull request with its checks (click it to open it on GitHub). Muxin looks when a session stops working, and at least every minute while sessions run.
+- **Keeps running.** Sessions live in AndruIDE's agent on the machine (`~/.andruide/bin/andruide-agent`), a small background program that holds each session's terminal, the way tmux would. Quitting the app, sleeping your laptop or losing the network only detaches; the agent keeps working until you end the session, and reopening it shows the screen as it is with its recent scrollback. A restart of the machine ends its sessions, as with tmux.
+- **Nothing to install.** When AndruIDE connects to a machine it uploads the agent build for that OS and CPU (macOS, Linux and Windows, x86_64 and arm64; a few MB) and keeps it up to date.
+- **Split panes.** ⌘D splits a terminal to the right, ⇧⌘D below it (or the buttons in its header): a new shell on the same machine, in the same folder. ⌥⌘← and ⌥⌘→ move between panes, or click one. ⇧⌘↵ shows one pane alone (again for the whole split), and ⇧⌘W takes it out of the split. Each pane is a session of its own, so it keeps running like any other; type `exit` to close it, or × on its bar to take it out of the split. Splits come back when you reopen AndruIDE.
+- **A real terminal in the app.** Everything goes to the agent: Esc, Ctrl-C, Tab, arrows, Option/Shift+Enter for newlines. On a Mac, Option types what your keyboard puts on it (`@` on a German one); on US-style keyboards it works as Meta (Option+B goes back a word). ⌘C copies a selection, ⌘V pastes, the wheel scrolls back. Nerd Font icons (Neovim's file icons, prompt glyphs) show with any terminal font: AndruIDE brings the symbols. Right-click a machine for a new terminal or agent session.
+- **Names you choose.** Right-click a machine or a session and pick **Rename…** (or ⇧⌘P › Rename on its page). A machine keeps its id, so its runners, sessions and favorites stay with it; `config.toml` gets `id = "<old id>"` when the new name would give a different one. A session's title is kept by the agent on its machine (`~/.andruide/titles.json`), so every AndruIDE sees it; an empty title goes back to the one it started with.
+- **Working, needs you, done.** Claude Code, Codex, Copilot CLI, Qwen Code and Kimi Code tell AndruIDE what they're doing, through small hooks AndruIDE adds to their settings on each machine. The hooks do nothing outside a AndruIDE session and can't break the agent. Other tools' hooks stay as they are. An amber dot means a session needs you (a question or an approval). A dot in the accent color means it's done, until you open it. A folded machine shows its most urgent session. Other agents are read from their output and screen. Any program can say it too, with herdr's escape code: `printf '\e]7501;state=blocked\e\\'` (`working`, `blocked`, `done`, `idle` or `clear`). To take the hooks out, turn off **Settings › General › Agents** (`[settings.agents] hooks` in `config.toml`). Your Mac and iPad agree: each machine keeps the newest choice. How prompts look on screen comes from muxin.dev, checked once a day, so a CLI's new look doesn't need a AndruIDE release.
+- **Your environment.** The agent starts in your login shell, in the folder you pick, so nvm/fnm/asdf and the CLI's own login work as they do in your terminal. AndruIDE finds which agent CLIs each machine has: `claude`, `codex`, `opencode`, `gemini`, `agy`, `amp`, `pi`, `copilot`, `cursor-agent`, `qwen`, `droid`, `kimi`.
+- **What it changed.** Each session shows its branch, the lines and files it changed since the default branch, its commits and uncommitted files, and the branch's pull request with its checks (click it to open it on GitHub). AndruIDE looks when a session stops working, and at least every minute while sessions run.
 - **Actions.** A session's **Actions** button (or its right-click menu) asks its agent to commit, commit and push, open or update the pull request, review the changes, fix the review comments, resolve conflicts or write a recap. Each one types a prompt into the agent; change any of them in **Settings › Prompts** (`[settings.prompts]` in `config.toml`), where `{branch}`, `{base}` and `{pull}` are filled in.
-- **Hand off to another agent.** Started with Claude Code and want Codex to finish (or Claude Code ran out of usage)? **Hand off** on a session's page picks the agent. Muxin writes a note in the session's folder, `.muxin/handoff.md`. It has where the git work stands, the agent's to-do list, and the conversation so far: what you asked, what the agent said, and one line per tool call. Muxin reads that from the agent's own transcript (Claude Code, Codex, Gemini CLI and Pi keep one on the machine; for OpenCode and Amp the note has what the terminal showed instead). Then the new agent starts in the same folder, asked to read the note first, and the old session ends. The note stays out of git (`.muxin/` goes in the checkout's `info/exclude`). **A fresh … session** does the same with the same agent, for a conversation that's grown too long. A box changes agents the same way, in the box.
-- **Move it to another machine.** Started on your laptop and want it to keep going on a server? **Hand off › Move to Beelink…** picks the agent there. The branch's commits that aren't on GitHub yet, its uncommitted changes and its new files go along, copied through Muxin (the machines don't need to reach each other), into a workspace there: a worktree of a checkout of the same repository when the machine has one, else a fresh clone with your GitHub login (a repository without a remote goes whole). The work stays on its branch; a branch there that went its own way isn't touched. Then the agent starts on the note, and the session here ends. The folder here stays as it was. Git checkouts only, and not to Windows machines yet. A box stays on its machine: hand it to another agent there.
+- **Hand off to another agent.** Started with Claude Code and want Codex to finish (or Claude Code ran out of usage)? **Hand off** on a session's page picks the agent. AndruIDE writes a note in the session's folder, `.andruide/handoff.md`. It has where the git work stands, the agent's to-do list, and the conversation so far: what you asked, what the agent said, and one line per tool call. AndruIDE reads that from the agent's own transcript (Claude Code, Codex, Gemini CLI and Pi keep one on the machine; for OpenCode and Amp the note has what the terminal showed instead). Then the new agent starts in the same folder, asked to read the note first, and the old session ends. The note stays out of git (`.andruide/` goes in the checkout's `info/exclude`). **A fresh … session** does the same with the same agent, for a conversation that's grown too long. A box changes agents the same way, in the box.
+- **Move it to another machine.** Started on your laptop and want it to keep going on a server? **Hand off › Move to Beelink…** picks the agent there. The branch's commits that aren't on GitHub yet, its uncommitted changes and its new files go along, copied through AndruIDE (the machines don't need to reach each other), into a workspace there: a worktree of a checkout of the same repository when the machine has one, else a fresh clone with your GitHub login (a repository without a remote goes whole). The work stays on its branch; a branch there that went its own way isn't touched. Then the agent starts on the note, and the session here ends. The folder here stays as it was. Git checkouts only, and not to Windows machines yet. A box stays on its machine: hand it to another agent there.
 - **Agents can drive agents.** `session_start`, `session_read` (the screen as text), `session_question` and `session_answer` (what it asks, and an answer), `session_send` (type into it), `session_action`, `session_handoff` and `session_stop` are MCP tools and CLI commands too.
 
 ```sh
-muxin session ls                                   # every session, and which agents each machine has
-muxin session start beelink claude --cwd ~/code/api --prompt "fix the failing test"
-muxin session read beelink/claude-3f9a             # what's on its screen
-muxin session send beelink/claude-3f9a "yes"       # type, then Enter (--no-enter to skip it)
-muxin session do beelink/claude-3f9a pull_request  # an action: commit, commit_push, pull_request, review, fix_comments, conflicts, recap
-muxin session question beelink/claude-3f9a         # what it's asking, and the options' keys
-muxin session answer beelink/claude-3f9a 1         # pick one
-muxin session attach beelink/claude-3f9a           # open it in this terminal; detach with Ctrl-] then d
-muxin session restart beelink/claude-3f9a
-muxin session rename beelink/claude-3f9a "API server"   # "" goes back to the original title
-muxin session handoff beelink/claude-3f9a codex    # Codex takes over, with a note of the work so far (--keep keeps the old one)
-muxin session handoff box-7k2m9q gemini            # a box changes agents
-muxin session handoff this-mac/claude-3f9a codex --on beelink   # the work moves to beelink, and Codex picks it up there
-muxin session stop beelink/claude-3f9a
+andruide session ls                                   # every session, and which agents each machine has
+andruide session start beelink claude --cwd ~/code/api --prompt "fix the failing test"
+andruide session read beelink/claude-3f9a             # what's on its screen
+andruide session send beelink/claude-3f9a "yes"       # type, then Enter (--no-enter to skip it)
+andruide session do beelink/claude-3f9a pull_request  # an action: commit, commit_push, pull_request, review, fix_comments, conflicts, recap
+andruide session question beelink/claude-3f9a         # what it's asking, and the options' keys
+andruide session answer beelink/claude-3f9a 1         # pick one
+andruide session attach beelink/claude-3f9a           # open it in this terminal; detach with Ctrl-] then d
+andruide session restart beelink/claude-3f9a
+andruide session rename beelink/claude-3f9a "API server"   # "" goes back to the original title
+andruide session handoff beelink/claude-3f9a codex    # Codex takes over, with a note of the work so far (--keep keeps the old one)
+andruide session handoff box-7k2m9q gemini            # a box changes agents
+andruide session handoff this-mac/claude-3f9a codex --on beelink   # the work moves to beelink, and Codex picks it up there
+andruide session stop beelink/claude-3f9a
 ```
 
 Build the agent for every platform with `scripts/build-agents.sh` (needs `cargo-zigbuild` and Zig for the Linux builds); `scripts/bundle-macos.sh` runs it and ships the builds inside the app.
@@ -446,84 +446,84 @@ Build the agent for every platform with `scripts/build-agents.sh` (needs `cargo-
 Hand a task to an agent and let it work on it by itself, on your own hardware. A box is one task: a fresh checkout of a repository on a new branch, in a Docker container of its own on one of your machines, with an agent CLI working in it.
 
 - **Start one.** **Boxes › New box**: the repository, the task, the agent (Claude Code, Codex, Amp, OpenCode, Gemini CLI or Pi) and where it runs (the online machine with Docker and the most free memory, or one you pick). Type to search your GitHub repositories and the checkouts on your machines.
-- **A local project.** Pick a checkout on one of your machines (or type its folder): the box goes on that machine and starts from it as it is now, its uncommitted changes and new files included, on a branch of its own. It pushes where the checkout does (an ssh remote goes over https in the box), and the checkout stays as it was; it's the box's `checkout` remote, to fetch its branch from. Muxin clones the repository, runs its `.agents/setup` if it has one, and starts the agent on the task. The first box on a machine builds Muxin's image there (Debian, Node.js, git, the GitHub CLI and the agent CLIs), which takes a few minutes; later boxes start in seconds.
+- **A local project.** Pick a checkout on one of your machines (or type its folder): the box goes on that machine and starts from it as it is now, its uncommitted changes and new files included, on a branch of its own. It pushes where the checkout does (an ssh remote goes over https in the box), and the checkout stays as it was; it's the box's `checkout` remote, to fetch its branch from. AndruIDE clones the repository, runs its `.agents/setup` if it has one, and starts the agent on the task. The first box on a machine builds AndruIDE's image there (Debian, Node.js, git, the GitHub CLI and the agent CLIs), which takes a few minutes; later boxes start in seconds.
 - **On its own.** The container is the agent's sandbox, so it runs with its permission prompts off (`--dangerously-skip-permissions` and the like). It works as you, with your GitHub login, so it can push its branch and open a pull request. It sees its own checkout and home and the machine's agent folders (below), not the machine's other files, and Docker isn't shared with it. Its network isn't closed off.
-- **Pauses by itself.** When its agent has printed nothing for 15 minutes (an open terminal nobody types in doesn't keep it going), or has quit, Muxin's agent on the machine stops the container. That works whether or not the app is open. Its files, branch and conversation stay. Ask it something more (or **Resume**) and it starts again: the agent continues its last conversation, after the repository's `.agents/resume` if it has one. Dev servers and shells it ran don't survive a pause.
+- **Pauses by itself.** When its agent has printed nothing for 15 minutes (an open terminal nobody types in doesn't keep it going), or has quit, AndruIDE's agent on the machine stops the container. That works whether or not the app is open. Its files, branch and conversation stay. Ask it something more (or **Resume**) and it starts again: the agent continues its last conversation, after the repository's `.agents/resume` if it has one. Dev servers and shells it ran don't survive a pause.
 - **Watch it.** **Open** shows its agent's terminal, like any session. ⌘D (or the split buttons) opens a shell in the box beside it: same container, checkout and tools, so you can run the tests or another agent CLI there. Typing in it counts as using the box, and pausing the box ends it. The Boxes page shows each box working, waiting for you, idle or paused, with its branch, what it changed and its pull request with checks.
 - **Signed in as on the machine.** A box shares the machine's agent folders (`~/.claude`, `~/.codex`, `~/.gemini`, `~/.pi`, and Amp's and OpenCode's), so the agent is signed in, with your settings, skills and MCP servers, wherever it is on that machine. Keys like `ANTHROPIC_API_KEY` set in the machine's shell come along too. If it isn't signed in there, sign it in once from a box's terminal (`/login`); every box on that machine has it from then on. On a Mac, where Docker runs in a VM, two things differ: Claude Code keeps its login in the Keychain, which a container can't read, so boxes there need that one `/login`; and Codex's and OpenCode's folders hold databases that can't be shared across the VM, so each box gets a copy of their sign-in instead.
-- **Where it lives.** On the machine, a box is `~/muxen/boxes/<id>/`: its checkout (`repo/`, at the same path inside the box, so each box's agent continues its own conversation), the agent's home (`home/`, at `/home/box`) and its record. **Delete** removes the container and that folder, with any work that wasn't pushed. Its branch on GitHub stays.
+- **Where it lives.** On the machine, a box is `~/andruide/boxes/<id>/`: its checkout (`repo/`, at the same path inside the box, so each box's agent continues its own conversation), the agent's home (`home/`, at `/home/box`) and its record. **Delete** removes the container and that folder, with any work that wasn't pushed. Its branch on GitHub stays.
 - **Machines.** Linux, and Macs with Docker Desktop, OrbStack or Colima. Windows machines can't run boxes yet.
 
 ```sh
-muxin box new acme/api "Add rate limit headers to every response, with tests, and open a pull request"
-muxin box new acme/api "Fix the flaky webhook test" --agent codex --on beelink
-muxin box new ~/code/app "Finish this refactor" --on beelink     # a checkout there, with its uncommitted work
-muxin box ls                                  # every box: working, waiting, idle or paused, and its git
-muxin box send box-7k2m9q "Also update the API docs"   # starts it again if it's paused
-muxin box attach box-7k2m9q                   # its agent, in this terminal
-muxin box shell box-7k2m9q                    # a shell in the box, in this terminal
-muxin box pause box-7k2m9q
-muxin box rm box-7k2m9q
+andruide box new acme/api "Add rate limit headers to every response, with tests, and open a pull request"
+andruide box new acme/api "Fix the flaky webhook test" --agent codex --on beelink
+andruide box new ~/code/app "Finish this refactor" --on beelink     # a checkout there, with its uncommitted work
+andruide box ls                                  # every box: working, waiting, idle or paused, and its git
+andruide box send box-7k2m9q "Also update the API docs"   # starts it again if it's paused
+andruide box attach box-7k2m9q                   # its agent, in this terminal
+andruide box shell box-7k2m9q                    # a shell in the box, in this terminal
+andruide box pause box-7k2m9q
+andruide box rm box-7k2m9q
 ```
 
 Agents use `box_create`, `box_list`, `box_send`, `box_pause` and `box_destroy`; `session_read` works on a running box's session.
 
 ## Sharing a session or a machine
 
-Show someone a session, or a whole machine, straight from your computer. They join from Muxin or from any browser; nothing to install.
+Show someone a session, or a whole machine, straight from your computer. They join from AndruIDE or from any browser; nothing to install.
 
 - **Share.** On a session's page, click **Share**: the link is made and copied, ready to paste anywhere (`https://muxin.dev/s#1.…`). By default you let each person in, they can only watch, and it lasts an hour; change any of that in the same window, while it runs: let them type, let anyone with the link watch without asking, or make it last longer.
 - **Share a machine.** On a machine's page, **Share** does the same for all of its sessions: guests see the sessions running there (and ones started later) and open any of them. In the same window, share its desktop (**View**, or **Control** for people you let in) and pick which of its servers they can open (**Servers**: what's listening there, web servers first). Everything else stays off: no files, no shell, no other ports.
 - **Let people in.** When someone opens it, a card over the page shows their name and a 6-digit code; they see the same code. Ask them to read it out, then **Let in**. A link that leaked shows a code nobody reads to you.
 - **While you share.** The header says who's there (**Shared · Sam watching**). Click it to let someone type or stop them, let them use the desktop or stop them, remove them, copy the link, add an hour, or stop sharing. A shared session has an eye in the sidebar; a dot means someone is waiting.
-- **Joining.** The link opens a page that asks for their name, then joins right there in the browser (or in Muxin, if they have it). In Muxin, ⇧⌘P › **Join a share…** takes a link too. Shares are listed under **Shared with you**, sessions shown at the size the sharer's terminal is. A shared machine's page lists its sessions, its screen and its servers; **Open** puts a server at `localhost` on the guest's computer (in Muxin; a browser can't open ports).
+- **Joining.** The link opens a page that asks for their name, then joins right there in the browser (or in AndruIDE, if they have it). In AndruIDE, ⇧⌘P › **Join a share…** takes a link too. Shares are listed under **Shared with you**, sessions shown at the size the sharer's terminal is. A shared machine's page lists its sessions, its screen and its servers; **Open** puts a server at `localhost` on the guest's computer (in AndruIDE; a browser can't open ports).
 - **Peer to peer.** The two computers connect directly (WebRTC): over your network or Tailscale when they share one, across the internet otherwise, and through an encrypted relay only when nothing direct works. muxin.dev only introduces them, with two short messages: the part of the link after `#` (the share's secret) never reaches it, and the guest checks that it reached the sharing computer's own certificate, so the site can't listen in or join.
-- **What a guest can do.** Only what's shared, and type, use the desktop or open servers only while you let them. Muxin enforces it on your computer, and the agent on the machine attaches a watcher that can't type or resize. Guests never reach the machine itself, its files or a shell.
-- **It ends** when its time runs out, when you **Stop sharing**, or when you close Muxin's window or quit (nobody would be there to let guests in). The link stops working then, for good.
+- **What a guest can do.** Only what's shared, and type, use the desktop or open servers only while you let them. AndruIDE enforces it on your computer, and the agent on the machine attaches a watcher that can't type or resize. Guests never reach the machine itself, its files or a shell.
+- **It ends** when its time runs out, when you **Stop sharing**, or when you close AndruIDE's window or quit (nobody would be there to let guests in). The link stops working then, for good.
 
 To introduce them through a server of your own instead (`share-server/` in this repository), set `[settings.share] server = "https://share.example.com"` in `config.toml`.
 
 ## Connections and desktops
 
-Muxin first reaches a machine with `ssh`, installs its small agent there, and from then on talks to that agent over **one live connection** instead of a new ssh connection per request: requests take milliseconds instead of ~0.4 s, terminals open instantly, and the sidebar updates the moment a session changes.
+AndruIDE first reaches a machine with `ssh`, installs its small agent there, and from then on talks to that agent over **one live connection** instead of a new ssh connection per request: requests take milliseconds instead of ~0.4 s, terminals open instantly, and the sidebar updates the moment a session changes.
 
 - **Over ssh** (the default): one ssh connection per machine, kept open and reconnected when it drops.
-- **Direct**: on a machine's page, **Connect directly** pairs the app with its agent (each trusts only the other's certificate, swapped over ssh) and runs the agent's listener as a user service there (systemd or launchd) on UDP port 47821. Muxin then connects over QUIC, falling back to ssh whenever the direct connection is down. Machines you add are connected to directly by themselves once they answer (uncheck it in the Add dialog, or `muxin add-machine --ssh-only`); **Settings › General › Connections** turns that off. Over a direct connection each terminal has a stream of its own, and the one you're typing in goes first.
-- `MUXEN_NO_LINK=1` turns all of this off: one ssh connection per request, as before.
-- **Disconnect** (a machine's right-click menu, or its Connection section) stops all of it for that machine: Muxin closes the connection and stops checking it and reading its sessions, which keep running there. It shows as Disconnected until you **Connect** (its page, its menu, or search). It's kept in `config.toml` as `disconnected = true`.
+- **Direct**: on a machine's page, **Connect directly** pairs the app with its agent (each trusts only the other's certificate, swapped over ssh) and runs the agent's listener as a user service there (systemd or launchd) on UDP port 47821. AndruIDE then connects over QUIC, falling back to ssh whenever the direct connection is down. Machines you add are connected to directly by themselves once they answer (uncheck it in the Add dialog, or `andruide add-machine --ssh-only`); **Settings › General › Connections** turns that off. Over a direct connection each terminal has a stream of its own, and the one you're typing in goes first.
+- `ANDRUIDE_NO_LINK=1` turns all of this off: one ssh connection per request, as before.
+- **Disconnect** (a machine's right-click menu, or its Connection section) stops all of it for that machine: AndruIDE closes the connection and stops checking it and reading its sessions, which keep running there. It shows as Disconnected until you **Connect** (its page, its menu, or search). It's kept in `config.toml` as `disconnected = true`.
 
-**iPads.** Muxin for iPad reaches your machines directly too, with a key of its own. Add a machine on the iPad by its address (it signs in once with an ssh client of its own, installs the agent and sets up the direct connection), or pair it from here. Pair one in **Settings › iPads › Pair an iPad**: the iPad scans the QR code that shows (or you paste its link), both show the same six digits, and you click **Allow**. Each machine you picked then trusts the iPad's key, and the iPad gets their addresses; your Mac isn't needed after that. **Unpair** takes the key off those machines again, and an iPad connected at the time is let go within seconds. With **Alerts** on in the iPad's settings, each machine tells the iPad when an agent there is waiting for you, rang the bell, or exited with an error, even while the app is closed: encrypted on the machine with the iPad's own key, through muxin.dev to Apple's push service, which can't read it. From a terminal: `muxin ipad pair`, `muxin ipad ls` and `muxin ipad rm <name>`.
+**iPads.** AndruIDE for iPad reaches your machines directly too, with a key of its own. Add a machine on the iPad by its address (it signs in once with an ssh client of its own, installs the agent and sets up the direct connection), or pair it from here. Pair one in **Settings › iPads › Pair an iPad**: the iPad scans the QR code that shows (or you paste its link), both show the same six digits, and you click **Allow**. Each machine you picked then trusts the iPad's key, and the iPad gets their addresses; your Mac isn't needed after that. **Unpair** takes the key off those machines again, and an iPad connected at the time is let go within seconds. With **Alerts** on in the iPad's settings, each machine tells the iPad when an agent there is waiting for you, rang the bell, or exited with an error, even while the app is closed: encrypted on the machine with the iPad's own key, through muxin.dev to Apple's push service, which can't read it. From a terminal: `andruide ipad pair`, `andruide ipad ls` and `andruide ipad rm <name>`.
 
-**Servers.** A machine's page lists what's listening there: web servers first, with their page's title (a dev server, a Docker container's site), then its other ports. **Open** puts one on this computer at `localhost` (the same port number when it's free) and opens it in your browser; no desktop needed. Each connection goes through the machine's live connection, so it works over ssh or direct alike, even for servers that listen only on the machine itself. Open ports are listed under their machine in the sidebar (click to open, × to close) and come back when Muxin starts. **Open a port** takes any port number. From a terminal: `muxin ports <machine>` and `muxin forward <machine> <port>`.
+**Servers.** A machine's page lists what's listening there: web servers first, with their page's title (a dev server, a Docker container's site), then its other ports. **Open** puts one on this computer at `localhost` (the same port number when it's free) and opens it in your browser; no desktop needed. Each connection goes through the machine's live connection, so it works over ssh or direct alike, even for servers that listen only on the machine itself. Open ports are listed under their machine in the sidebar (click to open, × to close) and come back when AndruIDE starts. **Open a port** takes any port number. From a terminal: `andruide ports <machine>` and `andruide forward <machine> <port>`.
 
 **Desktop.** On a Linux machine with an X11 desktop, a Mac, or a Windows PC someone is signed in to, **Show desktop** (on its page, or its right-click menu) shows its screen live and sends your mouse and keyboard to it. On Linux ⌘ works as Ctrl; on a Mac it stays ⌘. Keys type what your keyboard puts on them, whatever the machine's own keyboard is: Shift+2 is `@` from a US keyboard and `"` from a German one, even on a machine set to another layout. From a Mac, so does Option (`@` on a German one); it's still Alt for keys that aren't characters (Alt+Tab, Alt+F4) and with the mouse, and on US-style keyboards it's always Alt. An open desktop is listed under its machine in the sidebar (and keeps streaming while you look elsewhere); close it there.
 
-**Nobody signed in.** Muxin shows the screen of the account it connects as, so that account has to be signed in there. Servers often have nobody signed in, and a Remote Desktop window closed without signing out leaves a session with no screen. Muxin says so right away and offers **Open with Remote Desktop** (Windows), **Open with Screen Sharing** (Mac) or **Open with RDP or VNC** (Linux); the machine's right-click menu has it too. It opens the machine's own remote desktop in your app for it: Windows App or Remote Desktop Connection, Screen Sharing, Remmina or FreeRDP. That shows the sign-in screen, so you can sign in. It goes through Muxin's connection to the machine, so it works away from home too and nothing has to be opened in a firewall. Here it's at `localhost:3390` (VNC: `localhost:5901`), listed under Servers. The machine needs it turned on:
+**Nobody signed in.** AndruIDE shows the screen of the account it connects as, so that account has to be signed in there. Servers often have nobody signed in, and a Remote Desktop window closed without signing out leaves a session with no screen. AndruIDE says so right away and offers **Open with Remote Desktop** (Windows), **Open with Screen Sharing** (Mac) or **Open with RDP or VNC** (Linux); the machine's right-click menu has it too. It opens the machine's own remote desktop in your app for it: Windows App or Remote Desktop Connection, Screen Sharing, Remmina or FreeRDP. That shows the sign-in screen, so you can sign in. It goes through AndruIDE's connection to the machine, so it works away from home too and nothing has to be opened in a firewall. Here it's at `localhost:3390` (VNC: `localhost:5901`), listed under Servers. The machine needs it turned on:
 
 - **Windows:** Remote Desktop, in Settings › System › Remote Desktop (on Windows Server: Server Manager › Local Server). Windows Home can't be reached this way. Windows Server allows two admin sessions at once without extra licenses.
 - **Mac:** Screen Sharing, in System Settings › General › Sharing.
 - **Linux:** xrdp, GNOME's Remote Desktop, or a VNC server such as x11vnc.
 
-From a terminal: `muxin desktop rdp <machine>` or `muxin desktop vnc <machine>`.
+From a terminal: `andruide desktop rdp <machine>` or `andruide desktop vnc <machine>`.
 
-**Monitors, real and virtual.** A machine with more than one monitor gets a picker above its desktop: show one monitor at a time (on Linux, or all of them). **Add monitor** (or **Add virtual monitor…** in the machine's right-click menu) plugs in a monitor that isn't there, the way [DeskPad](https://github.com/Stengo/DeskPad) does on a Mac: pick a name and a size (720p to 4K), and it joins the desktop like a real one, to the right of the others. Windows move onto it, the machine's own tools (System Settings, RustDesk) see it, and while the machine's desktop is open, Muxin lists it under the Desktop item in the sidebar to open it directly. It starts at the main monitor's size and offers every common one (720p to 4K). Above a monitor, pick its resolution, and on Linux desktops that offer it, its scale: 200% makes things twice as big and just as sharp, so a 4K monitor reads like 1080p (the stream is always the screen's own size, so it stays crisp). Right-click a monitor (in the picker or the sidebar) to rename or remove it, and in the all-screens view, click a monitor's name to open it. On Cinnamon each virtual monitor gets copies of the main monitor's panels (menu, clock, dock with the same pinned apps), so it's usable on its own. It stays until you remove it (**Remove monitor**) or the machine restarts. Handy on a machine with no screen (a dummy HDMI plug, a server), or to give an agent a monitor of its own. On a Mac it's a CGVirtualDisplay. On Linux (X11) it's a software dummy plug: Muxin plugs a made-up monitor (at the size you picked) into a video output with nothing connected, and the desktop sets it up like a real one. That takes root, so when sudo wants a password Muxin asks for yours, only then, sends it to sudo over its encrypted connection, and keeps it in memory only until you quit. Nothing is installed.
+**Monitors, real and virtual.** A machine with more than one monitor gets a picker above its desktop: show one monitor at a time (on Linux, or all of them). **Add monitor** (or **Add virtual monitor…** in the machine's right-click menu) plugs in a monitor that isn't there, the way [DeskPad](https://github.com/Stengo/DeskPad) does on a Mac: pick a name and a size (720p to 4K), and it joins the desktop like a real one, to the right of the others. Windows move onto it, the machine's own tools (System Settings, RustDesk) see it, and while the machine's desktop is open, AndruIDE lists it under the Desktop item in the sidebar to open it directly. It starts at the main monitor's size and offers every common one (720p to 4K). Above a monitor, pick its resolution, and on Linux desktops that offer it, its scale: 200% makes things twice as big and just as sharp, so a 4K monitor reads like 1080p (the stream is always the screen's own size, so it stays crisp). Right-click a monitor (in the picker or the sidebar) to rename or remove it, and in the all-screens view, click a monitor's name to open it. On Cinnamon each virtual monitor gets copies of the main monitor's panels (menu, clock, dock with the same pinned apps), so it's usable on its own. It stays until you remove it (**Remove monitor**) or the machine restarts. Handy on a machine with no screen (a dummy HDMI plug, a server), or to give an agent a monitor of its own. On a Mac it's a CGVirtualDisplay. On Linux (X11) it's a software dummy plug: AndruIDE plugs a made-up monitor (at the size you picked) into a video output with nothing connected, and the desktop sets it up like a real one. That takes root, so when sudo wants a password AndruIDE asks for yours, only then, sends it to sudo over its encrypted connection, and keeps it in memory only until you quit. Nothing is installed.
 
 ```sh
-muxin desktop displays beelink                     # its monitors (virtual ones marked)
-muxin desktop add beelink --size 2560x1440         # another monitor, "Display 2"
-muxin desktop shot beelink --display DisplayPort-0 # a screenshot of just that one
-muxin desktop set beelink HDMI-A-0 --size 3840x2160 --scale 2  # 4K, things twice as big
-muxin desktop remove beelink DisplayPort-0
+andruide desktop displays beelink                     # its monitors (virtual ones marked)
+andruide desktop add beelink --size 2560x1440         # another monitor, "Display 2"
+andruide desktop shot beelink --display DisplayPort-0 # a screenshot of just that one
+andruide desktop set beelink HDMI-A-0 --size 3840x2160 --scale 2  # 4K, things twice as big
+andruide desktop remove beelink DisplayPort-0
 ```
 
 **Apps in windows of their own.** Above a machine's desktop, **Apps** lists the apps open there (Windows, Macs, and Linux on X11). Pick one, and it opens here as a window of its own, at its size there, with nothing around it but its own title bar: drag that to move the window, double-click it to zoom. The pointer takes the app's shapes (a text cursor over text, a hand over links). Click and type as usual: the app comes to the front there first, so keys never land in another app. Resize either window and the other follows; minimize or close the app there and its window here does the same. Once the picture is still, it's sent again sharp. While nothing covers the app there, its menus and dialogs show too. On a Mac, an app's menus stay in the menu bar there.
 
 ```sh
-muxin desktop windows win11                        # its apps' windows
-muxin desktop shot win11 --display window:1312130  # a screenshot of just one
+andruide desktop windows win11                        # its apps' windows
+andruide desktop shot win11 --display window:1312130  # a screenshot of just one
 ```
 
-- **Macs** ask once, on their own screen, to allow `muxen-agent` under Privacy & Security › Screen Recording (to see it) and Accessibility (to control it). The screen goes over ssh to the agent's background service in your session there, so no other network permission is needed. Release builds sign the agent with a Developer ID, so the permissions survive updates.
+- **Macs** ask once, on their own screen, to allow `andruide-agent` under Privacy & Security › Screen Recording (to see it) and Accessibility (to control it). The screen goes over ssh to the agent's background service in your session there, so no other network permission is needed. Release builds sign the agent with a Developer ID, so the permissions survive updates.
 
 - Pick 720p, 1080p, 1440p, 4K or Native from the bar above it. On a local network it starts at the screen's own resolution, further away at 1080p.
 - **Open in window** gives it a window of its own (put it on another screen, or full screen).
@@ -532,10 +532,10 @@ muxin desktop shot win11 --display window:1312130  # a screenshot of just one
 - Only changed parts of the screen are sent (captured through shared memory, compressed on all of the machine's cores), so a still screen costs nothing.
 
 ```sh
-muxin connection beelink                  # how it's reached, and how fast
-muxin connection beelink --direct on      # pair and connect directly
-muxin desktop shot beelink -o screen.jpg
-muxin desktop input beelink '[{"type":"click","x":100,"y":200},{"type":"text","text":"hello"}]'
+andruide connection beelink                  # how it's reached, and how fast
+andruide connection beelink --direct on      # pair and connect directly
+andruide desktop shot beelink -o screen.jpg
+andruide desktop input beelink '[{"type":"click","x":100,"y":200},{"type":"text","text":"hello"}]'
 ```
 
 AI agents get the same: `machine_connection`, `direct_connection`, `desktop_screenshot` (an image they can look at) and `desktop_input`.
@@ -544,12 +544,12 @@ AI agents get the same: `machine_connection`, `direct_connection`, `desktop_scre
 
 ## Tailscale and moving between networks
 
-If [Tailscale](https://tailscale.com) is on your Mac, Muxin uses it to keep machines reachable away from home, with nothing to set up: it only reads Tailscale's status and never changes its settings.
+If [Tailscale](https://tailscale.com) is on your Mac, AndruIDE uses it to keep machines reachable away from home, with nothing to set up: it only reads Tailscale's status and never changes its settings.
 
 - **Home network first.** A paired machine is tried on its local-network address first, and through its Tailscale address a moment later; the first to answer wins. At home that's the local network; at a café it's Tailscale.
 - **Moving.** When your Mac changes networks, connections that no longer work are rebuilt the best way from where you are, and ones that went through Tailscale move back to the local network when you're home again. Open terminals and desktops carry on.
 - **ssh too.** If a machine's host only works at home (a local IP in `config.toml` or your ssh config), ssh goes to its tailnet address instead when the usual one doesn't answer.
-- **Offline answers.** Tailscale's view tells Muxin when a machine is back, whether Tailscale lost it too, or that Tailscale is off on this Mac (with **Open Tailscale**).
+- **Offline answers.** Tailscale's view tells AndruIDE when a machine is back, whether Tailscale lost it too, or that Tailscale is off on this Mac (with **Open Tailscale**).
 - **The Connection card** says which way it goes (Local network, or Tailscale peer-to-peer or through a relay), whether the machine is on your tailnet, and offers **Set up Tailscale** on Linux machines that aren't (the install command, typed in a shell there for you to run).
 - **Adding machines:** the Add machine dialog lists the computers on your tailnet; one added by its tailnet name is reachable from anywhere.
 
@@ -557,25 +557,25 @@ If [Tailscale](https://tailscale.com) is on your Mac, Muxin uses it to keep mach
 
 A machine's logs, live: **Logs** on its page (or right-click it, or ⌘P › Logs) opens them, and they stay under the machine in the sidebar until you close them.
 
-- **System:** the systemd journal and the kernel's messages on Linux, the unified log on a Mac. Without the `systemd-journal` group Linux shows only your own; Muxin says so.
+- **System:** the systemd journal and the kernel's messages on Linux, the unified log on a Mac. Without the `systemd-journal` group Linux shows only your own; AndruIDE says so.
 - **Files:** `/var/log`, `~/Library/Logs`, and log files written lately under your home folder (an app's `storage/logs`, a runner's `_diag`), newest first, or any path you type. Root-only ones are marked.
 - **Docker** containers, and running **services** (systemd units, yours and the system's).
 - The last 500 lines, then new ones as they're written; a filter, Pause, Follow (scrolling up stops it) and Copy. Errors are red and warnings amber.
 
 ```sh
-muxin logs beelink --list                          # what there is
-muxin logs beelink --unit nginx -n 100             # a service's last lines
-muxin logs beelink --file '~/app/storage/logs/laravel.log' --grep error
-muxin logs beelink --container postgres --follow   # keep printing (Ctrl-C to stop)
+andruide logs beelink --list                          # what there is
+andruide logs beelink --unit nginx -n 100             # a service's last lines
+andruide logs beelink --file '~/app/storage/logs/laravel.log' --grep error
+andruide logs beelink --container postgres --follow   # keep printing (Ctrl-C to stop)
 ```
 
-If Muxin itself crashes, it writes what happened to `crash.log` in its config folder (`~/.config/muxin`, or `%APPDATA%\muxin` on Windows). The agent on a machine writes to `~/.muxen/crash.log`.
+If AndruIDE itself crashes, it writes what happened to `crash.log` in its config folder (`~/.config/andruide`, or `%APPDATA%\andruide` on Windows). The agent on a machine writes to `~/.andruide/crash.log`.
 
 ## Services and containers
 
 A machine's services, and its Docker containers: **Services** on its page (or right-click it, or ⌘P › Services). Failed ones come first, then running ones; Find narrows the list.
 
-- **Linux:** systemd services, the system's and your own ("yours"), with whether each starts at boot (click **At boot** to change it). **Start**, **Stop**, **Restart**. The system's take root: when sudo wants your password, Muxin asks for it there, once, and keeps it in memory until you quit.
+- **Linux:** systemd services, the system's and your own ("yours"), with whether each starts at boot (click **At boot** to change it). **Start**, **Stop**, **Restart**. The system's take root: when sudo wants your password, AndruIDE asks for it there, once, and keeps it in memory until you quit.
 - **A Mac:** Homebrew's services (`brew services`: Postgres, Redis, nginx, ...).
 - **What they use:** CPU and memory for each running service and container; sort by them to find what's busy.
 - **Docker, all of it:**
@@ -583,45 +583,45 @@ A machine's services, and its Docker containers: **Services** on its page (or ri
   - **Compose:** each project Docker knows, with **Up**, **Down**, **Restart**, **Pull**, its log, and **Edit** (its compose file in your editor, in a terminal on the machine). **New project** makes `~/compose/<name>/compose.yaml` to start from. Click a project to see it three ways: a **Picture** (its services as boxes, an arrow to what each waits for, green when it waits until that's healthy; the ports each opens on the machine, its networks as colored tags, the files it mounts, its volumes at the right; each box with the image, state, health, CPU and memory), a **List** (the same as a table, with Start, Stop and Restart for each service, then its volumes, mounted files and networks), and its **Logs** (every service's lines in time order, each in its color, with a chip to show one service's).
   - **Images:** pull one, run it, remove it, or remove every unused one.
   - Pulls, runs and Compose up/down run as operations: their output shows as they go, and in Activity.
-- Stop, Restart, Remove and Down ask first, and say so when stopping one (ssh, Tailscale, the network) could cut Muxin off from the machine. The log button opens its log in **Logs**.
+- Stop, Restart, Remove and Down ask first, and say so when stopping one (ssh, Tailscale, the network) could cut AndruIDE off from the machine. The log button opens its log in **Logs**.
 
 - **Processes:** the machine's busiest few hundred processes, with CPU (percent of one core), memory, how long each has run and who runs it; **Stop** sends SIGTERM, **Kill** SIGKILL (both ask first). Another user's takes root, as for system services. NVIDIA, AMD (Linux) and Apple GPUs show above the list, with how busy and how much memory.
 
 ```sh
-muxin services beelink                             # services and containers
-muxin services beelink restart nginx
-muxin services beelink stop postgres --container
+andruide services beelink                             # services and containers
+andruide services beelink restart nginx
+andruide services beelink stop postgres --container
 ```
 
 ## Files and the clipboard
 
 **Copying files.** **Copy files** on a machine's page (or its right-click menu) opens two panes: the machine with the files on the left, where they go on the right, each a folder you can browse. Pick files and folders, pick a folder, copy. Dropping files from the Finder onto a machine in the sidebar opens it ready to send them there.
 
-- Files go through Muxin as a tar stream between the two machines' agents, so the machines never need to reach each other or share ssh keys. Folders come along whole, with permissions and links. Your Mac is a machine like the others, so this uploads and downloads too.
+- Files go through AndruIDE as a tar stream between the two machines' agents, so the machines never need to reach each other or share ssh keys. Folders come along whole, with permissions and links. Your Mac is a machine like the others, so this uploads and downloads too.
 - Files with the same names in the destination folder are replaced; the dialog says so first.
 - Progress, speed and **Stop** are in Activity.
 - Both ends hold back to what the other can take, so a slow machine doesn't pile data up anywhere.
 
 ```sh
-muxin files beelink:~/build
-muxin cp beelink:~/build/app.tar.gz adibs-macbook-pro:~/Downloads
-muxin cp adibs-macbook-pro:~/Projects/site beelink:~/www --no-wait
+andruide files beelink:~/build
+andruide cp beelink:~/build/app.tar.gz adibs-macbook-pro:~/Downloads
+andruide cp adibs-macbook-pro:~/Projects/site beelink:~/www --no-wait
 ```
 
 **Shared clipboard.** Turn it on in Settings › Clipboard. Text you copy on your Mac can then be pasted on your Linux desktops, Windows PCs and other Macs, and what you copy there lands on your Mac (and on the other machines). Passwords copied from password managers (marked private on the clipboard) aren't shared. Neither is text a program in a terminal copies. One exception: the app on Linux can't tell which copies on its own computer are passwords.
 
 ## Cloud machines
 
-Need a machine you don't have? Muxin can make one in your DigitalOcean account. Connect in **Settings › Cloud** with an API token (kept in the macOS Keychain), the browser sign-in, or `doctl`'s login. Then pick **New cloud machine…** in the Add machine dialog: a name, a region (the nearest is preselected) and a size with its price. Muxin creates the droplet with your user and SSH key, installs what you chose (Docker, git and the GitHub CLI; Node with Claude Code and Codex; Tailscale), and adds it to your machines. Then it's like any other machine: terminals, agent sessions, files, workspaces.
+Need a machine you don't have? AndruIDE can make one in your DigitalOcean account. Connect in **Settings › Cloud** with an API token (kept in the macOS Keychain), the browser sign-in, or `doctl`'s login. Then pick **New cloud machine…** in the Add machine dialog: a name, a region (the nearest is preselected) and a size with its price. AndruIDE creates the droplet with your user and SSH key, installs what you chose (Docker, git and the GitHub CLI; Node with Claude Code and Codex; Tailscale), and adds it to your machines. Then it's like any other machine: terminals, agent sessions, files, workspaces.
 
-DigitalOcean bills a droplet by the second while it exists, **powered on or off**, up to its monthly price; only destroying it stops the charges. Each cloud machine's page shows its rate, what it has cost this month and since it was created, and what this month comes to if you keep it, with **Power on/off** and **Destroy**. **Settings › Cloud › Usage and cost** adds them up: what you're paying per hour now, this month so far (machines destroyed this month included), the month's total if nothing changes, and your whole DigitalOcean bill this month (when Muxin may read it: sign in again in the browser, or use a token with `billing:read`). Settings › Cloud also says what happens when one sits idle: nothing, a reminder, power off, or destroy, after the hours you choose.
+DigitalOcean bills a droplet by the second while it exists, **powered on or off**, up to its monthly price; only destroying it stops the charges. Each cloud machine's page shows its rate, what it has cost this month and since it was created, and what this month comes to if you keep it, with **Power on/off** and **Destroy**. **Settings › Cloud › Usage and cost** adds them up: what you're paying per hour now, this month so far (machines destroyed this month included), the month's total if nothing changes, and your whole DigitalOcean bill this month (when AndruIDE may read it: sign in again in the browser, or use a token with `billing:read`). Settings › Cloud also says what happens when one sits idle: nothing, a reminder, power off, or destroy, after the hours you choose.
 
 ```sh
-pbpaste | muxin cloud login --token -   # the token on stdin, not in your shell history
-muxin cloud options
-muxin cloud create dev-1 --size s-2vcpu-4gb
-muxin cloud usage                     # what they cost
-muxin cloud destroy dev-1
+pbpaste | andruide cloud login --token -   # the token on stdin, not in your shell history
+andruide cloud options
+andruide cloud create dev-1 --size s-2vcpu-4gb
+andruide cloud usage                     # what they cost
+andruide cloud destroy dev-1
 ```
 
 ## VMs on your machines
@@ -631,33 +631,33 @@ Need a clean Windows to try an installer, or a throwaway Linux? **New VM…** (i
 - **Windows** 11, 10, Server 2025 or 2022, in Docker with KVM ([dockur/windows](https://github.com/dockur/windows)) on a Linux machine (x86-64). It downloads Windows and installs it by itself, 15 to 30 minutes the first time, then turns on OpenSSH with your key. Watch the install from its page. It runs unactivated until you enter a key.
 - **Linux** (Ubuntu, Debian, Fedora, Alpine or Arch) as a container with ssh, on any machine with Docker, this Mac included. Ready in under a minute. It shares its host's kernel (no systemd).
 
-It joins your machines under the one it runs on, with Muxin's agent: sessions, files, the desktop and workspaces work like anywhere, and a UDP port on its host is forwarded to it, so **Connect directly** works too. **Stop** and **Start** it from its page; **Destroy** deletes its container and disk. Your AI agents can do the same through MCP: make a Windows VM for a test, use it, destroy it.
+It joins your machines under the one it runs on, with AndruIDE's agent: sessions, files, the desktop and workspaces work like anywhere, and a UDP port on its host is forwarded to it, so **Connect directly** works too. **Stop** and **Start** it from its page; **Destroy** deletes its container and disk. Your AI agents can do the same through MCP: make a Windows VM for a test, use it, destroy it.
 
 ```sh
-muxin vm options                                   # where VMs can run, and what
-muxin vm create win-test --system windows-11 --on beelink
-muxin vm create scratch --system ubuntu-24.04       # on the machine with the most free memory
-muxin power win-test off
-muxin vm destroy win-test
+andruide vm options                                   # where VMs can run, and what
+andruide vm create win-test --system windows-11 --on beelink
+andruide vm create scratch --system ubuntu-24.04       # on the machine with the most free memory
+andruide power win-test off
+andruide vm destroy win-test
 ```
 
 ## Schedules
 
-A schedule runs a command, or starts an agent session, on one of your machines at set times: every few minutes, every hour, every day, weekdays, or some days of the week, in that machine's own time. It's kept on the machine and run by its own scheduler (cron, launchd or Task Scheduler), so it runs even when Muxin isn't open. The **Schedules** page lists them with their last run, runs one now, pauses one, and shows each run's output. An agent schedule ("every morning, go through new issues") starts a session you find under the machine, waiting for you.
+A schedule runs a command, or starts an agent session, on one of your machines at set times: every few minutes, every hour, every day, weekdays, or some days of the week, in that machine's own time. It's kept on the machine and run by its own scheduler (cron, launchd or Task Scheduler), so it runs even when AndruIDE isn't open. The **Schedules** page lists them with their last run, runs one now, pauses one, and shows each run's output. An agent schedule ("every morning, go through new issues") starts a session you find under the machine, waiting for you.
 
 ```sh
-muxin schedule add beelink --name "Disk report" --every weekdays --at 09:00 --command "df -h /"
-muxin schedule add beelink --name Triage --every day --at 08:30 --agent claude --prompt "Label new issues in acme/api"
-muxin schedule ls
-muxin schedule log beelink s-ab12cd
+andruide schedule add beelink --name "Disk report" --every weekdays --at 09:00 --command "df -h /"
+andruide schedule add beelink --name Triage --every day --at 08:30 --agent claude --prompt "Label new issues in acme/api"
+andruide schedule ls
+andruide schedule log beelink s-ab12cd
 ```
 
 ## How checks and installs work
 
 - **Checks are read-only.** A small script is sent over `ssh` (`sh` on macOS and Linux, PowerShell on Windows), or run directly for `host = "local"`. It reports CPU, memory, disk, uptime and load, and finds the installed runners, their versions, their services and whether they're running. Checks run on a schedule (every 15 minutes by default) or on request.
-- **Installs only happen when you ask.** Muxin checks the machine, gets a short-lived registration token from GitHub, and installs each runner in one of these modes (`--mode` / `mode`, default `auto`):
+- **Installs only happen when you ask.** AndruIDE checks the machine, gets a short-lived registration token from GitHub, and installs each runner in one of these modes (`--mode` / `mode`, default `auto`):
   - **service:** downloads the latest `actions-runner` for the machine's platform into `~/actions-runner/<name>`, runs `config.sh --unattended`, and installs a service: launchd on macOS (the user must be logged in), systemd on Linux (needs **passwordless sudo** for `svc.sh`), a Windows service on Windows.
-  - **docker:** one container per runner, `muxen-<name>`, from GitHub's official image (`ghcr.io/actions/actions-runner:<latest runner version>`, or `--image`). The runner's files live in a named volume of the same name, registration happens in a throwaway container that reads the token from stdin (so it never shows up in `docker inspect` or a process list), and the container runs with `--restart unless-stopped`, so it comes back with the Docker daemon. No sudo needed; the user just has to be in the `docker` group. The runners get the `docker` label, and jobs run in a clean Ubuntu userland. `--docker-socket` shares the host's Docker socket so jobs can use Docker; that's root-equivalent access to the machine, so only use it for trusted workflows.
+  - **docker:** one container per runner, `andruide-<name>`, from GitHub's official image (`ghcr.io/actions/actions-runner:<latest runner version>`, or `--image`). The runner's files live in a named volume of the same name, registration happens in a throwaway container that reads the token from stdin (so it never shows up in `docker inspect` or a process list), and the container runs with `--restart unless-stopped`, so it comes back with the Docker daemon. No sudo needed; the user just has to be in the `docker` group. The runners get the `docker` label, and jobs run in a clean Ubuntu userland. `--docker-socket` shares the host's Docker socket so jobs can use Docker; that's root-equivalent access to the machine, so only use it for trusted workflows.
   - **background:** `run.sh` started with `nohup`; no root needed, but it doesn't come back after a reboot (`--no-service` is the same).
   - **auto** picks service when the machine allows it (macOS, Windows, Linux with passwordless sudo or as root), else docker when Docker is usable, else background, and says which it picked in the operation log.
 - **Remove** stops the runner, uninstalls its service (or removes its container) and deregisters it with a removal token. It deletes the folder (or the container's volume) only if you ask.
@@ -667,17 +667,17 @@ muxin schedule log beelink s-ab12cd
 
 ## Windows
 
-**Windows machines** are managed like the others, over OpenSSH (Settings › System › Optional features › OpenSSH Server, then key-based login; an administrator account for services and runners). Muxin installs its agent in `%USERPROFILE%\.muxen\bin` and works with PowerShell or cmd as sshd's shell:
+**Windows machines** are managed like the others, over OpenSSH (Settings › System › Optional features › OpenSSH Server, then key-based login; an administrator account for services and runners). AndruIDE installs its agent in `%USERPROFILE%\.andruide\bin` and works with PowerShell or cmd as sshd's shell:
 
-- **Sessions** keep running after Muxin closes (ConPTY, in the agent's session server).
-- **Desktop and clipboard:** the screen, mouse and keyboard of the account Muxin connects as, while it's signed in; Muxin starts its helper in its session through a one-off scheduled task (no window flashes). With nobody signed in, use **Open with Remote Desktop** (see Desktop above).
+- **Sessions** keep running after AndruIDE closes (ConPTY, in the agent's session server).
+- **Desktop and clipboard:** the screen, mouse and keyboard of the account AndruIDE connects as, while it's signed in; AndruIDE starts its helper in its session through a one-off scheduled task (no window flashes). With nobody signed in, use **Open with Remote Desktop** (see Desktop above).
 - **Pages:** Processes and GPUs, Services (Windows services; "at boot" is the startup type), Servers, Logs (the System, Application and Security event logs, a service's events, files), Usage, Copy files, git, Run (PowerShell), workspaces (sync copies through the agent; it doesn't delete).
 - **Checks** report admin rights, Docker, the network card (for Wake on LAN), pending reboots and failed services.
 - **Direct connections** run `listen` as a scheduled task at sign-in, with a Windows Firewall rule for the agent.
 
 Not yet on Windows: Docker runners and Docker workspaces, adding virtual monitors.
 
-**The app on Windows** is built on Windows (GPUI compiles its shaders with the Windows SDK's `fxc.exe`): install Rust and Visual Studio's C++ build tools with the Windows SDK, run `scripts/build-agents.sh` on a Mac or Linux (it makes the Windows agent too, with `cargo-zigbuild`), then `scripts\package-windows.ps1` on Windows. That makes `dist\Muxin-<version>-windows-x64-setup.exe` (`arm64` on Windows on Arm: an installer, with [Inno Setup](https://jrsoftware.org/isinfo.php): for this user, no administrator needed, a Start menu entry, optionally `muxin` on the PATH, an uninstaller) and `dist\Muxin-<version>-windows-x64.zip` (`muxin.exe` and its `agents\`). Started from Explorer it shows no console window; from a terminal it's the same CLI as elsewhere. Secrets go in Windows' Credential Manager.
+**The app on Windows** is built on Windows (GPUI compiles its shaders with the Windows SDK's `fxc.exe`): install Rust and Visual Studio's C++ build tools with the Windows SDK, run `scripts/build-agents.sh` on a Mac or Linux (it makes the Windows agent too, with `cargo-zigbuild`), then `scripts\package-windows.ps1` on Windows. That makes `dist\AndruIDE-<version>-windows-x64-setup.exe` (`arm64` on Windows on Arm: an installer, with [Inno Setup](https://jrsoftware.org/isinfo.php): for this user, no administrator needed, a Start menu entry, optionally `andruide` on the PATH, an uninstaller) and `dist\AndruIDE-<version>-windows-x64.zip` (`andruide.exe` and its `agents\`). Started from Explorer it shows no console window; from a terminal it's the same CLI as elsewhere. Secrets go in Windows' Credential Manager.
 
 ## Develop
 
@@ -708,6 +708,6 @@ Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md). To
 
 ## License
 
-Muxin is open source under the [Apache License 2.0](LICENSE), copyright 2026 Lumary Labs LLC (see `NOTICE`). The Muxin name and logo are Lumary Labs' trademarks; the license doesn't cover them.
+AndruIDE is open source under the [Apache License 2.0](LICENSE), copyright 2026 Lumary Labs LLC (see `NOTICE`). The AndruIDE name and logo are Lumary Labs' trademarks; the license doesn't cover them.
 
 It includes third-party components under their own licenses, listed in `THIRD_PARTY_NOTICES.md`: the Geist fonts (SIL Open Font License, `assets/fonts/OFL.txt`), the Lucide icons (ISC, `assets/icons/LICENSE.txt`), the Phosphor, Hugeicons and Fluent icons (MIT), the MingCute icons (Apache-2.0) and the Solar icons (CC BY 4.0), with their licenses in `assets/icons/`, GPUI (Apache-2.0) and the Rust crates in `Cargo.lock`.

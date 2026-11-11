@@ -747,7 +747,7 @@ impl Render for ServicesView {
                 .border_color(theme.border_variant)
                 .bg(theme.surface)
                 .child(icon("lock", 14., theme.text_muted))
-                .child(div().text_size(px(12.5)).text_color(theme.text).child(format!("To {action} {}, Muxin needs your password on {machine_name}.", s.name)))
+                .child(div().text_size(px(12.5)).text_color(theme.text).child(format!("To {action} {}, AndruIDE needs your password on {machine_name}.", s.name)))
                 .child(div().w(px(200.)).child(self.password.clone()))
                 .child(Button::new("svc-password-go", "Continue").style(ButtonStyle::Primary).on_click(cx.listener(|this, _, window, cx| this.give_password(window, cx))))
                 .child(
@@ -1219,14 +1219,14 @@ impl ServicesView {
                     };
                     let actions = match &confirming {
                         Some((ck, action)) if *ck == k => {
-                            let risky = s.keeps_muxen_connected() && *action != "restart";
+                            let risky = s.keeps_andruide_connected() && *action != "restart";
                             let (verb, glyph) = match *action {
                                 "stop" => ("Stop", "circle-stop"),
                                 "remove" => ("Remove", "trash-2"),
                                 _ => ("Restart", "rotate-ccw"),
                             };
                             let text = if risky {
-                                format!("{verb} {}? It can cut Muxin off from {machine_name}.", s.name)
+                                format!("{verb} {}? It can cut AndruIDE off from {machine_name}.", s.name)
                             } else if *action == "remove" {
                                 format!("Remove {} for good?", s.name)
                             } else {

@@ -1,5 +1,5 @@
 //! Linux on Wayland: the keyboard-shortcuts-inhibit protocol. The compositor
-//! is asked not to act on its shortcuts while Muxin's window has the
+//! is asked not to act on its shortcuts while AndruIDE's window has the
 //! keyboard; the keys then come to the window like any other. Compositors
 //! that have it (GNOME, KDE, Sway, Hyprland) may ask the user first, and keep
 //! a way out of their own.

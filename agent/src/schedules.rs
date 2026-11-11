@@ -1,11 +1,11 @@
 //! Schedules: a command, or an agent session, that runs on this machine at
-//! set times, whether or not Muxen is open anywhere. Each one is kept in
-//! `~/.muxen/schedules/<id>.json` and registered with this machine's own
+//! set times, whether or not AndruIDE is open anywhere. Each one is kept in
+//! `~/.andruide/schedules/<id>.json` and registered with this machine's own
 //! scheduler (cron on Linux, launchd on a Mac, Task Scheduler on Windows),
-//! which runs `muxen-agent schedule-run <id>`. A run's output goes to
-//! `~/.muxen/schedules/<id>/`, and a line about it to its runs.jsonl.
+//! which runs `andruide-agent schedule-run <id>`. A run's output goes to
+//! `~/.andruide/schedules/<id>/`, and a line about it to its runs.jsonl.
 //!
-//! A schedule, as Muxen sends it:
+//! A schedule, as AndruIDE sends it:
 //!
 //! ```json
 //! { "id": "s-ab12cd", "name": "Nightly tests", "enabled": true,
@@ -16,7 +16,7 @@
 //! `when.every`: "minutes" or "hours" (with `n`; "hours" at `at`'s minute),
 //! "day", "weekdays", or "week" (with `days`: ["mon", "thu"]), at `at` ("HH:MM").
 //! `what.kind`: "command" (run in the user's login shell) or "agent" (an
-//! agent session started like Muxen starts one: `agent`, `title`, `cwd`,
+//! agent session started like AndruIDE starts one: `agent`, `title`, `cwd`,
 //! `run`, and `send`, text typed in once it's up).
 
 use std::io::{Read, Write};
@@ -26,8 +26,8 @@ use std::time::{Duration, Instant};
 
 use serde_json::{Value, json};
 
-const MARK_BEGIN: &str = "# muxen schedules: managed by Muxen (edits between these lines are replaced)";
-const MARK_END: &str = "# end of muxen schedules";
+const MARK_BEGIN: &str = "# andruide schedules: managed by AndruIDE (edits between these lines are replaced)";
+const MARK_END: &str = "# end of andruide schedules";
 /// Runs kept per schedule.
 const KEEP_RUNS: usize = 30;
 /// A command that runs longer than this is ended.
@@ -44,7 +44,7 @@ fn valid_id(id: &str) -> bool {
 }
 
 fn exe() -> String {
-    let name = if cfg!(windows) { "muxen-agent.exe" } else { "muxen-agent" };
+    let name = if cfg!(windows) { "andruide-agent.exe" } else { "andruide-agent" };
     crate::home_dir().join("bin").join(name).display().to_string()
 }
 
@@ -306,7 +306,7 @@ fn register_all() -> Result<(), String> {
 fn unregister(id: &str) {
     #[cfg(windows)]
     {
-        let _ = crate::win::ps(&format!("Unregister-ScheduledTask -TaskName {} -TaskPath '\\Muxen\\' -Confirm:$false -ErrorAction SilentlyContinue", crate::win::quote(&task_name(id))));
+        let _ = crate::win::ps(&format!("Unregister-ScheduledTask -TaskName {} -TaskPath '\\AndruIDE\\' -Confirm:$false -ErrorAction SilentlyContinue", crate::win::quote(&task_name(id))));
         return;
     }
     #[allow(unreachable_code)]
@@ -316,11 +316,11 @@ fn unregister(id: &str) {
     // cron: register_all rewrites the block without it.
 }
 
-/// The user's crontab with Muxen's block replaced by `lines`.
+/// The user's crontab with AndruIDE's block replaced by `lines`.
 fn cron_write(lines: &[String]) -> Result<(), String> {
     let crontab = crate::root::tool("crontab").ok_or_else(|| scheduler().1.unwrap_or_default())?;
     let current = Command::new(&crontab).arg("-l").output().ok().filter(|o| o.status.success()).map(|o| String::from_utf8_lossy(&o.stdout).to_string()).unwrap_or_default();
-    // Nothing of Muxen's there, and nothing to add: leave it alone.
+    // Nothing of AndruIDE's there, and nothing to add: leave it alone.
     if lines.is_empty() && !current.contains(MARK_BEGIN) {
         return Ok(());
     }
@@ -354,7 +354,7 @@ fn cron_write(lines: &[String]) -> Result<(), String> {
     if o.status.success() { Ok(()) } else { Err(format!("crontab refused it: {}", String::from_utf8_lossy(&o.stderr).trim())) }
 }
 
-const LABEL_PREFIX: &str = "com.lumarylabs.muxen.schedule.";
+const LABEL_PREFIX: &str = "com.lumarylabs.andruide.schedule.";
 
 fn label(id: &str) -> String {
     format!("{LABEL_PREFIX}{id}")
@@ -428,10 +428,10 @@ fn quiet(program: &str, args: &[&str]) -> bool {
 
 #[cfg_attr(not(windows), allow(dead_code))]
 fn task_name(id: &str) -> String {
-    format!("Muxen schedule {id}")
+    format!("AndruIDE schedule {id}")
 }
 
-/// A task in Task Scheduler's Muxen folder, for this user while they're
+/// A task in Task Scheduler's AndruIDE folder, for this user while they're
 /// signed in, through a windowless console.
 #[cfg(windows)]
 fn windows_task(s: &Value) -> Result<(), String> {
@@ -453,7 +453,7 @@ fn windows_task(s: &Value) -> Result<(), String> {
          $trigger = {trigger}\n\
          $principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive -RunLevel Limited\n\
          $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Hours 6)\n\
-         Register-ScheduledTask -TaskName {task} -TaskPath '\\Muxen\\' -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Force | Out-Null\n\
+         Register-ScheduledTask -TaskName {task} -TaskPath '\\AndruIDE\\' -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Force | Out-Null\n\
          'ok'",
         exe = crate::win::quote(&exe()),
         task = crate::win::quote(&task_name(id)),
@@ -485,7 +485,7 @@ fn alive(pid: u32) -> bool {
     Command::new("tasklist").args(["/FI", &format!("PID eq {pid}"), "/NH"]).output().is_ok_and(|o| String::from_utf8_lossy(&o.stdout).contains(&pid.to_string()))
 }
 
-/// `muxen-agent schedule-run <id>`: what the scheduler runs.
+/// `andruide-agent schedule-run <id>`: what the scheduler runs.
 pub fn run(id: &str) -> i32 {
     if !valid_id(id) {
         return 2;
@@ -547,7 +547,7 @@ fn run_command(what: &Value, log: &std::path::Path) -> Option<i32> {
             Ok(None) if started.elapsed() > MAX_RUN => {
                 let _ = child.kill();
                 if let Ok(mut f) = std::fs::OpenOptions::new().append(true).open(log) {
-                    let _ = writeln!(f, "\n[muxen: ended after {} hours]", MAX_RUN.as_secs() / 3600);
+                    let _ = writeln!(f, "\n[andruide: ended after {} hours]", MAX_RUN.as_secs() / 3600);
                 }
                 return None;
             }

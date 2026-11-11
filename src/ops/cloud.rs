@@ -98,7 +98,7 @@ impl Engine {
         let settings = self.settings().cloud;
         let extras = req.install.unwrap_or(settings.install);
         if let Some(bad) = extras.iter().find(|e| !setup::EXTRAS.iter().any(|(id, _)| id == e)) {
-            return Err(format!("Muxin doesn't know how to install \"{bad}\". It knows: {}.", setup::EXTRAS.iter().map(|(id, _)| *id).collect::<Vec<_>>().join(", ")));
+            return Err(format!("AndruIDE doesn't know how to install \"{bad}\". It knows: {}.", setup::EXTRAS.iter().map(|(id, _)| *id).collect::<Vec<_>>().join(", ")));
         }
         let op = self.begin_op("cloud-create", format!("Create {name} on DigitalOcean"), None, None);
         let me = self.clone();
@@ -138,7 +138,7 @@ impl Engine {
             Some(k) => k,
             None => {
                 self.op_log(op, format!("▸ Adding {key_path} to your DigitalOcean account"));
-                client.add_ssh_key(&format!("Muxin · {}", crate::config::local_hostname()), public_key.trim()).await?
+                client.add_ssh_key(&format!("AndruIDE · {}", crate::config::local_hostname()), public_key.trim()).await?
             }
         };
 
@@ -185,13 +185,13 @@ impl Engine {
             self.join_tailnet(op, &spec).await;
         }
 
-        // Muxin's agent, so terminals, sessions and files work right away.
-        self.op_log(op, "▸ Installing Muxin's agent");
+        // AndruIDE's agent, so terminals, sessions and files work right away.
+        self.op_log(op, "▸ Installing AndruIDE's agent");
         self.run_check(Some(vec![machine_id.clone()])).await;
         let probe = self.machine(&machine_id).and_then(|(_, p)| p);
         match crate::fleet::sessions::agent::ensure(&spec, probe.as_ref()).await {
             Ok(()) => self.op_log(op, "✓ Agent installed"),
-            Err(e) => self.op_log(op, format!("! The agent didn't install yet ({e}); Muxin tries again when you open a terminal")),
+            Err(e) => self.op_log(op, format!("! The agent didn't install yet ({e}); AndruIDE tries again when you open a terminal")),
         }
         self.connect_directly_after_setup(op, &machine_id).await;
         self.op_log(op, format!("✓ {name} is ready"));
@@ -202,7 +202,7 @@ impl Engine {
     async fn wait_for_setup(self: &Arc<Self>, op: u64, spec: &MachineSpec, timeout: Duration) -> Result<(), String> {
         let started = std::time::Instant::now();
         let mut seen = String::new();
-        let check = format!("if [ -f {} ]; then echo muxen-ready; fi; grep -E '^muxen-(step|warn):' {} 2>/dev/null | tail -n 4", setup::READY, setup::LOG);
+        let check = format!("if [ -f {} ]; then echo andruide-ready; fi; grep -E '^andruide-(step|warn):' {} 2>/dev/null | tail -n 4", setup::READY, setup::LOG);
         while started.elapsed() < timeout {
             tokio::time::sleep(Duration::from_secs(6)).await;
             let Ok(out) = tokio::process::Command::new("ssh").args(crate::probe::ssh_args(spec)).arg(&check).output().await else { continue };
@@ -211,15 +211,15 @@ impl Engine {
             }
             let text = String::from_utf8_lossy(&out.stdout).to_string();
             for line in text.lines() {
-                if let Some(step) = line.strip_prefix("muxen-step: ").or(line.strip_prefix("muxen-warn: ")) {
+                if let Some(step) = line.strip_prefix("andruide-step: ").or(line.strip_prefix("andruide-warn: ")) {
                     if !seen.contains(&format!("|{step}|")) {
                         seen.push_str(&format!("|{step}|"));
-                        let mark = if line.starts_with("muxen-warn") { "!" } else { "▸" };
+                        let mark = if line.starts_with("andruide-warn") { "!" } else { "▸" };
                         self.op_log(op, format!("  {mark} {step}"));
                     }
                 }
             }
-            if text.contains("muxen-ready") {
+            if text.contains("andruide-ready") {
                 return Ok(());
             }
         }
@@ -249,7 +249,7 @@ impl Engine {
             }
             None => {
                 // No key: start the login and hand its approval link to the browser.
-                let script = format!("sudo sh -c 'nohup tailscale up --hostname={hostname} >/tmp/muxen-tailscale.log 2>&1 &'; sleep 4; grep -o 'https://login.tailscale.com/[^ ]*' /tmp/muxen-tailscale.log | head -n 1");
+                let script = format!("sudo sh -c 'nohup tailscale up --hostname={hostname} >/tmp/andruide-tailscale.log 2>&1 &'; sleep 4; grep -o 'https://login.tailscale.com/[^ ]*' /tmp/andruide-tailscale.log | head -n 1");
                 let out = tokio::process::Command::new("ssh").args(crate::probe::ssh_args(spec)).arg(script).output().await;
                 match out.ok().map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string()).filter(|u| u.starts_with("https://")) {
                     Some(url) => {
@@ -262,10 +262,10 @@ impl Engine {
         }
     }
 
-    /// Destroys a cloud machine: deletes the droplet and removes it from Muxin.
+    /// Destroys a cloud machine: deletes the droplet and removes it from AndruIDE.
     pub fn cloud_destroy(self: &Arc<Self>, machine_id: &str) -> Result<u64, String> {
-        let (spec, _) = self.machine(machine_id).ok_or("That machine isn't in Muxin anymore.")?;
-        let cloud = spec.cloud.clone().ok_or_else(|| format!("{} isn't a cloud machine Muxin created.", spec.name))?;
+        let (spec, _) = self.machine(machine_id).ok_or("That machine isn't in AndruIDE anymore.")?;
+        let cloud = spec.cloud.clone().ok_or_else(|| format!("{} isn't a cloud machine AndruIDE created.", spec.name))?;
         if self.machine_busy(&spec.id) {
             return Err("An operation is still running on this machine. Wait for it to finish.".into());
         }
@@ -299,8 +299,8 @@ impl Engine {
 
     /// Powers a cloud machine off (cleanly) or on. DigitalOcean still bills it while it's off.
     pub fn cloud_power(self: &Arc<Self>, machine_id: &str, on: bool) -> Result<u64, String> {
-        let (spec, _) = self.machine(machine_id).ok_or("That machine isn't in Muxin anymore.")?;
-        let cloud = spec.cloud.clone().ok_or_else(|| format!("{} isn't a cloud machine Muxin created.", spec.name))?;
+        let (spec, _) = self.machine(machine_id).ok_or("That machine isn't in AndruIDE anymore.")?;
+        let cloud = spec.cloud.clone().ok_or_else(|| format!("{} isn't a cloud machine AndruIDE created.", spec.name))?;
         if self.machine_busy(&spec.id) {
             return Err("An operation is still running on this machine. Wait for it to finish.".into());
         }
@@ -441,7 +441,7 @@ impl Engine {
                         account_error = Some(match method.as_str() {
                             // It says "not authorized" even with billing:read granted, at least for a new account.
                             "oauth" if !account_needs_sign_in => "DigitalOcean isn't sharing the bill yet; a new account may not have one.".to_string(),
-                            "oauth" => format!("Sign in again so Muxin can read your DigitalOcean bill. ({said})"),
+                            "oauth" => format!("Sign in again so AndruIDE can read your DigitalOcean bill. ({said})"),
                             "doctl" => format!("doctl's token can't read billing; it needs billing:read. ({said})"),
                             _ => format!("This API token can't read billing; it needs billing:read. ({said})"),
                         });

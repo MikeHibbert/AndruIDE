@@ -1,9 +1,9 @@
 //! What the user chose for the agents on this machine, in Settings › Agents
-//! of any of their Muxins: `hooks` (hooks.rs) and `resume`, whether agents
+//! of any of their AndruIDEs: `hooks` (hooks.rs) and `resume`, whether agents
 //! continue their conversations after a restart (daemon.rs); starting
 //! helpers later. Each app sends its own choices with when they
 //! were made, `{"hooks": {"on": false, "at": 1793979274}}` (0: a default
-//! nobody changed). The newest wins and is kept here, `~/.muxen/settings.json`,
+//! nobody changed). The newest wins and is kept here, `~/.andruide/settings.json`,
 //! and goes back in `discover`'s reply: so a Mac and an iPad agree, and a
 //! machine that was away when a choice was made gets it once it's back.
 
@@ -36,14 +36,14 @@ fn merge_with(kept: &Map<String, Value>, sent: &Map<String, Value>) -> (Map<Stri
         let used = if newer { choice } else { &kept[key] };
         out.insert(key.clone(), json!({ "on": used["on"], "at": at(used) }));
     }
-    // Ones this app doesn't know (a newer Muxin's): kept, and said.
+    // Ones this app doesn't know (a newer AndruIDE's): kept, and said.
     for (key, choice) in kept {
         out.entry(key.clone()).or_insert_with(|| choice.clone());
     }
     (out, changed.then_some(now))
 }
 
-/// The choices kept here (what the user chose in any of their Muxins).
+/// The choices kept here (what the user chose in any of their AndruIDEs).
 pub fn kept() -> Value {
     Value::Object(read_kept())
 }
@@ -100,7 +100,7 @@ mod tests {
         // An older one changes nothing.
         let (out, _) = merge_with(&kept, &map(json!({ "hooks": { "on": true, "at": 50 } })));
         assert_eq!(out["hooks"]["on"], false);
-        // A choice only a newer Muxin knows is said back as it is; nonsense is ignored.
+        // A choice only a newer AndruIDE knows is said back as it is; nonsense is ignored.
         let kept = map(json!({ "resume": { "on": false, "at": 9 } }));
         let (out, _) = merge_with(&kept, &map(json!({ "hooks": { "on": "yes" } })));
         assert_eq!(out.get("resume"), Some(&json!({ "on": false, "at": 9 })));

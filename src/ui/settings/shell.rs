@@ -1,5 +1,5 @@
-//! Settings › General › Command line: the `muxin` command in the PATH (see
-//! crate::shell_command), so terminals and other agents can run Muxin.
+//! Settings › General › Command line: the `andruide` command in the PATH (see
+//! crate::shell_command), so terminals and other agents can run AndruIDE.
 
 use gpui::{AnyElement, Context, div, prelude::*, px};
 
@@ -54,7 +54,7 @@ impl SettingsPage {
             None => ("loader-circle", theme.text_muted, "Looking…".into()),
             Some(s) => match s.state {
                 "installed" => ("circle-check", theme.success, format!("Installed: {}", s.path)),
-                "missing" if cfg!(windows) => ("circle", theme.text_muted, "Not installed. Muxin's folder gets added to your PATH.".into()),
+                "missing" if cfg!(windows) => ("circle", theme.text_muted, "Not installed. AndruIDE's folder gets added to your PATH.".into()),
                 "missing" => ("circle", theme.text_muted, format!("Not installed. It goes in {}.", s.path)),
                 "other" => ("triangle-alert", theme.warning, format!("{} is already there.", s.path)),
                 _ => ("circle-x", theme.error, "Not available on this computer.".into()),
@@ -82,7 +82,7 @@ impl SettingsPage {
                     .p(px(14.))
                     .gap(px(10.))
                     .child(div().w_full().min_w(px(0.)).text_size(px(12.5)).text_color(theme.text_muted).child(
-                        "Use Muxin from a terminal, and connect other agents to it with muxin mcp.",
+                        "Use AndruIDE from a terminal, and connect other agents to it with andruide mcp.",
                     ))
                     .child(
                         div()

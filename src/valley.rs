@@ -5,11 +5,13 @@
 //! Valley page in the UI fronts this the way the Usage page fronts
 //! fleet::usage.
 //!
-//! Configuration comes from the environment, so no valley credentials are
-//! ever baked into this public repo:
-//! - `ANDRUIDE_VALLEY_URL`      base of Andrew's UI proxy (default `http://localhost:8001`)
-//! - `ANDRUIDE_VALLEY_USER`     Basic-auth user (no default: unset means "not configured")
-//! - `ANDRUIDE_VALLEY_PASSWORD` Basic-auth password
+//! Configuration: `[settings.valley]` in config.toml (Settings › Valley)
+//! first, then the environment, so no valley credentials are ever baked
+//! into this public repo:
+//! - config: `base_url` / `user` / `password`
+//! - env:    `ANDRUIDE_VALLEY_URL` (base of Andrew's UI proxy, default
+//!           `http://localhost:8001`), `ANDRUIDE_VALLEY_USER` (Basic-auth
+//!           user — unset means "not configured"), `ANDRUIDE_VALLEY_PASSWORD`
 
 use std::collections::BTreeMap;
 
@@ -75,15 +77,22 @@ pub struct Valley {
 }
 
 impl Valley {
-    /// Builds a client from the environment. `user` unset means the page
-    /// should show its "not configured" card instead of fetching.
-    pub fn from_env() -> Self {
-        let base = std::env::var("ANDRUIDE_VALLEY_URL")
-            .ok()
-            .filter(|v| !v.trim().is_empty())
-            .unwrap_or_else(|| "http://localhost:8001".into());
-        let user = std::env::var("ANDRUIDE_VALLEY_USER").ok().filter(|v| !v.trim().is_empty());
-        let password = std::env::var("ANDRUIDE_VALLEY_PASSWORD").ok().filter(|v| !v.trim().is_empty());
+    /// Builds a client: config.toml's [settings.valley] first, then the
+    /// ANDRUIDE_VALLEY_* environment variables, then the defaults. An auth
+    /// field unset means the page shows its "not configured" card instead
+    /// of fetching.
+    pub fn from_parts(cfg: crate::config::ValleySettings) -> Self {
+        let pick = |cfg_v: &str, env_k: &str| {
+            let c = cfg_v.trim();
+            if !c.is_empty() {
+                Some(c.to_string())
+            } else {
+                std::env::var(env_k).ok().filter(|v| !v.trim().is_empty())
+            }
+        };
+        let base = pick(&cfg.base_url, "ANDRUIDE_VALLEY_URL").unwrap_or_else(|| "http://localhost:8001".into());
+        let user = pick(&cfg.user, "ANDRUIDE_VALLEY_USER");
+        let password = pick(&cfg.password, "ANDRUIDE_VALLEY_PASSWORD");
         Self { http: reqwest::Client::new(), base, user, password }
     }
 

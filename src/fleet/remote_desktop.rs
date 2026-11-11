@@ -3,7 +3,7 @@
 //! works away from home and needs nothing opened in a firewall), then
 //! Windows App or Remote Desktop Connection, Screen Sharing, Remmina or
 //! FreeRDP started on it. It shows the sign-in screen too, so it works when
-//! nobody is signed in there and Muxin's own desktop view has no screen.
+//! nobody is signed in there and AndruIDE's own desktop view has no screen.
 
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
@@ -117,7 +117,7 @@ fn choose(system: System, name: &str, wanted: Option<Protocol>, listening: &[u16
     })
 }
 
-/// The account to sign in as: the one Muxin connects as (the ssh user, as
+/// The account to sign in as: the one AndruIDE connects as (the ssh user, as
 /// the machine's settings or the ssh config say).
 async fn user_of(spec: &crate::config::MachineSpec) -> Option<String> {
     if let Some(u) = spec.user.clone().or_else(|| spec.host.split_once('@').map(|(u, _)| u.to_string())).filter(|u| !u.is_empty()) {
@@ -138,7 +138,7 @@ fn rdp_file(address: &str, user: Option<&str>) -> String {
 
 /// Writes the Remote Desktop file for a machine, in the temp folder.
 fn write_rdp_file(machine_id: &str, address: &str, user: Option<&str>) -> Option<PathBuf> {
-    let path = std::env::temp_dir().join(format!("muxin-{machine_id}.rdp"));
+    let path = std::env::temp_dir().join(format!("andruide-{machine_id}.rdp"));
     std::fs::write(&path, rdp_file(address, user)).ok()?;
     Some(path)
 }
@@ -214,7 +214,7 @@ fn launch(protocol: Protocol, machine_id: &str, port: u16, user: Option<&str>) -
 impl Engine {
     /// Opens a machine's own remote desktop in this computer's app for it:
     /// `protocol`, or the one it has (RDP first, VNC on a Mac). Its port
-    /// stays open here (Servers lists it) until closed or Muxin quits.
+    /// stays open here (Servers lists it) until closed or AndruIDE quits.
     pub async fn open_remote_desktop(self: &Arc<Self>, machine_id: &str, protocol: Option<Protocol>) -> Result<RemoteDesktop, String> {
         let (spec, _) = self.machine(machine_id).ok_or_else(|| format!("No machine called {machine_id}."))?;
         if spec.is_local() {

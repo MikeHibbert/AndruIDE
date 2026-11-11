@@ -1,4 +1,4 @@
-//! Windows: a low-level keyboard hook. While Muxin's window is the one in
+//! Windows: a low-level keyboard hook. While AndruIDE's window is the one in
 //! front, the keys Windows keeps for itself (the Windows key, Alt+Tab,
 //! Alt+Esc, Ctrl+Esc, Alt+F4, Alt+Space) are swallowed in the hook and handed
 //! to `sink` instead. They never reach GPUI, and Windows never counts a
@@ -24,7 +24,7 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
 
 type Sink = Box<dyn Fn(&'static str, bool) + Send>;
 
-/// Muxin's window (its HWND) whose keys are taken, 0 for none.
+/// AndruIDE's window (its HWND) whose keys are taken, 0 for none.
 static WINDOW: AtomicIsize = AtomicIsize::new(0);
 static SINK: Mutex<Option<Sink>> = Mutex::new(None);
 /// The keys (by virtual key) whose press was taken: their release is too.

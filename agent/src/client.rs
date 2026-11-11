@@ -17,7 +17,7 @@ pub fn connect(start: bool) -> io::Result<Stream> {
         Ok(s) => Ok(s),
         Err(e) if !start => Err(e),
         Err(_) => {
-            // In the background, so it outlives this ssh connection (logging to ~/.muxen/agent.log).
+            // In the background, so it outlives this ssh connection (logging to ~/.andruide/agent.log).
             sys::spawn_background(&["serve"], home_dir().join("agent.log"))?;
             let mut last = None;
             // Windows takes a moment longer (the server starts through WMI).
@@ -94,7 +94,7 @@ pub fn handle(req: &Value) -> Value {
         #[cfg(windows)]
         "displays" => windows_displays(),
         #[cfg(windows)]
-        "display_create" | "display_remove" | "display_rename" | "display_set" => json!({ "ok": false, "error": "Muxen can't add or change monitors on Windows yet." }),
+        "display_create" | "display_remove" | "display_rename" | "display_set" => json!({ "ok": false, "error": "AndruIDE can't add or change monitors on Windows yet." }),
         // Apps' windows, to show one on its own (`window:<id>` as a display).
         #[cfg(windows)]
         "windows" => match crate::win_screen::in_desktop_session() {
@@ -146,7 +146,7 @@ fn windows_displays() -> Value {
     in_desktop(&["displays"], "Windows didn't list its monitors.")
 }
 
-/// What `muxen-agent <args>` prints, run in the signed-in desktop session.
+/// What `andruide-agent <args>` prints, run in the signed-in desktop session.
 #[cfg(windows)]
 fn in_desktop(args: &[&str], failed: &str) -> Value {
     let args: Vec<String> = args.iter().map(|a| a.to_string()).collect();
@@ -196,7 +196,7 @@ fn send(req: &Value) -> Value {
     reply
 }
 
-/// Titles the user gave sessions, by session name (`~/.muxen/titles.json`).
+/// Titles the user gave sessions, by session name (`~/.andruide/titles.json`).
 /// Kept here rather than in the session server, which goes on running the
 /// build it started with across agent updates, so renaming works with any.
 fn titles_path() -> std::path::PathBuf {
@@ -258,11 +258,11 @@ fn rename(req: &Value) -> Value {
     }
 }
 
-/// Everything Muxen wants to know about this machine's sessions. Doesn't
+/// Everything AndruIDE wants to know about this machine's sessions. Doesn't
 /// start the server just to look, unless it has sessions saved to bring back
 /// (it stopped: a crash, a reboot). `"settings"`: the app's choices for the
 /// agents here (settings.rs), merged with those kept and said back. With the
-/// installed tools (`agents`), it also puts Muxin's hooks in or takes them
+/// installed tools (`agents`), it also puts AndruIDE's hooks in or takes them
 /// out as they say (hooks.rs): that's when it knows where the agents keep
 /// their settings.
 fn discover(req: &Value) -> Value {
@@ -442,7 +442,7 @@ pub fn attach(name: &str) -> i32 {
     let mut stream = match connect(false) {
         Ok(s) => s,
         Err(_) => {
-            eprintln!("muxen-agent: no sessions are running on this machine");
+            eprintln!("andruide-agent: no sessions are running on this machine");
             return 1;
         }
     };
@@ -453,11 +453,11 @@ pub fn attach(name: &str) -> i32 {
     match proto::read_line(&mut stream) {
         Ok(v) if v["ok"].as_bool() == Some(true) => {}
         Ok(v) => {
-            eprintln!("muxen-agent: {}", v["error"].as_str().unwrap_or("can't attach"));
+            eprintln!("andruide-agent: {}", v["error"].as_str().unwrap_or("can't attach"));
             return 1;
         }
         Err(e) => {
-            eprintln!("muxen-agent: {e}");
+            eprintln!("andruide-agent: {e}");
             return 1;
         }
     }

@@ -1,7 +1,7 @@
 # Third-party notices
 
-Muxin includes the following third-party components. Their licenses
-must ship with every copy of Muxin.
+AndruIDE includes the following third-party components. Their licenses
+must ship with every copy of AndruIDE.
 
 | Component | License | Notice |
 |---|---|---|
@@ -14,7 +14,7 @@ must ship with every copy of Muxin.
 | Fluent UI System Icons, Microsoft (`assets/icons/fl-*.svg`) | MIT | `assets/icons/FLUENT-LICENSE.txt` |
 | GPUI (Zed Industries) | Apache-2.0 | <https://github.com/zed-industries/zed> |
 | alacritty_terminal (terminal emulation, in the app and the agent) | Apache-2.0 | <https://github.com/alacritty/alacritty> |
-| portable-pty (WezTerm; terminals in `muxen-agent`) | MIT | <https://github.com/wezterm/wezterm> |
+| portable-pty (WezTerm; terminals in `andruide-agent`) | MIT | <https://github.com/wezterm/wezterm> |
 | Agent logos (`assets/icons/agent-*.svg`), SVGs from LobeHub Icons | MIT | <https://github.com/lobehub/lobe-icons> |
 | Pi logo (`assets/icons/agent-pi.svg`), from Pi's press kit (Earendil) | trademark of its owner | <https://pi.dev/press-kit> |
 | Droid logo (`assets/icons/agent-droid.svg`), Factory's mark from its site's icon | trademark of its owner | <https://factory.com> |
@@ -24,8 +24,8 @@ must ship with every copy of Muxin.
 | Rust crates listed in `Cargo.lock` | MIT and/or Apache-2.0 (mostly), see each crate | Generate the full list before each release, e.g. with `cargo about generate` |
 
 The agent logos are trademarks of their owners (Anthropic, OpenAI, Google,
-SST, Sourcegraph, Earendil, GitHub, Anysphere, Alibaba, Factory, Moonshot AI), as is DigitalOcean's. Muxin shows them only to identify which CLI a session
+SST, Sourcegraph, Earendil, GitHub, Anysphere, Alibaba, Factory, Moonshot AI), as is DigitalOcean's. AndruIDE shows them only to identify which CLI a session
 runs, or that a machine is a DigitalOcean droplet; check each owner's brand guidelines before using them in marketing.
 
 Before shipping a release, regenerate the crate list and include the license
-texts in the app bundle (for example `Muxin.app/Contents/Resources/`).
+texts in the app bundle (for example `AndruIDE.app/Contents/Resources/`).

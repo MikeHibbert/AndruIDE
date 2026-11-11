@@ -742,7 +742,7 @@ impl Root {
                     .children(self.helpers_line(&theme, &info, cx))
                     .children(info.git.as_ref().map(|g| git_line(&theme, &info.id, g, true).mt(px(2.)))),
             )
-            .when(!info.persistent, |d| d.child(kit::pill("Ends when you close Muxin", theme.warning)))
+            .when(!info.persistent, |d| d.child(kit::pill("Ends when you close AndruIDE", theme.warning)))
             .child(status)
             .when(info.agent != "shell" && !info.agent.is_empty() && !exited && offline.is_none(), |d| {
                 let sid = info.id.clone();
@@ -1214,8 +1214,8 @@ impl Root {
             let text = match runs_in_app(m) {
                 _ if m.is_disconnected() => format!("Connect to {} to start Claude Code, Codex or a shell there.", m.name),
                 _ if m.is_down() => format!("Start Claude Code, Codex or a shell here once {} is back.", m.name),
-                true => format!("Run Claude Code, Codex or a shell here. {} so sessions run while Muxin is open.", m.sessions_error.clone().unwrap_or_default().trim_end_matches('.')),
-                false => "Run Claude Code, Codex, OpenCode or a shell here. Sessions keep working on the machine after you close Muxin.".to_string(),
+                true => format!("Run Claude Code, Codex or a shell here. {} so sessions run while AndruIDE is open.", m.sessions_error.clone().unwrap_or_default().trim_end_matches('.')),
+                false => "Run Claude Code, Codex, OpenCode or a shell here. Sessions keep working on the machine after you close AndruIDE.".to_string(),
             };
             card(theme)
                 .p(px(16.))
@@ -1313,7 +1313,7 @@ const HELPER_STEP: f32 = 18.;
 
 impl Root {
     /// The title of the session that started this one (a helper), or its id
-    /// when this Muxin doesn't list it (on a machine it doesn't have).
+    /// when this AndruIDE doesn't list it (on a machine it doesn't have).
     pub(super) fn helper_of(&self, x: &SessionInfo) -> Option<String> {
         let p = x.parent.as_deref()?;
         Some(self.snapshot.sessions.iter().find(|s| s.id == p).map(|s| s.title.clone()).unwrap_or_else(|| p.to_string()))
@@ -1362,7 +1362,7 @@ impl Root {
     }
 }
 
-/// Sessions here can't live in Muxin's agent (a platform it has no build
+/// Sessions here can't live in AndruIDE's agent (a platform it has no build
 /// for), so they run in this window and end with it.
 pub(super) fn runs_in_app(m: &FleetMachine) -> bool {
     m.agent_version.is_none() && m.sessions_error.as_deref().is_some_and(|e| e.contains("no agent"))
@@ -1910,7 +1910,7 @@ pub(super) struct Peek {
     text: Option<String>,
 }
 
-/// A session Muxin knows, by its full id or a name that's on one machine only.
+/// A session AndruIDE knows, by its full id or a name that's on one machine only.
 pub(super) fn known_session(s: &Snapshot, word: &str) -> Option<String> {
     if word.contains('/') {
         return s.sessions.iter().find(|x| x.id == word).map(|x| x.id.clone());
@@ -2296,8 +2296,8 @@ impl Root {
                     Ok(h) => {
                         let from = match h.source.as_str() {
                             "transcript" => "the conversation so far",
-                            "terminal" => "what the terminal showed (Muxin can't read this agent's transcript)",
-                            _ => "where the code stands (Muxin found no conversation)",
+                            "terminal" => "what the terminal showed (AndruIDE can't read this agent's transcript)",
+                            _ => "where the code stands (AndruIDE found no conversation)",
                         };
                         this.navigate(Route::Session(h.session.id.clone()), window, cx);
                         let warn = h.warnings.first().map(|w| format!(" {w}")).unwrap_or_default();

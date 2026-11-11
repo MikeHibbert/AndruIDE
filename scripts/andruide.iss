@@ -1,8 +1,8 @@
-; Muxin's Windows installer (Inno Setup 6), made by scripts\package-windows.ps1
-; from dist\windows\Muxin. Installs for this user (no administrator needed)
-; in %LOCALAPPDATA%\Programs\Muxin, with a Start menu entry, and optionally a
-; desktop shortcut and `muxin` on the PATH. The AppId is the one from when it
-; was called Muxen, so it updates that install in its folder.
+; AndruIDE's Windows installer (Inno Setup 6), made by scripts\package-windows.ps1
+; from dist\windows\AndruIDE. Installs for this user (no administrator needed)
+; in %LOCALAPPDATA%\Programs\AndruIDE, with a Start menu entry, and optionally a
+; desktop shortcut and `andruide` on the PATH. The AppId is the one from when it
+; was called AndruIDE, so it updates that install in its folder.
 
 #ifndef AppVersion
   #define AppVersion "0.1.0"
@@ -14,19 +14,19 @@
 
 [Setup]
 AppId={{6F0B8E52-3C8E-4C8C-9E5B-6C4D2A9B7E31}
-AppName=Muxin
+AppName=AndruIDE
 AppVersion={#AppVersion}
-AppVerName=Muxin {#AppVersion}
+AppVerName=AndruIDE {#AppVersion}
 AppPublisher=Lumary Labs
 AppPublisherURL=https://muxin.dev
-DefaultDirName={localappdata}\Programs\Muxin
-DefaultGroupName=Muxin
+DefaultDirName={localappdata}\Programs\AndruIDE
+DefaultGroupName=AndruIDE
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
 OutputDir=..\dist
-OutputBaseFilename=Muxin-Setup-{#Arch}
-SetupIconFile=..\assets\brand\muxin.ico
-UninstallDisplayIcon={app}\muxin.exe
+OutputBaseFilename=AndruIDE-Setup-{#Arch}
+SetupIconFile=..\assets\brand\andruide.ico
+UninstallDisplayIcon={app}\andruide.exe
 Compression=lzma2/max
 SolidCompression=yes
 #if Arch == "arm64"
@@ -42,49 +42,51 @@ CloseApplications=yes
 
 [Tasks]
 Name: "desktopicon"; Description: "Add a desktop shortcut"; GroupDescription: "Shortcuts:"; Flags: unchecked
-Name: "addtopath"; Description: "Add the muxin command to the PATH (for terminals and AI agents)"; GroupDescription: "Command line:"
+Name: "addtopath"; Description: "Add the andruide command to the PATH (for terminals and AI agents)"; GroupDescription: "Command line:"
 
 [Files]
-Source: "..\dist\windows\Muxin\muxin.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\dist\windows\Muxin\muxen.cmd"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\dist\windows\Muxin\agents\*"; DestDir: "{app}\agents"; Flags: ignoreversion
-Source: "..\dist\windows\Muxin\README.md"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\dist\windows\Muxin\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\dist\windows\Muxin\NOTICE"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\dist\windows\Muxin\THIRD_PARTY_NOTICES.md"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\dist\windows\AndruIDE\andruide.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\dist\windows\AndruIDE\agents\*"; DestDir: "{app}\agents"; Flags: ignoreversion
+Source: "..\dist\windows\AndruIDE\README.md"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\dist\windows\AndruIDE\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\dist\windows\AndruIDE\NOTICE"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\dist\windows\AndruIDE\THIRD_PARTY_NOTICES.md"; DestDir: "{app}"; Flags: ignoreversion
 
-; From when it was called Muxen: its program and shortcuts.
+; Old names (muxin, and before that muxen): their program and shortcuts.
 [InstallDelete]
+Type: files; Name: "{app}\muxin.exe"
 Type: files; Name: "{app}\muxen.exe"
+Type: files; Name: "{autoprograms}\Muxin.lnk"
+Type: files; Name: "{autodesktop}\Muxin.lnk"
 Type: files; Name: "{autoprograms}\Muxen.lnk"
 Type: files; Name: "{autodesktop}\Muxen.lnk"
 
-; Share links (muxin://join...) open in Muxin.
+; Share links (andruide://join...) open in AndruIDE. The scheme keeps its name.
 [Registry]
-Root: HKCU; Subkey: "Software\Classes\muxin"; ValueType: string; ValueName: ""; ValueData: "URL:Muxin share link"; Flags: uninsdeletekey
-Root: HKCU; Subkey: "Software\Classes\muxin"; ValueType: string; ValueName: "URL Protocol"; ValueData: ""
-Root: HKCU; Subkey: "Software\Classes\muxin\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\muxin.exe,0"
-Root: HKCU; Subkey: "Software\Classes\muxin\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\muxin.exe"" ""%1"""
+Root: HKCU; Subkey: "Software\Classes\andruide"; ValueType: string; ValueName: ""; ValueData: "URL:AndruIDE share link"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Classes\andruide"; ValueType: string; ValueName: "URL Protocol"; ValueData: ""
+Root: HKCU; Subkey: "Software\Classes\andruide\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\andruide.exe,0"
+Root: HKCU; Subkey: "Software\Classes\andruide\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\andruide.exe"" ""%1"""
 
 [Icons]
-Name: "{autoprograms}\Muxin"; Filename: "{app}\muxin.exe"
-Name: "{autodesktop}\Muxin"; Filename: "{app}\muxin.exe"; Tasks: desktopicon
+Name: "{autoprograms}\AndruIDE"; Filename: "{app}\andruide.exe"
+Name: "{autodesktop}\AndruIDE"; Filename: "{app}\andruide.exe"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\muxin.exe"; Description: "Open Muxin"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\andruide.exe"; Description: "Open AndruIDE"; Flags: nowait postinstall skipifsilent
 
 [Code]
 const
   EnvKey = 'Environment';
 
-// A Muxin kept running by its tray icon has no window to close, and its files
+// A AndruIDE kept running by its tray icon has no window to close, and its files
 // are in use: ask it to quit. (One older than this doesn't know `quit`, and has
 // a window for CloseApplications.)
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 var
   ResultCode: Integer;
 begin
-  if Exec(ExpandConstant('{app}\muxin.exe'), 'quit', '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+  if Exec(ExpandConstant('{app}\andruide.exe'), 'quit', '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
     Sleep(1000);
   Result := '';
 end;

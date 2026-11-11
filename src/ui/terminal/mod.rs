@@ -1,7 +1,7 @@
 //! An embedded terminal. alacritty_terminal does the emulation (and the PTY);
 //! GPUI draws the grid. Agent sessions show here either over the machine's
 //! live link (`remote`: bytes in and out, no local process) or by running
-//! `ssh -tt <host> muxen-agent attach …` in a local PTY.
+//! `ssh -tt <host> andruide-agent attach …` in a local PTY.
 
 mod boxdraw;
 mod colors;
@@ -221,7 +221,7 @@ pub enum TerminalEvent {
     Peek(String),
 }
 
-/// A session's full id from an id or name in a terminal's text, when it's one Muxin knows.
+/// A session's full id from an id or name in a terminal's text, when it's one AndruIDE knows.
 pub type SessionLookup = Arc<dyn Fn(&str) -> Option<String> + Send + Sync>;
 
 pub struct TerminalView {
@@ -239,7 +239,7 @@ pub struct TerminalView {
     /// The pointer is on a session id with ⌘ held (it's a link then).
     on_link: bool,
     /// Which session ids in its text are links: the full id of a session
-    /// Muxin knows by that id or name (`set_sessions`). None: no links.
+    /// AndruIDE knows by that id or name (`set_sessions`). None: no links.
     sessions: Option<SessionLookup>,
     /// The blinking cursor's phase, and the last key press (which shows it).
     cursor_on: bool,
@@ -335,7 +335,7 @@ impl TerminalView {
                 if asked_version {
                     let _ = this.update(cx, |this, _| {
                         if !this.guest {
-                            this.shared.write(format!("\x1bP>|Muxin {}\x1b\\", env!("CARGO_PKG_VERSION")).into_bytes());
+                            this.shared.write(format!("\x1bP>|AndruIDE {}\x1b\\", env!("CARGO_PKG_VERSION")).into_bytes());
                         }
                     });
                 }
@@ -636,7 +636,7 @@ impl TerminalView {
         self.sessions = Some(lookup);
     }
 
-    /// The session id under a cell, if there's one Muxin knows (`beelink/codex-3f9a`).
+    /// The session id under a cell, if there's one AndruIDE knows (`beelink/codex-3f9a`).
     fn session_at(&self, col: usize, row: usize) -> Option<String> {
         let lookup = self.sessions.as_ref()?;
         let term = self.shared.term.lock();

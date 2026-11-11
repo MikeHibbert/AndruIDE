@@ -1,4 +1,4 @@
-# Muxin's box image: Debian with git, the GitHub CLI, Node.js, common build
+# AndruIDE's box image: Debian with git, the GitHub CLI, Node.js, common build
 # tools and the agent CLIs. Built on each machine as its own user (UID/GID),
 # so files in a box's folders stay theirs.
 FROM node:22-bookworm

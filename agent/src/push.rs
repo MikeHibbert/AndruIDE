@@ -1,4 +1,4 @@
-//! Alerts for Muxin for iPad. When an agent session here needs you or is
+//! Alerts for AndruIDE for iPad. When an agent session here needs you or is
 //! done (its hooks say so, see states.rs; or, without them, it went quiet
 //! after working), rings the bell, or exits with an error,
 //! `listen` tells each iPad that asked for it, even while that iPad's app is
@@ -8,7 +8,7 @@
 //!
 //! An iPad asks with `{"op": "push", "set": {...}}` over its direct link. Only
 //! a paired app can: its entry is kept by its certificate's fingerprint, in
-//! ~/.muxen/direct/push.json, and goes once that app is unpaired.
+//! ~/.andruide/direct/push.json, and goes once that app is unpaired.
 
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::io::{Read, Write};
@@ -119,7 +119,7 @@ fn save(apps: &HashMap<String, Entry>) {
     }
     let all: serde_json::Map<String, Value> = apps.iter().map(|(app, e)| (app.clone(), e.to_json())).collect();
     if let Err(e) = crate::direct::write_private(&path(), Value::Object(all).to_string().as_bytes()) {
-        eprintln!("muxen-agent: couldn't save alerts: {e}");
+        eprintln!("andruide-agent: couldn't save alerts: {e}");
     }
 }
 
@@ -387,7 +387,7 @@ pub fn start() {
                     let (app, e, collapse) = (app.clone(), e.clone(), alert.session.clone());
                     thread::spawn(move || {
                         if let Err(error) = send(&app, &e, &payload, &collapse) {
-                            eprintln!("muxen-agent: an alert to {} didn't go: {error}", e.machine_id);
+                            eprintln!("andruide-agent: an alert to {} didn't go: {error}", e.machine_id);
                         }
                     });
                 }
@@ -492,7 +492,7 @@ fn post(url: &str, body: &Value) -> Result<(u16, String), String> {
     let _ = tcp.set_write_timeout(Some(TIMEOUT));
     let body = body.to_string();
     let request = format!(
-        "POST {path} HTTP/1.1\r\nHost: {host}\r\nUser-Agent: muxen-agent/{}\r\nContent-Type: application/json\r\nAccept: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+        "POST {path} HTTP/1.1\r\nHost: {host}\r\nUser-Agent: andruide-agent/{}\r\nContent-Type: application/json\r\nAccept: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
         crate::VERSION,
         body.len()
     );
@@ -739,7 +739,7 @@ mod tests {
         };
         assert_eq!(open(&key, &sealed).unwrap(), b"{\"kind\":\"test\"}");
         assert!(open(&[8u8; 32], &sealed).is_err());
-        // The vector the iPad's test opens (MuxinFeatureTests).
+        // The vector the iPad's test opens (AndruIDEFeatureTests).
         let fixed = seal_with(&[1u8; 32], [2u8; 12], b"{\"kind\":\"test\",\"machine\":\"Forge\"}").unwrap();
         assert_eq!(base64::engine::general_purpose::STANDARD.encode(&fixed), FIXED_VECTOR);
     }

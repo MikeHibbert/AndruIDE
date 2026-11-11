@@ -17,7 +17,7 @@ const EVERY: Duration = Duration::from_secs(12 * 60 * 60);
 pub struct Updates {
     /// A newer version, when there is one.
     pub latest: Option<Update>,
-    /// A look finished since Muxin opened.
+    /// A look finished since AndruIDE opened.
     pub checked: bool,
     pub checking: bool,
     pub error: Option<String>,

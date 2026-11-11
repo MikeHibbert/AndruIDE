@@ -4,13 +4,13 @@
 //!
 //! Two ways in:
 //! - Hooks in Claude Code's and Codex's settings (see hooks.rs) run
-//!   `muxen-agent report <agent>` with the hook's JSON on stdin. It finds its
-//!   session by `MUXEN_SESSION`, which the session server sets in every
+//!   `andruide-agent report <agent>` with the hook's JSON on stdin. It finds its
+//!   session by `ANDRUIDE_SESSION`, which the session server sets in every
 //!   session it starts.
 //! - Any program can print `ESC ] 7501 ; state=<state> BEL` (herdr's code),
 //!   which the session server reads from the output (see `Escapes`).
 //!
-//! Either way the state lands in `~/.muxen/state/<session>.json`. A file, not
+//! Either way the state lands in `~/.andruide/state/<session>.json`. A file, not
 //! the session server's memory, so it works with a session server of any
 //! version (it goes on running the build it started with) and with `listen`
 //! and `link`, which read it too. The agent's own id for the conversation is
@@ -278,13 +278,13 @@ fn state_kept(input: &Value) -> bool {
     matches!(input["hook_event_name"].as_str(), Some("PreToolUse" | "PostToolUse" | "PostToolUseFailure"))
 }
 
-/// `muxen-agent report <agent>`, run by a hook with its JSON on stdin. Quiet,
+/// `andruide-agent report <agent>`, run by a hook with its JSON on stdin. Quiet,
 /// and always a success: whatever happens, the agent goes on. (Claude Code
 /// adds what some hooks print to the conversation, so nothing is printed.)
 pub fn report(args: &[String]) -> i32 {
-    let session = std::env::var("MUXIN_SESSION").ok().filter(|s| !s.is_empty()).or_else(|| std::env::var("MUXEN_SESSION").ok().filter(|s| !s.is_empty()));
+    let session = std::env::var("ANDRUIDE_SESSION").ok().filter(|s| !s.is_empty()).or_else(|| std::env::var("ANDRUIDE_SESSION").ok().filter(|s| !s.is_empty()));
     let agent = args.first().map(String::as_str).unwrap_or("").chars().filter(char::is_ascii_alphanumeric).take(20).collect::<String>();
-    // Outside Muxin's sessions, only a session in Claude's desktop app (apps.rs).
+    // Outside AndruIDE's sessions, only a session in Claude's desktop app (apps.rs).
     let (session, app_session) = match session {
         Some(s) => (s, None),
         None => match crate::apps::from_env(&agent) {
@@ -326,7 +326,7 @@ fn normalize(input: &mut Value, event: Option<&str>) {
 
 // MARK: The escape code
 
-/// The states the escape code can set, as herdr and Muxin name them.
+/// The states the escape code can set, as herdr and AndruIDE name them.
 fn escape_state(word: &str) -> Option<Option<&'static str>> {
     Some(match word.trim().to_ascii_lowercase().replace('-', "_").as_str() {
         "working" | "busy" | "running" | "thinking" => Some("working"),
@@ -344,7 +344,7 @@ fn parse_escape(body: &str) -> Option<Option<&'static str>> {
     body.split(';').find_map(|kv| kv.split_once('=').filter(|(k, _)| k.trim() == "state").and_then(|(_, v)| escape_state(v)))
 }
 
-/// Someone typed into a session through Muxin (`send`): an agent that was
+/// Someone typed into a session through AndruIDE (`send`): an agent that was
 /// waiting (it needed you, or it was done and Enter sends the message) is
 /// working on that now, and says so itself a moment later. Until then, the
 /// old state isn't the answer to what was just asked (`session_wait`). The

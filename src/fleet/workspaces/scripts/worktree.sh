@@ -45,9 +45,9 @@ else
 fi
 
 cd "$or_dir" || { echo "error: couldn't open $or_dir" >&2; exit 3; }
-mkdir -p .muxen/logs
-# .muxen/ stays out of git: worktrees share the checkout's exclude file.
+mkdir -p .andruide/logs
+# .andruide/ stays out of git: worktrees share the checkout's exclude file.
 or_exclude="$(git rev-parse --git-common-dir)/info/exclude"
-grep -qx '.muxen/' "$or_exclude" 2>/dev/null || printf '.muxen/\n' >> "$or_exclude"
+grep -qx '.andruide/' "$or_exclude" 2>/dev/null || printf '.andruide/\n' >> "$or_exclude"
 echo "Worktree of $OR_SRC on $(git rev-parse --abbrev-ref HEAD) at $(git rev-parse --short HEAD)"
 echo "ready"

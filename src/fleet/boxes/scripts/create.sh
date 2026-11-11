@@ -1,4 +1,4 @@
-# Creates a box on this machine: Muxin's box image (built here the first
+# Creates a box on this machine: AndruIDE's box image (built here the first
 # time), a checkout of the repository, the agent's home and a container
 # running as this user, then the repository's .agents/setup in it.
 # Prepended: OR_ID OR_CONTAINER OR_HOSTNAME OR_IMAGE OR_DOCKERFILE OR_REPO
@@ -26,10 +26,10 @@ printf 'docker=%s\n' "$docker"
 command -v git >/dev/null 2>&1 || fail "git isn't installed on $(hostname)."
 command -v base64 >/dev/null 2>&1 || fail "base64 isn't installed on $(hostname)."
 
-root="$HOME/muxen/boxes"
+root="$HOME/andruide/boxes"
 dir="$root/$OR_ID"
 [ -e "$dir" ] && fail "$dir is there already."
-mkdir -p "$dir/repo" "$dir/home/.muxin" || fail "Couldn't make $dir."
+mkdir -p "$dir/repo" "$dir/home/.andruide" || fail "Couldn't make $dir."
 printf 'path=%s\n' "$dir"
 
 # The image: built once per machine (a few minutes), shared by its boxes.
@@ -38,7 +38,7 @@ if ! docker image inspect "$OR_IMAGE" >/dev/null 2>&1 </dev/null; then
   mkdir -p "$root/.image" || fail "Couldn't make $root/.image."
   printf '%s\n' "$OR_DOCKERFILE" > "$root/.image/Dockerfile"
   # Its steps as they start, each once.
-  docker build -t "$OR_IMAGE" --label muxen.box-image=1 --build-arg UID="$(id -u)" --build-arg GID="$(id -g)" "$root/.image" </dev/null 2>&1 \
+  docker build -t "$OR_IMAGE" --label andruide.box-image=1 --build-arg UID="$(id -u)" --build-arg GID="$(id -g)" "$root/.image" </dev/null 2>&1 \
     | grep --line-buffered -E '^#[0-9]+ \[[0-9]+/|^Step [0-9]+/|ERROR|[Ee]rror:' | awk '!seen[$0]++ { print; fflush() }'
   docker image inspect "$OR_IMAGE" >/dev/null 2>&1 </dev/null || fail "The box image didn't build (see above)."
   echo "✓ Built the box image"
@@ -101,7 +101,7 @@ if [ -n "$OR_BRANCH" ]; then
 fi
 echo "✓ Checked out $(git rev-parse --abbrev-ref HEAD 2>/dev/null) at $(git rev-parse --short HEAD 2>/dev/null)"
 
-# The agent's home: what Muxin wrote, then the sign-ins found here.
+# The agent's home: what AndruIDE wrote, then the sign-ins found here.
 home="$dir/home"
 umask 077
 tab=$(printf '\t')
@@ -111,7 +111,7 @@ printf '%s\n' "$OR_FILES" | while IFS="$tab" read -r f_path f_mode f_data; do
   printf '%s' "$f_data" | base64 -d > "$home/$f_path" 2>/dev/null || printf '%s' "$f_data" | base64 -D > "$home/$f_path"
   chmod "$f_mode" "$home/$f_path"
 done
-[ -f "$home/.muxin/start" ] || fail "Couldn't write the box's files."
+[ -f "$home/.andruide/start" ] || fail "Couldn't write the box's files."
 # Docker in a VM (a Mac, Docker Desktop) can't lock files here for the
 # container, which databases need.
 or_vm=
@@ -146,8 +146,8 @@ done
 echo "▸ Starting the box"
 docker rm -f "$OR_CONTAINER" >/dev/null 2>&1 </dev/null
 # shellcheck disable=SC2086
-docker run -d --name "$OR_CONTAINER" --label muxen.box="$OR_ID" --hostname "$OR_HOSTNAME" --init \
-  --user "$(id -u):$(id -g)" -e HOME=/home/box -e MUXIN_BOX="$OR_ID" -e MUXIN_WORKDIR="$dir/repo" \
+docker run -d --name "$OR_CONTAINER" --label andruide.box="$OR_ID" --hostname "$OR_HOSTNAME" --init \
+  --user "$(id -u):$(id -g)" -e HOME=/home/box -e ANDRUIDE_BOX="$OR_ID" -e ANDRUIDE_WORKDIR="$dir/repo" \
   -v "$dir/repo:$dir/repo" -v "$home:/home/box" $or_mounts -w "$dir/repo" \
   ${OR_CPUS:+--cpus "$OR_CPUS"} ${OR_MEM:+--memory "$OR_MEM"} \
   --entrypoint sh "$OR_IMAGE" -c 'trap "exit 0" TERM INT; while :; do sleep 3600 & wait $!; done' </dev/null >/dev/null \
@@ -155,7 +155,7 @@ docker run -d --name "$OR_CONTAINER" --label muxen.box="$OR_ID" --hostname "$OR_
 
 if [ -f "$dir/repo/.agents/setup" ]; then
   echo "▸ Running .agents/setup"
-  docker exec -w "$dir/repo" "$OR_CONTAINER" sh -c 'set -a; . "$HOME/.muxin/env" 2>/dev/null; set +a; if [ -x .agents/setup ]; then exec ./.agents/setup; else exec sh .agents/setup; fi' </dev/null 2>&1
+  docker exec -w "$dir/repo" "$OR_CONTAINER" sh -c 'set -a; . "$HOME/.andruide/env" 2>/dev/null; set +a; if [ -x .agents/setup ]; then exec ./.agents/setup; else exec sh .agents/setup; fi' </dev/null 2>&1
   or_setup=$?
   [ "$or_setup" -eq 0 ] && echo "✓ .agents/setup finished" || echo "! .agents/setup exited with $or_setup; the agent starts anyway"
 fi

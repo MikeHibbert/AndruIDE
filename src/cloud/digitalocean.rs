@@ -1,4 +1,4 @@
-//! DigitalOcean's API (v2), for the few things Muxin does there: who's signed
+//! DigitalOcean's API (v2), for the few things AndruIDE does there: who's signed
 //! in, which regions and sizes exist, the account's SSH keys, and creating,
 //! reading, powering and destroying droplets.
 
@@ -87,7 +87,7 @@ impl Client {
             .http
             .request(method, format!("{API}{path}"))
             .bearer_auth(&self.token)
-            .header("User-Agent", concat!("muxen/", env!("CARGO_PKG_VERSION")));
+            .header("User-Agent", concat!("andruide/", env!("CARGO_PKG_VERSION")));
         if let Some(b) = body {
             req = req.json(&b);
         }

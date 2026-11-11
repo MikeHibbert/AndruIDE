@@ -4,10 +4,10 @@
 //! agent has gone quiet (the container stops; its files stay) and picks up
 //! where it left off when it's asked something again.
 //!
-//! Muxin makes a box here (`scripts/create.sh`: Muxin's image, a checkout,
+//! AndruIDE makes a box here (`scripts/create.sh`: AndruIDE's image, a checkout,
 //! the agent's home, the container) and hands it to the machine's agent,
 //! which keeps it from then on (agent/src/boxes.rs): it starts the box's
-//! agent in a session, pauses it when idle whether or not Muxin is open, and
+//! agent in a session, pauses it when idle whether or not AndruIDE is open, and
 //! deletes it.
 //!
 //! PUBLIC API — the UI, the MCP server and the CLI depend on these signatures.
@@ -63,8 +63,8 @@ const CODEX_PREPARE: &str = r#"trust=
 case "$PWD" in *.*) ;; *) trust="projects.$PWD.trust_level=trusted" ;; esac"#;
 
 /// Amp: the machine's settings with every command allowed, in a file of the box's own.
-const AMP_PREPARE: &str = r#"node -e 'const fs=require("fs"),h=process.env.HOME;let c={};try{c=JSON.parse(fs.readFileSync(h+"/.config/amp/settings.json","utf8"))}catch(e){}c["amp.dangerouslyAllowAll"]=true;fs.writeFileSync(h+"/.muxin/amp-settings.json",JSON.stringify(c,null,2))'
-export AMP_SETTINGS_FILE="$HOME/.muxin/amp-settings.json""#;
+const AMP_PREPARE: &str = r#"node -e 'const fs=require("fs"),h=process.env.HOME;let c={};try{c=JSON.parse(fs.readFileSync(h+"/.config/amp/settings.json","utf8"))}catch(e){}c["amp.dangerouslyAllowAll"]=true;fs.writeFileSync(h+"/.andruide/amp-settings.json",JSON.stringify(c,null,2))'
+export AMP_SETTINGS_FILE="$HOME/.andruide/amp-settings.json""#;
 
 fn launch(agent: &str) -> Option<Launch> {
     Some(match agent {
@@ -97,7 +97,7 @@ fn launch(agent: &str) -> Option<Launch> {
     })
 }
 
-/// A box's launcher (`~/.muxin/start`) for `agent`, and whether its prompt is
+/// A box's launcher (`~/.andruide/start`) for `agent`, and whether its prompt is
 /// typed in: for a box changing agents (see sessions::handoff).
 pub(crate) fn launcher(agent: &str) -> Option<(String, bool)> {
     launch(agent).map(|l| (start_script(&l), l.typed))
@@ -245,7 +245,7 @@ impl Engine {
     /// A box by id ("box-ab12cd", or "<machine>/box-ab12cd").
     pub fn find_box(&self, id: &str) -> Result<BoxInfo, String> {
         let bare = id.trim().rsplit('/').next().unwrap_or("");
-        self.boxes().into_iter().find(|b| b.id == bare).ok_or_else(|| format!("No box called {bare}. See your boxes with box_list (`muxin box ls`)."))
+        self.boxes().into_iter().find(|b| b.id == bare).ok_or_else(|| format!("No box called {bare}. See your boxes with box_list (`andruide box ls`)."))
     }
 
     /// Starts making a box (an operation) and returns the operation's id and
@@ -329,7 +329,7 @@ impl Engine {
                 .max_by_key(|m| m.probe.as_ref().and_then(|p| p.mem_total.zip(p.mem_used)).map(|(t, u)| t.saturating_sub(u)).unwrap_or(0))
                 .ok_or("None of your machines can run a box: it needs one that's online with Docker (a Linux machine, or a Mac with Docker Desktop, OrbStack or Colima).")?,
         };
-        self.machine(&m.id).map(|(s, _)| s).ok_or_else(|| format!("{} isn't in Muxin anymore.", m.name))
+        self.machine(&m.id).map(|(s, _)| s).ok_or_else(|| format!("{} isn't in AndruIDE anymore.", m.name))
     }
 
     async fn run_box_create(self: &Arc<Self>, op: u64, spec: &MachineSpec, plan: &Plan) -> Result<(), String> {
@@ -341,7 +341,7 @@ impl Engine {
         // GitHub: the token clones a private repo and lets the agent push and
         // open pull requests; commits are the user's, with their noreply address.
         let settings = self.settings().github;
-        // A checkout Muxin hasn't looked at yet: where it pushes, asked of it.
+        // A checkout AndruIDE hasn't looked at yet: where it pushes, asked of it.
         let github = match (&plan.github, plan.local) {
             (None, true) => checkout_github(spec, &plan.repo.url, &workspaces::github_web_host(&settings.api_url)).await,
             (g, _) => g.clone(),
@@ -366,7 +366,7 @@ impl Engine {
         let gh_host = gh_host.unwrap_or_default();
 
         let l = launch(&plan.agent).ok_or("That agent can't run in a box.")?;
-        let mut env: Vec<(String, String)> = vec![("MUXIN_BOX".into(), plan.id.clone())];
+        let mut env: Vec<(String, String)> = vec![("ANDRUIDE_BOX".into(), plan.id.clone())];
         if let Some(t) = &token {
             env.push(("GH_TOKEN".into(), t.clone()));
             if gh_host != "github.com" {
@@ -386,8 +386,8 @@ impl Engine {
         let db_copy: Vec<String> = DB_COPY.iter().map(|d| d.to_string()).collect();
         // Only a clone from GitHub needs the token (a checkout is cloned from its folder).
         let header = token.as_ref().filter(|_| !plan.local).map(|t| format!("AUTHORIZATION: basic {}", B64.encode(format!("x-access-token:{t}")))).unwrap_or_default();
-        let image = format!("muxen-box:{:08x}", fnv(DOCKERFILE.as_bytes()) as u32);
-        let container = format!("muxen-{}", plan.id);
+        let image = format!("andruide-box:{:08x}", fnv(DOCKERFILE.as_bytes()) as u32);
+        let container = format!("andruide-{}", plan.id);
         let hostname = short_slug(&plan.name);
         let cpus = plan.cpus.map(|c| c.clamp(1, 64).to_string()).unwrap_or_default();
         let memory = plan.memory_gb.map(|m| format!("{}g", m.clamp(1, 512))).unwrap_or_default();
@@ -417,7 +417,7 @@ impl Engine {
             ],
             CREATE_SH,
         );
-        let mut secrets: Vec<String> = env.iter().filter(|(k, _)| k != "MUXIN_BOX" && k != "GH_HOST").map(|(_, v)| v.clone()).collect();
+        let mut secrets: Vec<String> = env.iter().filter(|(k, _)| k != "ANDRUIDE_BOX" && k != "GH_HOST").map(|(_, v)| v.clone()).collect();
         if !header.is_empty() {
             secrets.push(header.clone());
             secrets.push(header.trim_start_matches("AUTHORIZATION: basic ").to_string());
@@ -454,7 +454,7 @@ impl Engine {
         if self.demo_world().is_some() {
             return Err("The demo's boxes are only for show.".into());
         }
-        let (spec, probe) = self.machine(&b.machine_id).ok_or_else(|| format!("{} isn't in Muxin anymore.", b.machine_id))?;
+        let (spec, probe) = self.machine(&b.machine_id).ok_or_else(|| format!("{} isn't in AndruIDE anymore.", b.machine_id))?;
         agent_cli::ensure(&spec, probe.as_ref()).await?;
         let text = text.map(str::trim).filter(|t| !t.is_empty());
         agent_cli::ctl(&spec, &json!({ "op": "box_resume", "box_id": b.id, "prompt": text })).await?;
@@ -472,7 +472,7 @@ impl Engine {
         if b.state != "running" {
             b = self.box_send(&b.id, None).await?;
         }
-        let (spec, probe) = self.machine(&b.machine_id).ok_or_else(|| format!("{} isn't in Muxin anymore.", b.machine_id))?;
+        let (spec, probe) = self.machine(&b.machine_id).ok_or_else(|| format!("{} isn't in AndruIDE anymore.", b.machine_id))?;
         agent_cli::ensure(&spec, probe.as_ref()).await?;
         let reply = agent_cli::ctl(&spec, &json!({ "op": "box_shell", "box_id": b.id, "cols": cols, "rows": rows })).await?;
         let name = reply["session"].as_str().ok_or("The machine's agent didn't name the shell.")?.to_string();
@@ -486,7 +486,7 @@ impl Engine {
         if self.demo_world().is_some() {
             return Err("The demo's boxes are only for show.".into());
         }
-        let (spec, probe) = self.machine(&b.machine_id).ok_or_else(|| format!("{} isn't in Muxin anymore.", b.machine_id))?;
+        let (spec, probe) = self.machine(&b.machine_id).ok_or_else(|| format!("{} isn't in AndruIDE anymore.", b.machine_id))?;
         agent_cli::ensure(&spec, probe.as_ref()).await?;
         agent_cli::ctl(&spec, &json!({ "op": "box_pause", "box_id": b.id })).await?;
         let _ = self.refresh_sessions(&spec.id).await;
@@ -500,7 +500,7 @@ impl Engine {
         if self.demo_world().is_some() {
             return Err("The demo's boxes are only for show.".into());
         }
-        let (spec, probe) = self.machine(&b.machine_id).ok_or_else(|| format!("{} isn't in Muxin anymore.", b.machine_id))?;
+        let (spec, probe) = self.machine(&b.machine_id).ok_or_else(|| format!("{} isn't in AndruIDE anymore.", b.machine_id))?;
         agent_cli::ensure(&spec, probe.as_ref()).await?;
         agent_cli::ctl(&spec, &json!({ "op": "box_delete", "box_id": b.id })).await?;
         let _ = self.refresh_sessions(&spec.id).await;
@@ -529,12 +529,12 @@ pub(crate) fn github_name(url: &str, gh_host: &str) -> Option<String> {
     repo.on_github.then(|| workspaces::github_full_name(&repo)).flatten()
 }
 
-/// The files of a box's home Muxin writes: path (under /home/box), mode and contents.
+/// The files of a box's home AndruIDE writes: path (under /home/box), mode and contents.
 fn home_files(l: &Launch, env: &[(String, String)], identity: Option<&(String, String)>, git_host: Option<&str>) -> Vec<(String, &'static str, String)> {
     let mut files: Vec<(String, &'static str, String)> = Vec::new();
-    files.push((".muxin/start".into(), "755", start_script(l)));
+    files.push((".andruide/start".into(), "755", start_script(l)));
     let env_text: String = env.iter().map(|(k, v)| format!("{k}={}\n", sh_quote(v))).collect();
-    files.push((".muxin/env".into(), "600", env_text));
+    files.push((".andruide/env".into(), "600", env_text));
     files.push((".bashrc".into(), "644", BASHRC.into()));
     files.push((".profile".into(), "644", ". \"$HOME/.bashrc\"\n".into()));
 
@@ -543,8 +543,8 @@ fn home_files(l: &Launch, env: &[(String, String)], identity: Option<&(String, S
         gitconfig.push_str(&format!("[user]\n\tname = {}\n\temail = {}\n", git_value(name), git_value(email)));
     }
     if let Some(host) = git_host {
-        files.push((".muxin/git-credential".into(), "755", GIT_CREDENTIAL.into()));
-        gitconfig.push_str(&format!("[credential \"https://{host}\"]\n\thelper = /home/box/.muxin/git-credential\n"));
+        files.push((".andruide/git-credential".into(), "755", GIT_CREDENTIAL.into()));
+        gitconfig.push_str(&format!("[credential \"https://{host}\"]\n\thelper = /home/box/.andruide/git-credential\n"));
         // A box has no ssh keys: ssh remotes (a checkout's, say) go over https, with the token.
         gitconfig.push_str(&format!("[url \"https://{host}/\"]\n\tinsteadOf = git@{host}:\n\tinsteadOf = ssh://git@{host}/\n"));
     }
@@ -553,25 +553,25 @@ fn home_files(l: &Launch, env: &[(String, String)], identity: Option<&(String, S
     files
 }
 
-/// `~/.muxin/start` in a box: what its session runs.
+/// `~/.andruide/start` in a box: what its session runs.
 fn start_script(l: &Launch) -> String {
     format!(
-        r#"# Starts this box's agent (Muxin wrote this; the box's session runs it):
+        r#"# Starts this box's agent (AndruIDE wrote this; the box's session runs it):
 # the first time on its task, after that where it left off, asked what's in
-# ~/.muxin/next.
-cd "${{MUXIN_WORKDIR:-$PWD}}" || exit 1
-if [ -f "$HOME/.muxin/env" ]; then set -a; . "$HOME/.muxin/env"; set +a; fi
+# ~/.andruide/next.
+cd "${{ANDRUIDE_WORKDIR:-$PWD}}" || exit 1
+if [ -f "$HOME/.andruide/env" ]; then set -a; . "$HOME/.andruide/env"; set +a; fi
 p=
-if [ -f "$HOME/.muxin/next" ]; then p=$(cat "$HOME/.muxin/next"); rm -f "$HOME/.muxin/next"; fi
+if [ -f "$HOME/.andruide/next" ]; then p=$(cat "$HOME/.andruide/next"); rm -f "$HOME/.andruide/next"; fi
 {prepare}
-if [ -f "$HOME/.muxin/started" ]; then
+if [ -f "$HOME/.andruide/started" ]; then
   if [ -f .agents/resume ]; then
     echo "▸ Running .agents/resume"
     if [ -x .agents/resume ]; then ./.agents/resume; else sh .agents/resume; fi
   fi
   exec {resume}
 fi
-touch "$HOME/.muxin/started"
+touch "$HOME/.andruide/started"
 exec {new}
 "#,
         resume = l.resume,
@@ -580,16 +580,16 @@ exec {new}
     )
 }
 
-const BASHRC: &str = r#"# A Muxin box: its GitHub token, and the agent CLIs on the PATH, for shells too.
-if [ -f "$HOME/.muxin/env" ]; then set -a; . "$HOME/.muxin/env"; set +a; fi
+const BASHRC: &str = r#"# A AndruIDE box: its GitHub token, and the agent CLIs on the PATH, for shells too.
+if [ -f "$HOME/.andruide/env" ]; then set -a; . "$HOME/.andruide/env"; set +a; fi
 case ":$PATH:" in *:/opt/agents/bin:*) ;; *) PATH="/opt/agents/bin:$PATH" ;; esac
 PS1='\u@\h:\w\$ '
 "#;
 
 const GIT_CREDENTIAL: &str = r#"#!/bin/sh
-# Git's credentials in this box: the GitHub token Muxin gave it.
+# Git's credentials in this box: the GitHub token AndruIDE gave it.
 [ "$1" = get ] || exit 0
-[ -f "$HOME/.muxin/env" ] && . "$HOME/.muxin/env"
+[ -f "$HOME/.andruide/env" ] && . "$HOME/.andruide/env"
 [ -n "${GH_TOKEN:-}" ] || exit 0
 echo username=x-access-token
 echo "password=$GH_TOKEN"
@@ -651,7 +651,7 @@ mod tests {
     fn the_start_script_continues_after_the_first_time() {
         let s = start_script(&launch("codex").unwrap());
         let resume = s.find("resume --last").unwrap();
-        let started = s.find("touch \"$HOME/.muxin/started\"").unwrap();
+        let started = s.find("touch \"$HOME/.andruide/started\"").unwrap();
         assert!(resume < started, "resume is the path once started");
         // Trusted on its command line: the machine's own config.toml stays as it is.
         assert!(s.contains(r#"trust="projects.$PWD.trust_level=trusted""#));
@@ -674,13 +674,13 @@ mod tests {
         let env = vec![("GH_TOKEN".to_string(), "ghp_x".to_string())];
         let files = home_files(&launch("claude").unwrap(), &env, Some(&("Ada \"L\"".into(), "1+ada@users.noreply.github.com".into())), Some("github.com"));
         let get = |p: &str| files.iter().find(|(path, _, _)| path == p).map(|(_, mode, text)| (*mode, text.clone()));
-        let (mode, env_text) = get(".muxin/env").unwrap();
+        let (mode, env_text) = get(".andruide/env").unwrap();
         assert_eq!(mode, "600");
         assert!(env_text.contains("GH_TOKEN='ghp_x'"));
         let (_, git) = get(".gitconfig").unwrap();
         assert!(git.contains(r#"name = "Ada \"L\"""#));
         assert!(git.contains("[credential \"https://github.com\"]"));
-        // The agents' own folders come from the machine, not from Muxin.
+        // The agents' own folders come from the machine, not from AndruIDE.
         assert!(files.iter().all(|(p, _, _)| !p.starts_with(".claude") && !p.starts_with(".codex") && !p.starts_with(".config")));
     }
 
@@ -714,7 +714,7 @@ mod tests {
     #[test]
     fn parses_the_agents_boxes() {
         let reply = json!({ "boxes": [
-            { "id": "box-ab12cd", "name": "Fix login", "repo": "acme/api", "branch": "box/fix-login", "agent": "codex", "state": "running", "task": "Fix login", "path": "/home/a/muxen/boxes/box-ab12cd/repo", "created": 1_700_000_000, "state_at": 1_700_000_100 },
+            { "id": "box-ab12cd", "name": "Fix login", "repo": "acme/api", "branch": "box/fix-login", "agent": "codex", "state": "running", "task": "Fix login", "path": "/home/a/andruide/boxes/box-ab12cd/repo", "created": 1_700_000_000, "state_at": 1_700_000_100 },
             { "id": "not-a-box" },
         ] });
         let found = parse("beelink", &reply);

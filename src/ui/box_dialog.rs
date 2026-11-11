@@ -49,7 +49,7 @@ enum Found {
     Repo(hub::Repo),
     Checkout(Checkout),
     /// A folder on the machine (`path` ends in a slash, so its own list next),
-    /// and the checkout it is, when Muxin knows one.
+    /// and the checkout it is, when AndruIDE knows one.
     Folder { name: String, path: String, checkout: Option<Checkout> },
 }
 
@@ -644,7 +644,7 @@ impl Render for BoxDialog {
             }));
             div().flex().flex_col().gap(px(8.)).child(div().flex().flex_wrap().gap(px(6.)).children(machines)).child(
                 div().text_size(px(11.5)).text_color(if any { theme.text_placeholder } else { theme.warning }).child(if any {
-                    "In a Docker container there, on a new branch of a fresh clone. The first box on a machine builds Muxin's image (a few minutes)."
+                    "In a Docker container there, on a new branch of a fresh clone. The first box on a machine builds AndruIDE's image (a few minutes)."
                 } else {
                     "Boxes run in Docker: install it on a Linux machine or a Mac (Docker Desktop, OrbStack or Colima)."
                 }),

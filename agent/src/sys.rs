@@ -1,9 +1,9 @@
 //! What differs between Unix and Windows: the user's home, the session
 //! server's local connection, and starting and ending processes.
 //!
-//! The session server listens on a Unix socket (`~/.muxen/agent.sock`) on
+//! The session server listens on a Unix socket (`~/.andruide/agent.sock`) on
 //! Unix. Windows gets a port on 127.0.0.1 instead, written with a random
-//! token to `~/.muxen/agent.port` (in the user's profile, which only they
+//! token to `~/.andruide/agent.port` (in the user's profile, which only they
 //! can read): a client sends the token first, and the server hangs up on
 //! anyone who doesn't.
 
@@ -23,7 +23,7 @@ pub fn user_home() -> PathBuf {
         .unwrap_or_else(|| PathBuf::from(if cfg!(windows) { "C:\\" } else { "/tmp" }))
 }
 
-/// Tests never touch the user's own home (~/.muxen, ~/.claude, ~/.codex): a
+/// Tests never touch the user's own home (~/.andruide, ~/.claude, ~/.codex): a
 /// test run's home is a folder of its own, from the first look at it on.
 #[cfg(test)]
 fn isolate_home() {
@@ -144,7 +144,7 @@ pub fn kill_one(pid: u32, gently: bool) {
     }
 }
 
-/// Starts `muxen-agent <args>` in the background so it outlives this
+/// Starts `andruide-agent <args>` in the background so it outlives this
 /// connection: in its own session on Unix (logging to `log`); on Windows
 /// through WMI, since sshd ends everything a session started when it closes.
 pub fn spawn_background(args: &[&str], log: PathBuf) -> io::Result<()> {
@@ -231,9 +231,9 @@ mod mac {
     ///
     /// macOS asks about the camera, the microphone, contacts and the like on
     /// behalf of the process "responsible" for the one asking, and that's
-    /// inherited: the session server started by Muxin.app would ask as
-    /// Muxin.app, by sshd as sshd, by launchd as itself. Disclaimed, it's
-    /// always the agent (Muxin Agent.app, with a word on why for each), so a
+    /// inherited: the session server started by AndruIDE.app would ask as
+    /// AndruIDE.app, by sshd as sshd, by launchd as itself. Disclaimed, it's
+    /// always the agent (AndruIDE Agent.app, with a word on why for each), so a
     /// program in any session gets the same prompt, and one answer covers all.
     pub fn spawn_disclaimed(exe: &Path, args: &[&str], log: &std::fs::File, dir: &Path) -> io::Result<()> {
         let program = c(exe.as_os_str())?;
@@ -277,7 +277,7 @@ mod mac {
         /// output in the log and nothing on its input.
         #[test]
         fn starts_a_program_on_its_own() {
-            let tmp = std::env::temp_dir().join(format!("muxen-spawn-{}", std::process::id()));
+            let tmp = std::env::temp_dir().join(format!("andruide-spawn-{}", std::process::id()));
             let _ = std::fs::remove_dir_all(&tmp);
             std::fs::create_dir_all(&tmp).unwrap();
             let log_path = tmp.join("log");

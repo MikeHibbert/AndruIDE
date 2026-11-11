@@ -1,7 +1,7 @@
-//! Setting up and talking to `muxen-agent` (the `agent/` crate) on a
-//! machine. Muxin ships a build per OS and CPU; when it connects to a
-//! machine it makes sure `~/.muxen/bin/muxen-agent` is that exact
-//! build (uploading it over ssh when it isn't), then runs `muxen-agent
+//! Setting up and talking to `andruide-agent` (the `agent/` crate) on a
+//! machine. AndruIDE ships a build per OS and CPU; when it connects to a
+//! machine it makes sure `~/.andruide/bin/andruide-agent` is that exact
+//! build (uploading it over ssh when it isn't), then runs `andruide-agent
 //! ctl` for every session request.
 
 use std::collections::HashMap;
@@ -20,8 +20,8 @@ use crate::ops::remote::sh_quote;
 use crate::probe::{self, ProbeResult};
 
 /// Where the agent lives on every machine (and how attach commands name it).
-/// Windows: `%USERPROFILE%\.muxen\bin\muxen-agent.exe` (see `command`).
-pub const REMOTE_PATH: &str = "~/.muxen/bin/muxen-agent";
+/// Windows: `%USERPROFILE%\.andruide\bin\andruide-agent.exe` (see `command`).
+pub const REMOTE_PATH: &str = "~/.andruide/bin/andruide-agent";
 const CTL_TIMEOUT: Duration = Duration::from_secs(25);
 const UPLOAD_TIMEOUT: Duration = Duration::from_secs(180);
 
@@ -48,7 +48,7 @@ fn this_exe() -> Option<PathBuf> {
 }
 
 /// The source checkout this binary was built in, when it still runs from
-/// there (`target/release/muxin`, debug or release).
+/// there (`target/release/andruide`, debug or release).
 fn checkout(exe: &std::path::Path) -> Option<PathBuf> {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).canonicalize().ok()?;
     exe.starts_with(&root).then_some(root)
@@ -59,7 +59,7 @@ fn checkout(exe: &std::path::Path) -> Option<PathBuf> {
 /// (`scripts/build-agents.sh`). Not any folder above the binary: one planted
 /// there (`/tmp/dist/agents`) would be uploaded to every machine.
 pub fn builds_dir() -> Option<PathBuf> {
-    if let Some(dir) = std::env::var_os("MUXEN_AGENTS_DIR") {
+    if let Some(dir) = std::env::var_os("ANDRUIDE_AGENTS_DIR") {
         return Some(PathBuf::from(dir));
     }
     let exe = this_exe()?;
@@ -80,16 +80,16 @@ fn host_target() -> String {
 }
 
 /// Where the build for `target` is. With no folder of builds, a
-/// `muxen-agent` built next to the binary (`cargo build --workspace` in a
+/// `andruide-agent` built next to the binary (`cargo build --workspace` in a
 /// checkout) serves this computer's own platform.
 fn build_path(target: &str) -> Result<PathBuf, String> {
     let exe = if target.starts_with("windows") { ".exe" } else { "" };
     if let Some(dir) = builds_dir() {
-        return Ok(dir.join(format!("muxen-agent-{target}{exe}")));
+        return Ok(dir.join(format!("andruide-agent-{target}{exe}")));
     }
     let this = this_exe();
     if target == host_target()
-        && let Some(sibling) = this.as_deref().and_then(|e| e.parent()).map(|d| d.join(format!("muxen-agent{exe}")))
+        && let Some(sibling) = this.as_deref().and_then(|e| e.parent()).map(|d| d.join(format!("andruide-agent{exe}")))
         && sibling.is_file()
     {
         return Ok(sibling);
@@ -97,45 +97,45 @@ fn build_path(target: &str) -> Result<PathBuf, String> {
     Err(match this {
         Some(e) if checkout(&e).is_some() => {
             let cargo = if cfg!(debug_assertions) { "cargo build --workspace" } else { "cargo build --release --workspace" };
-            format!("This build of Muxin has no agent builds. In its checkout, run `{cargo}` for this computer, or scripts/build-agents.sh for every platform.")
+            format!("This build of AndruIDE has no agent builds. In its checkout, run `{cargo}` for this computer, or scripts/build-agents.sh for every platform.")
         }
-        Some(e) => format!("Muxin can't find its agent builds next to {}. Reinstall Muxin, or set MUXEN_AGENTS_DIR to a folder of them.", e.display()),
-        None => "Muxin can't tell where it's installed, so it can't find its agent builds. Set MUXEN_AGENTS_DIR to a folder of them.".to_string(),
+        Some(e) => format!("AndruIDE can't find its agent builds next to {}. Reinstall AndruIDE, or set ANDRUIDE_AGENTS_DIR to a folder of them.", e.display()),
+        None => "AndruIDE can't tell where it's installed, so it can't find its agent builds. Set ANDRUIDE_AGENTS_DIR to a folder of them.".to_string(),
     })
 }
 
 /// What gets installed on a machine: the agent program, or on a Mac,
-/// Muxin Agent.app as a tar (scripts/build-agents.sh). `hash` is the
-/// program's either way (what `muxen-agent hash` prints).
+/// AndruIDE Agent.app as a tar (scripts/build-agents.sh). `hash` is the
+/// program's either way (what `andruide-agent hash` prints).
 struct Build {
     bytes: Vec<u8>,
     hash: String,
     bundle: bool,
 }
 
-/// Where a Mac build's Muxin Agent.app is, beside the plain program
-/// (`muxen-agent-darwin-aarch64.app.tar`). Not on an iPad: it installs the plain one.
+/// Where a Mac build's AndruIDE Agent.app is, beside the plain program
+/// (`andruide-agent-darwin-aarch64.app.tar`). Not on an iPad: it installs the plain one.
 fn bundle_path(target: &str) -> Option<PathBuf> {
     if cfg!(target_os = "ios") || !target.starts_with("darwin") {
         return None;
     }
-    let tar = builds_dir()?.join(format!("muxen-agent-{target}.app.tar"));
+    let tar = builds_dir()?.join(format!("andruide-agent-{target}.app.tar"));
     tar.is_file().then_some(tar)
 }
 
-/// The program inside Muxin Agent.app, in the bundle's tar.
-const BUNDLE_PROGRAM: &str = "Muxin Agent.app/Contents/MacOS/muxen-agent";
+/// The program inside AndruIDE Agent.app, in the bundle's tar.
+const BUNDLE_PROGRAM: &str = "AndruIDE Agent.app/Contents/MacOS/andruide-agent";
 
 /// The build for `target` and its hash.
 fn build(target: &str) -> Result<Build, String> {
     if let Some(tar) = bundle_path(target) {
-        let bytes = std::fs::read(&tar).map_err(|e| format!("Muxin couldn't read its agent for {target} machines: {e}"))?;
-        let program = tar_entry(&bytes, BUNDLE_PROGRAM).ok_or_else(|| format!("Muxin's agent for {target} machines ({}) has no program in it.", tar.display()))?;
+        let bytes = std::fs::read(&tar).map_err(|e| format!("AndruIDE couldn't read its agent for {target} machines: {e}"))?;
+        let program = tar_entry(&bytes, BUNDLE_PROGRAM).ok_or_else(|| format!("AndruIDE's agent for {target} machines ({}) has no program in it.", tar.display()))?;
         let hash = format!("{:016x}", fnv(program));
         return Ok(Build { bytes, hash, bundle: true });
     }
     let path = build_path(target)?;
-    let bytes = read_build(&path).ok_or_else(|| format!("Muxin has no agent build for {target} machines yet."))?;
+    let bytes = read_build(&path).ok_or_else(|| format!("AndruIDE has no agent build for {target} machines yet."))?;
     let hash = format!("{:016x}", fnv(&bytes));
     Ok(Build { bytes, hash, bundle: false })
 }
@@ -211,13 +211,13 @@ pub fn is_windows(spec: &MachineSpec) -> bool {
     windows_machines().lock().unwrap().get(&spec.id).copied().unwrap_or(false)
 }
 
-/// The command line ssh hands the machine's shell to run `muxen-agent <args>`.
+/// The command line ssh hands the machine's shell to run `andruide-agent <args>`.
 /// On Windows it's PowerShell with an encoded command, which reads the same
 /// whether sshd's shell is cmd.exe or PowerShell.
 pub fn command(spec: &MachineSpec, args: &str) -> String {
     if is_windows(spec) {
         use base64::Engine as _;
-        let call = format!("& (Join-Path $env:USERPROFILE '.muxen\\bin\\muxen-agent.exe') {args}");
+        let call = format!("& (Join-Path $env:USERPROFILE '.andruide\\bin\\andruide-agent.exe') {args}");
         let utf16: Vec<u8> = call.encode_utf16().flat_map(u16::to_le_bytes).collect();
         format!("powershell -NoProfile -NonInteractive -EncodedCommand {}", base64::engine::general_purpose::STANDARD.encode(utf16))
     } else {
@@ -231,7 +231,7 @@ fn verified() -> &'static Mutex<HashMap<String, String>> {
     VERIFIED.get_or_init(Default::default)
 }
 
-/// Makes sure the machine runs this Muxin's agent build, installing it if
+/// Makes sure the machine runs this AndruIDE's agent build, installing it if
 /// not. Cheap after the first time per machine.
 pub async fn ensure(spec: &MachineSpec, probe: Option<&ProbeResult>) -> Result<(), String> {
     spec.refuse_if_disconnected()?;
@@ -241,8 +241,8 @@ pub async fn ensure(spec: &MachineSpec, probe: Option<&ProbeResult>) -> Result<(
         return running_agent(spec).await;
     }
     let target = target(probe).ok_or_else(|| match probe {
-        Some(p) => format!("Muxin has no agent for {}-{} machines yet.", p.os.as_deref().unwrap_or("?"), p.arch.as_deref().unwrap_or("?")),
-        None => format!("Muxin hasn't reached {} yet, so it doesn't know which agent build it needs. Refresh it first.", spec.name),
+        Some(p) => format!("AndruIDE has no agent for {}-{} machines yet.", p.os.as_deref().unwrap_or("?"), p.arch.as_deref().unwrap_or("?")),
+        None => format!("AndruIDE hasn't reached {} yet, so it doesn't know which agent build it needs. Refresh it first.", spec.name),
     })?;
     let Build { bytes, hash, bundle } = build(&target)?;
     if verified().lock().unwrap().get(&spec.id) == Some(&hash) {
@@ -260,13 +260,13 @@ pub async fn ensure(spec: &MachineSpec, probe: Option<&ProbeResult>) -> Result<(
     let windows = target.starts_with("windows");
     note_os(&spec.id, Some(if windows { "windows" } else { "unix" }));
     let installed = if windows {
-        run_ps(spec, "$a = Join-Path $env:USERPROFILE '.muxen\\bin\\muxen-agent.exe'; if (Test-Path $a) { & $a hash } else { 'none' }", CTL_TIMEOUT).await?
+        run_ps(spec, "$a = Join-Path $env:USERPROFILE '.andruide\\bin\\andruide-agent.exe'; if (Test-Path $a) { & $a hash } else { 'none' }", CTL_TIMEOUT).await?
     } else {
         // One that can't run (another system's build) is replaced like a missing one.
         run_sh(spec, &format!("a={REMOTE_PATH}; if [ -x \"$a\" ]; then \"$a\" hash 2>/dev/null || echo broken; else echo none; fi"), CTL_TIMEOUT).await?
     };
     if installed.trim() != hash {
-        tracing::info!("installing muxen-agent ({target}) on {}", spec.name);
+        tracing::info!("installing andruide-agent ({target}) on {}", spec.name);
         // Boxed: these futures are big, and `ensure` sits inside nearly every request's.
         let got = if windows {
             Box::pin(upload_windows(spec, &build_path(&target)?, bytes, &hash)).await?
@@ -286,7 +286,7 @@ pub async fn ensure(spec: &MachineSpec, probe: Option<&ProbeResult>) -> Result<(
     Ok(())
 }
 
-/// Muxin on an iPad doesn't update a paired machine's agent (Muxin on the Mac
+/// AndruIDE on an iPad doesn't update a paired machine's agent (AndruIDE on the Mac
 /// does): it uses the one that machine runs, over its direct link.
 async fn running_agent(spec: &MachineSpec) -> Result<(), String> {
     match crate::fleet::link::current_or_direct(spec).await {
@@ -341,21 +341,21 @@ fn upload_script(hash: &str) -> String {
     format!(
         "want={}; {MIGRATE} {}; {AFTER}",
         sh_quote(hash),
-        r#"d="$HOME/.muxen/bin"; mkdir -p "$d"; n="$d/muxen-agent.new.$$"; cat > "$n"; chmod 755 "$n"; got=$(sh -c '"$1" hash; exit $?' sh "$n" 2>/dev/null) || got=; if [ "$got" != "$want" ]; then rm -f "$n"; echo "the upload arrived incomplete (its hash is ${got:-unreadable}, not $want), so the agent there is as it was" >&2; exit 3; fi; mv -f "$n" "$d/muxen-agent""#
+        r#"d="$HOME/.andruide/bin"; mkdir -p "$d"; n="$d/andruide-agent.new.$$"; cat > "$n"; chmod 755 "$n"; got=$(sh -c '"$1" hash; exit $?' sh "$n" 2>/dev/null) || got=; if [ "$got" != "$want" ]; then rm -f "$n"; echo "the upload arrived incomplete (its hash is ${got:-unreadable}, not $want), so the agent there is as it was" >&2; exit 3; fi; mv -f "$n" "$d/andruide-agent""#
     )
 }
 
 /// The OpenRunner folder moves over first (see upload_script).
-const MIGRATE: &str = r#"set -e; if [ -d "$HOME/.openrunner" ] && [ ! -e "$HOME/.muxen" ]; then mv "$HOME/.openrunner" "$HOME/.muxen"; fi;"#;
+const MIGRATE: &str = r#"set -e; if [ -d "$HOME/.openrunner" ] && [ ! -e "$HOME/.andruide" ]; then mv "$HOME/.openrunner" "$HOME/.andruide"; fi;"#;
 
 /// After the new build is in place: the rest of upload_script. The service is
 /// restarted only when it runs this home's agent (a test or a scratch home
 /// installing its own leaves the user's alone).
-const AFTER: &str = r#"d="$HOME/.muxen/bin"; rm -f "$d/openrunner-agent"; "$d/muxen-agent" migrate >/dev/null 2>&1 || true; rmdir "$HOME/.openrunner" 2>/dev/null || true; if systemctl --user is-enabled muxen-agent.service >/dev/null 2>&1 && systemctl --user cat muxen-agent.service 2>/dev/null | grep -qF "$d/muxen-agent"; then pkill -f "$d/muxen-agent listen" >/dev/null 2>&1 || true; systemctl --user restart muxen-agent.service >/dev/null 2>&1 || true; elif launchctl print "gui/$(id -u)/com.lumarylabs.muxen-agent" 2>/dev/null | grep -qF "$d/muxen-agent"; then pkill -f "$d/muxen-agent listen" >/dev/null 2>&1 || true; launchctl kickstart -k "gui/$(id -u)/com.lumarylabs.muxen-agent" >/dev/null 2>&1 || true; fi; "$d/muxen-agent" hash"#;
+const AFTER: &str = r#"d="$HOME/.andruide/bin"; rm -f "$d/openrunner-agent"; "$d/andruide-agent" migrate >/dev/null 2>&1 || true; rmdir "$HOME/.openrunner" 2>/dev/null || true; if systemctl --user is-enabled andruide-agent.service >/dev/null 2>&1 && systemctl --user cat andruide-agent.service 2>/dev/null | grep -qF "$d/andruide-agent"; then pkill -f "$d/andruide-agent listen" >/dev/null 2>&1 || true; systemctl --user restart andruide-agent.service >/dev/null 2>&1 || true; elif launchctl print "gui/$(id -u)/com.lumarylabs.andruide-agent" 2>/dev/null | grep -qF "$d/andruide-agent"; then pkill -f "$d/andruide-agent listen" >/dev/null 2>&1 || true; launchctl kickstart -k "gui/$(id -u)/com.lumarylabs.andruide-agent" >/dev/null 2>&1 || true; fi; "$d/andruide-agent" hash"#;
 
-/// upload_script for a Mac's Muxin Agent.app, streamed as a tar: it unpacks
-/// into `~/.muxen/agent/<hash>` (only once its program says it's the build,
-/// as upload_script checks), then `~/.muxen/bin/muxen-agent` becomes a link to
+/// upload_script for a Mac's AndruIDE Agent.app, streamed as a tar: it unpacks
+/// into `~/.andruide/agent/<hash>` (only once its program says it's the build,
+/// as upload_script checks), then `~/.andruide/bin/andruide-agent` becomes a link to
 /// that program, in one step: everything that runs that path (the app, the
 /// direct-connection service, hooks, schedules) runs the app's program.
 /// The bundle the link pointed to stays (a session server may still run it);
@@ -365,9 +365,9 @@ fn upload_bundle_script(hash: &str) -> String {
 }
 
 /// The middle of upload_bundle_script: the bundle into place, and the link to it.
-const BUNDLE_SWAP: &str = r#"d="$HOME/.muxen/bin"; a="$HOME/.muxen/agent"; mkdir -p "$d" "$a"; s="$a/.incoming.$$"; rm -rf "$s"; mkdir "$s"; if ! tar -xf - -C "$s" 2>/dev/null; then rm -rf "$s"; echo "the upload arrived incomplete, so the agent there is as it was" >&2; exit 3; fi; b="$s/Muxin Agent.app/Contents/MacOS/muxen-agent"; got=$(sh -c '"$1" hash; exit $?' sh "$b" 2>/dev/null) || got=; if [ "$got" != "$want" ]; then rm -rf "$s"; echo "the upload arrived incomplete (its hash is ${got:-unreadable}, not $want), so the agent there is as it was" >&2; exit 3; fi; old=$(readlink "$d/muxen-agent" 2>/dev/null) || old=; rm -rf "${a:?}/$want"; mv "$s" "$a/$want"; ln -s "$a/$want/Muxin Agent.app/Contents/MacOS/muxen-agent" "$d/muxen-agent.link.$$"; mv -f "$d/muxen-agent.link.$$" "$d/muxen-agent"; for x in "$a"/* "$a"/.incoming.*; do [ -e "$x" ] || continue; [ "$x" = "$a/$want" ] && continue; case "$old" in "$x"/*) continue ;; esac; rm -rf "$x"; done"#;
+const BUNDLE_SWAP: &str = r#"d="$HOME/.andruide/bin"; a="$HOME/.andruide/agent"; mkdir -p "$d" "$a"; s="$a/.incoming.$$"; rm -rf "$s"; mkdir "$s"; if ! tar -xf - -C "$s" 2>/dev/null; then rm -rf "$s"; echo "the upload arrived incomplete, so the agent there is as it was" >&2; exit 3; fi; b="$s/AndruIDE Agent.app/Contents/MacOS/andruide-agent"; got=$(sh -c '"$1" hash; exit $?' sh "$b" 2>/dev/null) || got=; if [ "$got" != "$want" ]; then rm -rf "$s"; echo "the upload arrived incomplete (its hash is ${got:-unreadable}, not $want), so the agent there is as it was" >&2; exit 3; fi; old=$(readlink "$d/andruide-agent" 2>/dev/null) || old=; rm -rf "${a:?}/$want"; mv "$s" "$a/$want"; ln -s "$a/$want/AndruIDE Agent.app/Contents/MacOS/andruide-agent" "$d/andruide-agent.link.$$"; mv -f "$d/andruide-agent.link.$$" "$d/andruide-agent"; for x in "$a"/* "$a"/.incoming.*; do [ -e "$x" ] || continue; [ "$x" = "$a/$want" ] && continue; case "$old" in "$x"/*) continue ;; esac; rm -rf "$x"; done"#;
 
-/// Puts an uploaded build (`muxen-agent.upload.exe`) in place on Windows and
+/// Puts an uploaded build (`andruide-agent.upload.exe`) in place on Windows and
 /// prints its hash, once the upload says it's the build (`hash`); else it
 /// goes, and the agent there stays as it was. A running agent holds its file,
 /// but Windows lets it be renamed: the old one moves aside and goes once
@@ -379,17 +379,17 @@ fn swap_ps1(hash: &str) -> String {
 }
 
 const SWAP_PS1: &str = "$ErrorActionPreference = 'Stop'\n\
-         $d = Join-Path $env:USERPROFILE '.muxen\\bin'\n\
-         $t = Join-Path $d 'muxen-agent.exe'\n\
-         $u = Join-Path $d 'muxen-agent.upload.exe'\n\
+         $d = Join-Path $env:USERPROFILE '.andruide\\bin'\n\
+         $t = Join-Path $d 'andruide-agent.exe'\n\
+         $u = Join-Path $d 'andruide-agent.upload.exe'\n\
          $got = ''\n\
          try { $got = (& $u hash | Out-String).Trim() } catch { }\n\
          if ($got -ne $want) { Remove-Item -Force $u -ErrorAction SilentlyContinue; [Console]::Error.WriteLine(\"error: the upload arrived incomplete (its hash is $(if ($got) { $got } else { 'unreadable' }), not $want), so the agent there is as it was\"); exit 3 }\n\
-         if (Test-Path $t) { Move-Item -Force $t (Join-Path $d \"muxen-agent.old.$PID.exe\") }\n\
+         if (Test-Path $t) { Move-Item -Force $t (Join-Path $d \"andruide-agent.old.$PID.exe\") }\n\
          Move-Item -Force $u $t\n\
-         Get-CimInstance Win32_Process -Filter \"Name='muxen-agent.exe'\" | Where-Object { $_.CommandLine -match ' gui-serve' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }\n\
+         Get-CimInstance Win32_Process -Filter \"Name='andruide-agent.exe'\" | Where-Object { $_.CommandLine -match ' gui-serve' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }\n\
          & $t migrate | Out-Null\n\
-         Get-ChildItem $d -Filter 'muxen-agent.old.*.exe' | ForEach-Object { Remove-Item -Force $_.FullName -ErrorAction SilentlyContinue }\n\
+         Get-ChildItem $d -Filter 'andruide-agent.old.*.exe' | ForEach-Object { Remove-Item -Force $_.FullName -ErrorAction SilentlyContinue }\n\
          & $t hash\n";
 
 /// Copies the build into place on Windows and prints its hash: over sftp
@@ -401,7 +401,7 @@ async fn upload_windows(spec: &MachineSpec, build: &std::path::Path, bytes: Vec<
     #[cfg(target_os = "ios")]
     {
         let _ = build;
-        tokio::time::timeout(UPLOAD_TIMEOUT, crate::fleet::ssh::sftp_put(spec, &bytes, ".muxen/bin/muxen-agent.upload.exe"))
+        tokio::time::timeout(UPLOAD_TIMEOUT, crate::fleet::ssh::sftp_put(spec, &bytes, ".andruide/bin/andruide-agent.upload.exe"))
             .await
             .map_err(|_| fail("the copy took too long".into()))?
             .map_err(fail)?;
@@ -411,9 +411,9 @@ async fn upload_windows(spec: &MachineSpec, build: &std::path::Path, bytes: Vec<
     let _ = bytes;
     if spec.is_local() {
         // This computer: a copy, then the same swap.
-        let bin = dirs::home_dir().unwrap_or_default().join(".muxen").join("bin");
+        let bin = dirs::home_dir().unwrap_or_default().join(".andruide").join("bin");
         std::fs::create_dir_all(&bin).map_err(|e| fail(e.to_string()))?;
-        std::fs::copy(build, bin.join("muxen-agent.upload.exe")).map_err(|e| fail(e.to_string()))?;
+        std::fs::copy(build, bin.join("andruide-agent.upload.exe")).map_err(|e| fail(e.to_string()))?;
         return run_ps(spec, &swap_ps1(hash), CTL_TIMEOUT).await.map_err(fail);
     }
     // sftp takes ssh's options, but its own spelling of the port and user.
@@ -426,7 +426,7 @@ async fn upload_windows(spec: &MachineSpec, build: &std::path::Path, bytes: Vec<
             _ => args.push(a),
         }
     }
-    let batch = format!("-mkdir .muxen\n-mkdir .muxen/bin\nput \"{}\" .muxen/bin/muxen-agent.upload.exe\n", build.display());
+    let batch = format!("-mkdir .andruide\n-mkdir .andruide/bin\nput \"{}\" .andruide/bin/andruide-agent.upload.exe\n", build.display());
     let mut cmd = Command::new("sftp");
     cmd.args(["-q", "-b", "-"]).args(&args).stdin(Stdio::piped()).stdout(Stdio::null()).stderr(Stdio::piped()).kill_on_drop(true);
     let mut child = cmd.spawn().map_err(|e| fail(format!("couldn't run sftp: {e}")))?;
@@ -517,7 +517,7 @@ pub async fn ctl_reply(spec: &MachineSpec, request: &Value) -> Result<Value, Str
     let json = request.to_string();
     let out = if is_windows(spec) {
         // UTF-8 to the agent (PowerShell 5.1 pipes in the console's code page otherwise).
-        let script = format!("$OutputEncoding = New-Object Text.UTF8Encoding $false\n$a = Join-Path $env:USERPROFILE '.muxen\\bin\\muxen-agent.exe'\n@'\n{json}\n'@ | & $a ctl\n");
+        let script = format!("$OutputEncoding = New-Object Text.UTF8Encoding $false\n$a = Join-Path $env:USERPROFILE '.andruide\\bin\\andruide-agent.exe'\n@'\n{json}\n'@ | & $a ctl\n");
         run_ps(spec, &script, CTL_TIMEOUT).await
     } else {
         let script = format!("{REMOTE_PATH} ctl <<'__OR_REQUEST__'\n{json}\n__OR_REQUEST__\n");
@@ -576,11 +576,11 @@ mod tests {
         let cut_off: &[u8] = b"\x7fELF\x02\x01\x01\x00 and then the stream stopped";
         let not_the_build: &[u8] = b"#!/bin/sh\necho 0000000000000000\n";
         for (i, upload) in [cut_off, not_the_build].into_iter().enumerate() {
-            let home = std::env::temp_dir().join(format!("muxen-upload-{}-{i}", std::process::id()));
+            let home = std::env::temp_dir().join(format!("andruide-upload-{}-{i}", std::process::id()));
             let _ = std::fs::remove_dir_all(&home);
-            let bin = home.join(".muxen/bin");
+            let bin = home.join(".andruide/bin");
             std::fs::create_dir_all(&bin).unwrap();
-            std::fs::write(bin.join("muxen-agent"), b"the agent that works").unwrap();
+            std::fs::write(bin.join("andruide-agent"), b"the agent that works").unwrap();
             let mut child = std::process::Command::new("/bin/sh")
                 .args(["-c", &upload_script("0123456789abcdef")])
                 .env("HOME", &home)
@@ -593,23 +593,23 @@ mod tests {
             let out = child.wait_with_output().unwrap();
             assert!(!out.status.success(), "case {i}");
             assert!(String::from_utf8_lossy(&out.stderr).contains("arrived incomplete"), "case {i}");
-            assert_eq!(std::fs::read(bin.join("muxen-agent")).unwrap(), b"the agent that works", "case {i}");
+            assert_eq!(std::fs::read(bin.join("andruide-agent")).unwrap(), b"the agent that works", "case {i}");
             assert_eq!(std::fs::read_dir(&bin).unwrap().count(), 1, "case {i}: the upload is gone");
             let _ = std::fs::remove_dir_all(&home);
         }
     }
 
-    /// A Muxin Agent.app tar whose program says it's the build `hash`.
+    /// A AndruIDE Agent.app tar whose program says it's the build `hash`.
     #[cfg(unix)]
     fn fake_bundle(dir: &std::path::Path, hash: &str) -> Vec<u8> {
         use std::os::unix::fs::PermissionsExt;
         let stage = dir.join(format!("stage-{hash}"));
         let program = stage.join(BUNDLE_PROGRAM);
         std::fs::create_dir_all(program.parent().unwrap()).unwrap();
-        std::fs::write(stage.join("Muxin Agent.app/Contents/Info.plist"), "<plist/>").unwrap();
+        std::fs::write(stage.join("AndruIDE Agent.app/Contents/Info.plist"), "<plist/>").unwrap();
         std::fs::write(&program, format!("#!/bin/sh\necho {hash}\n")).unwrap();
         std::fs::set_permissions(&program, std::fs::Permissions::from_mode(0o755)).unwrap();
-        let out = std::process::Command::new("tar").env("COPYFILE_DISABLE", "1").args(["-cf", "-", "-C"]).arg(&stage).arg("Muxin Agent.app").output().unwrap();
+        let out = std::process::Command::new("tar").env("COPYFILE_DISABLE", "1").args(["-cf", "-", "-C"]).arg(&stage).arg("AndruIDE Agent.app").output().unwrap();
         assert!(out.status.success());
         out.stdout
     }
@@ -617,28 +617,28 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn finds_the_program_in_a_bundle_tar() {
-        let dir = std::env::temp_dir().join(format!("muxen-tar-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("andruide-tar-{}", std::process::id()));
         let tar = fake_bundle(&dir, "0123456789abcdef");
         assert_eq!(tar_entry(&tar, BUNDLE_PROGRAM), Some(&b"#!/bin/sh\necho 0123456789abcdef\n"[..]));
-        assert_eq!(tar_entry(&tar, "Muxin Agent.app/Contents/MacOS/other"), None);
+        assert_eq!(tar_entry(&tar, "AndruIDE Agent.app/Contents/MacOS/other"), None);
         assert_eq!(tar_entry(&tar[..600], BUNDLE_PROGRAM), None, "a cut-off tar has no program");
         let _ = std::fs::remove_dir_all(&dir);
     }
 
-    /// Muxin Agent.app goes in beside the bundle before it, the link moves to
+    /// AndruIDE Agent.app goes in beside the bundle before it, the link moves to
     /// it in one step, and only the bundle before stays. An upload that's cut
     /// off or isn't the build changes nothing. (Without the services part.)
     #[cfg(unix)]
     #[test]
     fn a_bundle_replaces_the_agent_and_keeps_the_one_before() {
         use std::io::Write as _;
-        let home = std::env::temp_dir().join(format!("muxen-bundle-{}", std::process::id()));
+        let home = std::env::temp_dir().join(format!("andruide-bundle-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&home);
-        let bin = home.join(".muxen/bin");
+        let bin = home.join(".andruide/bin");
         std::fs::create_dir_all(&bin).unwrap();
-        std::fs::write(bin.join("muxen-agent"), b"the plain agent from before").unwrap();
+        std::fs::write(bin.join("andruide-agent"), b"the plain agent from before").unwrap();
         let install = |want: &str, upload: &[u8]| {
-            let script = format!("want={}; {MIGRATE} {BUNDLE_SWAP}; \"$d/muxen-agent\" hash", sh_quote(want));
+            let script = format!("want={}; {MIGRATE} {BUNDLE_SWAP}; \"$d/andruide-agent\" hash", sh_quote(want));
             let mut child = std::process::Command::new("/bin/sh")
                 .args(["-c", &script])
                 .env("HOME", &home)
@@ -652,15 +652,15 @@ mod tests {
             (out.status.success(), String::from_utf8_lossy(&out.stdout).trim().to_string(), String::from_utf8_lossy(&out.stderr).to_string())
         };
         let agents = |home: &std::path::Path| {
-            let mut v: Vec<String> = std::fs::read_dir(home.join(".muxen/agent")).unwrap().map(|e| e.unwrap().file_name().to_string_lossy().to_string()).collect();
+            let mut v: Vec<String> = std::fs::read_dir(home.join(".andruide/agent")).unwrap().map(|e| e.unwrap().file_name().to_string_lossy().to_string()).collect();
             v.sort();
             v
         };
-        let link = || std::fs::read_link(bin.join("muxen-agent")).unwrap();
+        let link = || std::fs::read_link(bin.join("andruide-agent")).unwrap();
 
         let first = install("1111111111111111", &fake_bundle(&home, "1111111111111111"));
         assert_eq!(first, (true, "1111111111111111".to_string(), String::new()));
-        assert_eq!(link(), home.join(".muxen/agent/1111111111111111").join(BUNDLE_PROGRAM));
+        assert_eq!(link(), home.join(".andruide/agent/1111111111111111").join(BUNDLE_PROGRAM));
         assert_eq!(install("2222222222222222", &fake_bundle(&home, "2222222222222222")).1, "2222222222222222");
         assert_eq!(agents(&home), ["1111111111111111", "2222222222222222"]);
         assert_eq!(install("3333333333333333", &fake_bundle(&home, "3333333333333333")).1, "3333333333333333");
@@ -671,7 +671,7 @@ mod tests {
             let (ok, _, err) = install("4444444444444444", upload);
             assert!(!ok, "case {i}");
             assert!(err.contains("arrived incomplete"), "case {i}: {err}");
-            assert_eq!(link(), home.join(".muxen/agent/3333333333333333").join(BUNDLE_PROGRAM), "case {i}");
+            assert_eq!(link(), home.join(".andruide/agent/3333333333333333").join(BUNDLE_PROGRAM), "case {i}");
             assert_eq!(agents(&home), ["2222222222222222", "3333333333333333"], "case {i}: nothing left behind");
         }
         let _ = std::fs::remove_dir_all(&home);
@@ -686,7 +686,7 @@ mod tests {
     #[test]
     fn only_a_binary_inside_the_checkout_uses_it() {
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).canonicalize().unwrap();
-        assert_eq!(checkout(&root.join("target/release/muxin")), Some(root));
-        assert_eq!(checkout(std::path::Path::new("/Applications/Muxin.app/Contents/MacOS/muxin")), None);
+        assert_eq!(checkout(&root.join("target/release/andruide")), Some(root));
+        assert_eq!(checkout(std::path::Path::new("/Applications/AndruIDE.app/Contents/MacOS/andruide")), None);
     }
 }

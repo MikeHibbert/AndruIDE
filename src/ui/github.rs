@@ -294,7 +294,7 @@ impl Root {
         });
     }
 
-    /// Switches Muxin to another GitHub account (one signed in here, or a
+    /// Switches AndruIDE to another GitHub account (one signed in here, or a
     /// machine's) and reloads everything GitHub.
     pub(super) fn gh_use_account(&mut self, login: String, machine_id: Option<String>, cx: &mut Context<Self>) {
         let engine = self.engine.clone();
@@ -1669,7 +1669,7 @@ mod tests {
     #[test]
     fn an_issue_fills_in_new_box() {
         let item = Item {
-            repo: "adibhanna/muxin-handoff-test".into(),
+            repo: "adibhanna/andruide-handoff-test".into(),
             number: 1,
             title: "average() is off by one".into(),
             pull_request: false,
@@ -1681,14 +1681,14 @@ mod tests {
             comments: 0,
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),
-            html_url: "https://github.com/adibhanna/muxin-handoff-test/issues/1".into(),
+            html_url: "https://github.com/adibhanna/andruide-handoff-test/issues/1".into(),
         };
         let d = Detail { item, body: "average([2, 4]) returns 4 instead of 3.\n".into(), comments: Vec::new(), pull: None };
         let p = box_prefill(&d, None);
-        assert_eq!(p.repo.as_deref(), Some("adibhanna/muxin-handoff-test"));
-        assert_eq!(p.task.as_deref(), Some("Fix this GitHub issue and open a pull request that closes it: https://github.com/adibhanna/muxin-handoff-test/issues/1"));
+        assert_eq!(p.repo.as_deref(), Some("adibhanna/andruide-handoff-test"));
+        assert_eq!(p.task.as_deref(), Some("Fix this GitHub issue and open a pull request that closes it: https://github.com/adibhanna/andruide-handoff-test/issues/1"));
         assert_eq!(p.details.as_deref(), Some("#1 average() is off by one\n\naverage([2, 4]) returns 4 instead of 3."));
-        assert_eq!(p.name.as_deref(), Some("muxin-handoff-test #1"));
+        assert_eq!(p.name.as_deref(), Some("andruide-handoff-test #1"));
         assert_eq!(p.branch.as_deref(), Some("issue-1-average-off-by-one"));
         // What the box's agent is asked: the task, then the issue.
         let prompt = super::super::box_dialog::prompt_for(p.task.clone().unwrap(), p.details.as_deref());

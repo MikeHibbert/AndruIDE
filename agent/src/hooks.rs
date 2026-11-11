@@ -1,18 +1,18 @@
-//! Muxin's hooks in Claude Code's and Codex's settings, so they tell the
+//! AndruIDE's hooks in Claude Code's and Codex's settings, so they tell the
 //! agent what they're doing (see states.rs). Turning them on and off is
-//! idempotent and touches only Muxin's own entries: its command runs
-//! `muxen-agent report`, which nothing else does. Other tools' hooks (Rex's,
+//! idempotent and touches only AndruIDE's own entries: its command runs
+//! `andruide-agent report`, which nothing else does. Other tools' hooks (Rex's,
 //! herdr's) stay as they are, in their places.
 //!
-//! Each hook does nothing outside a Muxin session, and can't break its agent:
+//! Each hook does nothing outside a AndruIDE session, and can't break its agent:
 //! a quiet `|| true` wrapper with a short timeout, as Rex does it.
 //!
 //! - Claude Code: `settings.json` in its config folder (`CLAUDE_CONFIG_DIR`,
 //!   else `~/.claude`).
 //! - Codex: `hooks.json` in `CODEX_HOME` (else `~/.codex`). Codex runs a
 //!   user's hook only once it's trusted, by its hash under `[hooks.state]` in
-//!   `config.toml`; Muxin trusts its own there, as `/hooks` would.
-//! - Copilot CLI: a file of Muxin's own, `hooks/muxin.json` in `COPILOT_HOME`
+//!   `config.toml`; AndruIDE trusts its own there, as `/hooks` would.
+//! - Copilot CLI: a file of AndruIDE's own, `hooks/andruide.json` in `COPILOT_HOME`
 //!   (else `~/.copilot`).
 //! - Qwen Code: `settings.json` in `QWEN_HOME` (else `~/.qwen`), in Claude
 //!   Code's format.
@@ -73,12 +73,12 @@ impl Dirs {
     }
 }
 
-/// The agent's own path, where Muxin installs it.
+/// The agent's own path, where AndruIDE installs it.
 fn agent_path() -> PathBuf {
-    crate::home_dir().join("bin").join(if cfg!(windows) { "muxen-agent.exe" } else { "muxen-agent" })
+    crate::home_dir().join("bin").join(if cfg!(windows) { "andruide-agent.exe" } else { "andruide-agent" })
 }
 
-/// The hook's command for `agent`: nothing outside a Muxin session, never a
+/// The hook's command for `agent`: nothing outside a AndruIDE session, never a
 /// failure, never a word on stdout.
 fn command(agent: &str, agent_path: &Path) -> String {
     command_for(agent, agent_path, None)
@@ -91,10 +91,10 @@ fn command_for(agent: &str, agent_path: &Path, event: Option<&str>) -> String {
     let quoted = if path.chars().any(|c| matches!(c, '"' | '$' | '`' | '\\' | '\'' | '!')) { sh_quote(&path) } else { format!("\"{path}\"") };
     let event = event.map(|e| format!(" {e}")).unwrap_or_default();
     let inner = if agent == "claude" {
-        // Claude's desktop app runs Claude Code too, outside Muxin's sessions (apps.rs).
-        format!("[ -n \"$MUXEN_SESSION\" ] || [ \"$CLAUDE_CODE_ENTRYPOINT\" = claude-desktop ] || exit 0; {quoted} report {agent}{event} 2>/dev/null || true")
+        // Claude's desktop app runs Claude Code too, outside AndruIDE's sessions (apps.rs).
+        format!("[ -n \"$ANDRUIDE_SESSION\" ] || [ \"$CLAUDE_CODE_ENTRYPOINT\" = claude-desktop ] || exit 0; {quoted} report {agent}{event} 2>/dev/null || true")
     } else {
-        format!("[ -z \"$MUXEN_SESSION\" ] || {quoted} report {agent}{event} 2>/dev/null || true")
+        format!("[ -z \"$ANDRUIDE_SESSION\" ] || {quoted} report {agent}{event} 2>/dev/null || true")
     };
     format!("/bin/sh -c {}", sh_quote(&inner))
 }
@@ -103,16 +103,16 @@ fn sh_quote(s: &str) -> String {
     format!("'{}'", s.replace('\'', "'\\''"))
 }
 
-/// Ours: runs `muxen-agent report` in a Muxin session.
+/// Ours: runs `andruide-agent report` in a AndruIDE session.
 fn is_ours(command: &str) -> bool {
-    command.contains("MUXEN_SESSION") && command.contains("muxen-agent") && command.contains(" report ")
+    command.contains("ANDRUIDE_SESSION") && command.contains("andruide-agent") && command.contains(" report ")
 }
 
 fn handler(event: &str, command: &str) -> Value {
     json!({ "type": "command", "command": command, "timeout": timeout(event) })
 }
 
-/// Turns Muxin's hooks on or off for each CLI whose settings folder is there
+/// Turns AndruIDE's hooks on or off for each CLI whose settings folder is there
 /// (it's made the first time the CLI runs). Says, per CLI, "on", "off",
 /// "none" (not set up here) or what went wrong.
 pub fn apply(on: bool, dirs: &Dirs) -> Value {
@@ -140,14 +140,14 @@ pub fn apply(on: bool, dirs: &Dirs) -> Value {
     Value::Object(out)
 }
 
-/// Copilot CLI: a hooks file of Muxin's own, or none.
+/// Copilot CLI: a hooks file of AndruIDE's own, or none.
 fn copilot(dir: &Path, agent: &Path, on: bool) -> Result<(), String> {
-    let file = dir.join("hooks").join("muxin.json");
+    let file = dir.join("hooks").join("andruide.json");
     let before = std::fs::read_to_string(&file).ok();
     if let Some(text) = &before {
         let commands = serde_json::from_str::<Value>(text).map(|v| copilot_commands(&v)).unwrap_or_default();
         if commands.is_empty() || !commands.iter().all(|c| is_ours(c)) {
-            return Err(format!("{} isn't Muxin's, so it was left alone", file.display()));
+            return Err(format!("{} isn't AndruIDE's, so it was left alone", file.display()));
         }
     }
     if !on {
@@ -179,7 +179,7 @@ fn copilot_commands(v: &Value) -> Vec<String> {
         .collect()
 }
 
-/// Kimi Code: Muxin's `[[hooks]]` tables in its config.toml.
+/// Kimi Code: AndruIDE's `[[hooks]]` tables in its config.toml.
 fn kimi(dir: &Path, command: &str, on: bool) -> Result<(), String> {
     let config = dir.join("config.toml");
     let text = match std::fs::read_to_string(&config) {
@@ -188,7 +188,7 @@ fn kimi(dir: &Path, command: &str, on: bool) -> Result<(), String> {
         Err(e) => return Err(format!("couldn't read {}: {e}", config.display())),
     };
     match kimi_hooks(&text, command, on)? {
-        // Only ours were in it (Muxin made it): none, as before.
+        // Only ours were in it (AndruIDE made it): none, as before.
         Some(new) if new.trim().is_empty() => {
             let real = std::fs::canonicalize(&config).unwrap_or(config);
             std::fs::remove_file(&real).map_err(|e| format!("couldn't remove {}: {e}", real.display()))
@@ -198,7 +198,7 @@ fn kimi(dir: &Path, command: &str, on: bool) -> Result<(), String> {
     }
 }
 
-/// Kimi Code's config.toml with Muxin's `[[hooks]]` tables for `KIMI_EVENTS`
+/// Kimi Code's config.toml with AndruIDE's `[[hooks]]` tables for `KIMI_EVENTS`
 /// at its end (or none) and everything else as it was; `None` when it's
 /// right already. Kimi refuses a hook with any other field, so they hold
 /// only `event`, `command` and `timeout`. Leaves a file alone that sets its
@@ -228,7 +228,7 @@ fn kimi_hooks(text: &str, command: &str, on: bool) -> Result<Option<String>, Str
         }
         let t = l.trim_start();
         if !in_string[i] && t.strip_prefix("hooks").is_some_and(|r| r.trim_start().starts_with(['=', '.'])) {
-            return Err("Kimi Code's config.toml sets its hooks in a way Muxin doesn't change, so it was left alone".into());
+            return Err("Kimi Code's config.toml sets its hooks in a way AndruIDE doesn't change, so it was left alone".into());
         }
     }
     // Each [[hooks]] table of ours goes: its header and its lines up to the next header.
@@ -314,7 +314,7 @@ fn codex(dir: &Path, command: &str, on: bool) -> Result<(), String> {
         Err(e) => return Err(format!("couldn't read {}: {e}", config.display())),
     };
     match trust(&text, &prefix, &wanted, &ours)? {
-        // Only ours were in it (Muxin made it): none, as before.
+        // Only ours were in it (AndruIDE made it): none, as before.
         Some(new) if new.trim().is_empty() => {
             let real = std::fs::canonicalize(&config).unwrap_or(config);
             let _ = std::fs::remove_file(real);
@@ -337,7 +337,7 @@ fn edit_json(path: &Path, drop_if_empty: bool, change: impl FnOnce(&mut Map<Stri
         None | Some("") => Map::new(),
         Some(t) => match serde_json::from_str::<Value>(t) {
             Ok(Value::Object(m)) => m,
-            _ => return Err(format!("{} isn't JSON Muxin can read, so it was left alone", path.display())),
+            _ => return Err(format!("{} isn't JSON AndruIDE can read, so it was left alone", path.display())),
         },
     };
     if !change(&mut root)? {
@@ -387,7 +387,7 @@ fn format_like(value: &Value, before: &str) -> String {
 /// symlink if it's one (dotfiles), with its permissions.
 fn write_keeping(path: &Path, text: &str) -> Result<(), String> {
     let real = std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
-    let tmp = real.with_extension(format!("muxin-{}", std::process::id()));
+    let tmp = real.with_extension(format!("andruide-{}", std::process::id()));
     std::fs::write(&tmp, text).map_err(|e| format!("couldn't write {}: {e}", real.display()))?;
     if let Ok(meta) = std::fs::metadata(&real) {
         let _ = std::fs::set_permissions(&tmp, meta.permissions());
@@ -410,7 +410,7 @@ fn set_hooks(root: &mut Map<String, Value>, events: &[&str], command: &str, on: 
     let had_hooks = root.contains_key("hooks");
     let hooks = root.entry("hooks").or_insert_with(|| json!({}));
     let Some(hooks) = hooks.as_object_mut() else {
-        return Err("its \"hooks\" isn't what Muxin expects, so it was left alone".into());
+        return Err("its \"hooks\" isn't what AndruIDE expects, so it was left alone".into());
     };
     let mut changed = false;
     let names: Vec<String> = hooks.keys().cloned().chain(events.iter().map(|e| e.to_string())).collect::<Vec<_>>();
@@ -519,7 +519,7 @@ fn state_key(line: &str) -> Option<String> {
     None
 }
 
-/// `config.toml` with Muxin's trust entries as `wanted` (key, hash), its
+/// `config.toml` with AndruIDE's trust entries as `wanted` (key, hash), its
 /// stale ones (under `prefix`, with one of `ours` hashes) gone, and
 /// everything else as it was; `None` when it's right already. Leaves a file
 /// alone that keeps hooks in a shape it doesn't edit (inline tables).
@@ -535,7 +535,7 @@ fn trust(text: &str, prefix: &str, wanted: &[(String, String)], ours: &HashSet<S
         }
         let top_level = table.is_none() && (t.starts_with("hooks.") || t.starts_with("hooks =") || t.starts_with("hooks="));
         if top_level || (table == Some("[hooks]") && t.starts_with("state")) {
-            return Err("Codex's config.toml keeps hooks in a way Muxin doesn't change, so Codex will ask to trust its hooks".into());
+            return Err("Codex's config.toml keeps hooks in a way AndruIDE doesn't change, so Codex will ask to trust its hooks".into());
         }
     }
     // Each table: its header line and the lines up to the next header.
@@ -616,7 +616,7 @@ fn trust(text: &str, prefix: &str, wanted: &[(String, String)], ours: &HashSet<S
     Ok(Some(new))
 }
 
-/// `muxen-agent hooks on|off|status`, for trying them by hand.
+/// `andruide-agent hooks on|off|status`, for trying them by hand.
 pub fn run(args: &[String]) -> i32 {
     let dirs = Dirs::new(&crate::sys::user_home(), |name| std::env::var(name).ok());
     match args.first().map(String::as_str) {
@@ -624,14 +624,14 @@ pub fn run(args: &[String]) -> i32 {
         Some("off") => println!("{}", apply(false, &dirs)),
         Some("status") => println!("{}", status(&dirs)),
         _ => {
-            eprintln!("usage: muxen-agent hooks on | off | status");
+            eprintln!("usage: andruide-agent hooks on | off | status");
             return 2;
         }
     }
     0
 }
 
-/// Whether Muxin's hooks are there, per CLI, without changing anything.
+/// Whether AndruIDE's hooks are there, per CLI, without changing anything.
 pub fn status(dirs: &Dirs) -> Value {
     let has = |path: PathBuf, events: &[&str]| -> &'static str {
         let Ok(text) = std::fs::read_to_string(path) else { return "off" };
@@ -645,7 +645,7 @@ pub fn status(dirs: &Dirs) -> Value {
     };
     let copilot = match &dirs.copilot {
         Some(d) if d.is_dir() => {
-            let v = std::fs::read_to_string(d.join("hooks").join("muxin.json")).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok());
+            let v = std::fs::read_to_string(d.join("hooks").join("andruide.json")).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok());
             if v.is_some_and(|v| COPILOT_EVENTS.iter().all(|e| v["hooks"][*e].as_array().is_some_and(|l| !l.is_empty()))) { "on" } else { "off" }
         }
         _ => "none",
@@ -671,34 +671,34 @@ pub fn status(dirs: &Dirs) -> Value {
 mod tests {
     use super::*;
 
-    const CMD: &str = "/bin/sh -c '[ -n \"$MUXEN_SESSION\" ] || [ \"$CLAUDE_CODE_ENTRYPOINT\" = claude-desktop ] || exit 0; \"/home/adib/.muxen/bin/muxen-agent\" report claude 2>/dev/null || true'";
+    const CMD: &str = "/bin/sh -c '[ -n \"$ANDRUIDE_SESSION\" ] || [ \"$CLAUDE_CODE_ENTRYPOINT\" = claude-desktop ] || exit 0; \"/home/adib/.andruide/bin/andruide-agent\" report claude 2>/dev/null || true'";
 
     #[test]
     fn the_command_does_nothing_outside_a_session_and_never_fails() {
-        assert_eq!(command("claude", Path::new("/home/adib/.muxen/bin/muxen-agent")), CMD);
+        assert_eq!(command("claude", Path::new("/home/adib/.andruide/bin/andruide-agent")), CMD);
         assert!(is_ours(CMD));
         // Rex's and herdr's aren't ours.
         assert!(!is_ours("/bin/sh -c 'rex __internal session-start --agent claude 2>/dev/null || true'"));
         assert!(!is_ours("bash '/Users/adib/.claude/hooks/herdr-agent-state.sh' session"));
         // A home with a quote in it still quotes right.
-        let odd = command("codex", Path::new("/home/o'neil/.muxen/bin/muxen-agent"));
+        let odd = command("codex", Path::new("/home/o'neil/.andruide/bin/andruide-agent"));
         assert!(is_ours(&odd));
         // Run as a CLI runs it, with echo for the agent: quiet outside a session.
         #[cfg(unix)]
         for (session, entrypoint, expect) in [("", "", ""), ("claude-1", "", "report claude"), ("", "claude-desktop", "report claude"), ("", "cli", "")] {
-            let out = std::process::Command::new("/bin/sh").arg("-c").arg(command("claude", Path::new("/bin/echo"))).env("MUXEN_SESSION", session).env("CLAUDE_CODE_ENTRYPOINT", entrypoint).output().unwrap();
+            let out = std::process::Command::new("/bin/sh").arg("-c").arg(command("claude", Path::new("/bin/echo"))).env("ANDRUIDE_SESSION", session).env("CLAUDE_CODE_ENTRYPOINT", entrypoint).output().unwrap();
             assert!(out.status.success());
             assert_eq!(String::from_utf8_lossy(&out.stdout).trim(), expect, "{session:?} {entrypoint:?}");
         }
         // The other CLIs: only in a session.
         #[cfg(unix)]
         {
-            let out = std::process::Command::new("/bin/sh").arg("-c").arg(command("codex", Path::new("/bin/echo"))).env("MUXEN_SESSION", "").env("CLAUDE_CODE_ENTRYPOINT", "claude-desktop").output().unwrap();
+            let out = std::process::Command::new("/bin/sh").arg("-c").arg(command("codex", Path::new("/bin/echo"))).env("ANDRUIDE_SESSION", "").env("CLAUDE_CODE_ENTRYPOINT", "claude-desktop").output().unwrap();
             assert!(out.status.success() && out.stdout.is_empty());
         }
         // A failing agent still succeeds.
         #[cfg(unix)]
-        assert!(std::process::Command::new("/bin/sh").arg("-c").arg(command("claude", Path::new("/bin/false"))).env("MUXEN_SESSION", "x").status().unwrap().success());
+        assert!(std::process::Command::new("/bin/sh").arg("-c").arg(command("claude", Path::new("/bin/false"))).env("ANDRUIDE_SESSION", "x").status().unwrap().success());
     }
 
     fn rex_and_herdr() -> Map<String, Value> {
@@ -743,7 +743,7 @@ mod tests {
 
     #[test]
     fn an_older_command_of_ours_is_replaced_in_any_group() {
-        let old = "/bin/sh -c '[ -z \"$MUXEN_SESSION\" ] || \"/old/muxen-agent\" report claude || true'";
+        let old = "/bin/sh -c '[ -z \"$ANDRUIDE_SESSION\" ] || \"/old/andruide-agent\" report claude || true'";
         let mut s: Map<String, Value> = serde_json::from_value(json!({ "hooks": { "Stop": [
             { "hooks": [{ "type": "command", "command": "notify-send done" }, { "type": "command", "command": old }] },
             { "hooks": [{ "type": "command", "command": old }] }
@@ -765,7 +765,7 @@ mod tests {
     }
 
     #[test]
-    fn a_hook_list_muxin_cant_read_is_left_alone() {
+    fn a_hook_list_andruide_cant_read_is_left_alone() {
         let mut s: Map<String, Value> = serde_json::from_value(json!({ "hooks": "nope" })).unwrap();
         assert!(set_hooks(&mut s, CLAUDE_EVENTS, CMD, true).is_err());
     }
@@ -831,7 +831,7 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn installs_into_scratch_settings_and_removes_again() {
-        let root = std::env::temp_dir().join(format!("muxin-hooks-{}", std::process::id()));
+        let root = std::env::temp_dir().join(format!("andruide-hooks-{}", std::process::id()));
         let (claude, codex) = (root.join("claude"), root.join("codex"));
         std::fs::create_dir_all(&claude).unwrap();
         std::fs::create_dir_all(&codex).unwrap();
@@ -869,12 +869,12 @@ mod tests {
 
     #[test]
     fn copilot_gets_a_file_of_its_own_naming_each_event() {
-        let root = std::env::temp_dir().join(format!("muxin-hooks-copilot-{}", std::process::id()));
+        let root = std::env::temp_dir().join(format!("andruide-hooks-copilot-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&root);
         std::fs::create_dir_all(&root).unwrap();
-        let agent = Path::new("/home/adib/.muxen/bin/muxen-agent");
+        let agent = Path::new("/home/adib/.andruide/bin/andruide-agent");
         copilot(&root, agent, true).unwrap();
-        let file = root.join("hooks").join("muxin.json");
+        let file = root.join("hooks").join("andruide.json");
         let v: Value = serde_json::from_str(&std::fs::read_to_string(&file).unwrap()).unwrap();
         assert_eq!(v["version"], 1);
         for e in COPILOT_EVENTS {
@@ -901,7 +901,7 @@ mod tests {
 
     #[test]
     fn kimi_tables_go_at_the_end_and_leave_again() {
-        let cmd = command("kimi", Path::new("/home/adib/.muxen/bin/muxen-agent"));
+        let cmd = command("kimi", Path::new("/home/adib/.andruide/bin/andruide-agent"));
         let theirs = "default_model = \"kimi-k3\"\n\n[providers.kimi]\ntype = \"kimi\"\napi_key = \"sk-x\"\n\n[[hooks]]\nevent = \"Stop\"\ncommand = \"notify-send done\"\ntimeout = 5\n# their note\n\n[tui]\nprompt = \"\"\"\n[[hooks]]\nnot a table\n\"\"\"\n";
         let on = kimi_hooks(theirs, &cmd, true).unwrap().unwrap();
         assert!(on.starts_with(theirs.trim_end()), "{on}");
@@ -916,7 +916,7 @@ mod tests {
         assert_eq!(kimi_hooks(&on, &cmd, true).unwrap(), None);
         // Off: as it was. And the hooks of an older agent path go too.
         assert_eq!(kimi_hooks(&on, &cmd, false).unwrap().unwrap(), theirs);
-        let old = on.replace("/home/adib/.muxen/bin", "/old/.muxen/bin");
+        let old = on.replace("/home/adib/.andruide/bin", "/old/.andruide/bin");
         let moved = kimi_hooks(&old, &cmd, true).unwrap().unwrap();
         assert_eq!(moved, on);
         // Ours in the middle (Kimi wrote the file again): moved to the end.
@@ -933,7 +933,7 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn qwen_and_kimi_in_scratch_folders() {
-        let root = std::env::temp_dir().join(format!("muxin-hooks-qk-{}", std::process::id()));
+        let root = std::env::temp_dir().join(format!("andruide-hooks-qk-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&root);
         let (qwen, kimi_dir, copilot_dir) = (root.join("qwen"), root.join("kimi"), root.join("copilot"));
         for d in [&qwen, &kimi_dir, &copilot_dir] {

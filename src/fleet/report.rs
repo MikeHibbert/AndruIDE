@@ -1,4 +1,4 @@
-//! Plain-text report for `muxin check`.
+//! Plain-text report for `andruide check`.
 
 use std::fmt::Write;
 

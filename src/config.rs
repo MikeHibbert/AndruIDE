@@ -1,4 +1,4 @@
-//! On-disk configuration, in one folder (`~/.config/muxin`, `%APPDATA%\muxin`):
+//! On-disk configuration, in one folder (`~/.config/andruide`, `%APPDATA%\andruide`):
 //!
 //! - `config.toml` — everything the user sets: `[settings]` (GitHub, checks,
 //!   cloud), `[ui]` (the app's look, fonts, shortcuts) and the `[[machine]]`
@@ -26,7 +26,7 @@ pub struct Paths {
     /// Where settings are kept: config.toml.
     pub settings: PathBuf,
     pub state: PathBuf,
-    /// Agent workspaces, shared by every Muxin process (see fleet::workspaces).
+    /// Agent workspaces, shared by every AndruIDE process (see fleet::workspaces).
     pub workspaces: PathBuf,
     /// Cloud machines destroyed lately (see DestroyedCloud). Its own file, so
     /// the processes that write state.json don't save over each other's.
@@ -34,8 +34,8 @@ pub struct Paths {
 }
 
 impl Paths {
-    /// `$MUXIN_HOME` (or `$MUXEN_HOME`), else the platform's config folder:
-    /// `~/.config/muxin` ($XDG_CONFIG_HOME on Linux), `%APPDATA%\muxin` on Windows.
+    /// `$ANDRUIDE_HOME`, else the platform's config folder:
+    /// `~/.config/andruide` ($XDG_CONFIG_HOME on Linux), `%APPDATA%\andruide` on Windows.
     pub fn resolve(dir: Option<PathBuf>, inventory: Option<PathBuf>) -> Paths {
         let base = config_base();
         let chosen = dir.or_else(home_from_env);
@@ -63,11 +63,11 @@ pub fn dir_from_env() -> PathBuf {
 }
 
 fn home_from_env() -> Option<PathBuf> {
-    std::env::var_os("MUXIN_HOME").map(PathBuf::from).or_else(|| std::env::var_os("MUXEN_HOME").map(PathBuf::from))
+    std::env::var_os("ANDRUIDE_HOME").map(PathBuf::from)
 }
 
 fn default_dir(base: Option<&Path>) -> PathBuf {
-    base.map(|b| b.join("muxin")).unwrap_or_else(|| PathBuf::from(".muxin"))
+    base.map(|b| b.join("andruide")).unwrap_or_else(|| PathBuf::from(".andruide"))
 }
 
 /// Where per-user config folders go on this platform.
@@ -79,8 +79,8 @@ fn config_base() -> Option<PathBuf> {
     }
 }
 
-/// Muxin used to keep `fleet.toml`, `settings.json` and `ui.json` in
-/// `~/.config/muxen` (and before that `~/.config/openrunner`). The first time,
+/// AndruIDE used to keep `fleet.toml`, `settings.json` and `ui.json` in
+/// `~/.config/andruide` (and before that `~/.config/openrunner`). The first time,
 /// they become one config.toml in `dir`, and the rest of the old folder (pairing
 /// keys, workspaces) is copied along. The old folder is left as it was.
 fn migrate(dir: &Path, base: Option<&Path>) {
@@ -89,7 +89,7 @@ fn migrate(dir: &Path, base: Option<&Path>) {
         return;
     }
     const OLD_FILES: [&str; 3] = ["fleet.toml", "settings.json", "ui.json"];
-    let candidates = [Some(dir.to_path_buf()), base.map(|b| b.join("muxen")), base.map(|b| b.join("openrunner"))];
+    let candidates = [Some(dir.to_path_buf()), base.map(|b| b.join("andruide")), base.map(|b| b.join("openrunner"))];
     let Some(old) = candidates.into_iter().flatten().find(|d| OLD_FILES.iter().any(|f| d.join(f).exists())) else { return };
     if create_private_dir(dir).is_err() {
         return;
@@ -107,7 +107,7 @@ fn migrate(dir: &Path, base: Option<&Path>) {
         }
     }
     match write_atomic(&config, text.as_bytes()) {
-        Ok(()) => tracing::info!("moved Muxin's settings from {} into {}", display_path(&old), display_path(&config)),
+        Ok(()) => tracing::info!("moved AndruIDE's settings from {} into {}", display_path(&old), display_path(&config)),
         Err(e) => tracing::warn!("couldn't write {}: {e:#}", display_path(&config)),
     }
 }
@@ -162,7 +162,7 @@ fn snake_case(s: &str) -> String {
 // ---------------------------------------------------------------------------
 // config.toml sections
 
-const CONFIG_HEADER: &str = "# Muxin: settings, look and machines. The app writes [settings] and [ui];\n# change them here or in Settings. Comments on machines are kept.\n\n";
+const CONFIG_HEADER: &str = "# AndruIDE: settings, look and machines. The app writes [settings] and [ui];\n# change them here or in Settings. Comments on machines are kept.\n\n";
 
 /// Reads one section of config.toml (`[settings]`, `[ui]`), defaults if it's
 /// missing or doesn't read.
@@ -297,7 +297,7 @@ pub struct MachineSpec {
     /// Let AI agents create workspaces on this machine.
     #[serde(default = "yes")]
     pub workspaces: bool,
-    /// Where workspaces live on the machine. Default `~/muxen/workspaces`.
+    /// Where workspaces live on the machine. Default `~/andruide/workspaces`.
     #[serde(default)]
     pub workspace_root: Option<String>,
     /// Extra arguments for `ssh`, e.g. ["-i", "~/.ssh/ci"].
@@ -305,14 +305,14 @@ pub struct MachineSpec {
     pub ssh_options: Vec<String>,
     #[serde(default)]
     pub notes: Option<String>,
-    /// A cloud machine Muxin created (and can power off or destroy).
+    /// A cloud machine AndruIDE created (and can power off or destroy).
     #[serde(default)]
     pub cloud: Option<CloudRef>,
-    /// A VM (or Linux container) Muxin created in Docker on another of the
+    /// A VM (or Linux container) AndruIDE created in Docker on another of the
     /// user's machines (and can start, stop or destroy).
     #[serde(default)]
     pub vm: Option<VmRef>,
-    /// Disconnected on purpose: Muxin doesn't connect to it, check it or look
+    /// Disconnected on purpose: AndruIDE doesn't connect to it, check it or look
     /// at its sessions until it's connected again (its sessions go on there).
     #[serde(default)]
     pub disconnected: bool,
@@ -345,8 +345,8 @@ pub struct CloudRef {
     pub created_at: String,
 }
 
-/// Where a VM Muxin made runs, as config.toml records it:
-/// `vm = { host = "beelink", os = "windows", version = "11", container = "muxen-win-dev", created_at = "..." }`.
+/// Where a VM AndruIDE made runs, as config.toml records it:
+/// `vm = { host = "beelink", os = "windows", version = "11", container = "andruide-win-dev", created_at = "..." }`.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct VmRef {
@@ -382,7 +382,7 @@ pub fn add_cloud_history(path: &Path, entry: DestroyedCloud) -> Result<()> {
     write_atomic(path, serde_json::to_string_pretty(&all)?.as_bytes())
 }
 
-/// A cloud machine Muxin destroyed, kept so this month's costs still count it.
+/// A cloud machine AndruIDE destroyed, kept so this month's costs still count it.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DestroyedCloud {
@@ -411,13 +411,13 @@ impl MachineSpec {
         !self.host.trim().is_empty()
     }
 
-    /// Muxin may reach it: it has a host and isn't disconnected.
+    /// AndruIDE may reach it: it has a host and isn't disconnected.
     pub fn is_connected(&self) -> bool {
         self.is_checkable() && !self.disconnected
     }
 
     /// Err for a machine disconnected on purpose: what the user sees instead
-    /// of Muxin reaching it.
+    /// of AndruIDE reaching it.
     pub fn refuse_if_disconnected(&self) -> Result<(), String> {
         if self.disconnected {
             return Err(format!("{} is disconnected. Connect to it first.", self.name));
@@ -449,7 +449,7 @@ impl Inventory {
             if id != machine_id_base(&m.name, &m.id) {
                 inv.warnings.push(format!("Two machines are called \"{}\"; the second one is shown as \"{id}\".", m.name));
             }
-            // Muxin on an iPad manages the machines it's paired with, not
+            // AndruIDE on an iPad manages the machines it's paired with, not
             // itself: an iPad has nothing to check, and can't run a shell.
             if cfg!(target_os = "ios") && m.is_local() {
                 continue;
@@ -495,11 +495,11 @@ pub fn assign_machine_id(name: &str, explicit_id: &str, taken: &mut HashSet<Stri
 pub fn default_inventory() -> String {
     let host = local_hostname();
     format!(
-        r#"# Muxin: your settings and machines. Settings and the app's look go in
-# [settings] and [ui], which Muxin adds when you change them.
+        r#"# AndruIDE: your settings and machines. Settings and the app's look go in
+# [settings] and [ui], which AndruIDE adds when you change them.
 #
-# Each [[machine]] is a computer Muxin connects to: for agent sessions, its
-# desktop, files, workspaces, or the GitHub Actions runners on it. Muxin
+# Each [[machine]] is a computer AndruIDE connects to: for agent sessions, its
+# desktop, files, workspaces, or the GitHub Actions runners on it. AndruIDE
 # checks machines over SSH (or directly when host = "local") and reads CPU,
 # memory, disk, uptime and which runners are installed. Checks are read-only.
 #
@@ -531,7 +531,7 @@ host = "local"
     )
 }
 
-/// What the core runs on when it's in Muxin for iPhone or for iPad: "iPhone"
+/// What the core runs on when it's in AndruIDE for iPhone or for iPad: "iPhone"
 /// or "iPad", from the hardware model ("iPhone17,2"; in the simulator, the
 /// model it stands in for). Words the app shows say "this iPhone" with it.
 /// Elsewhere it's "iPad", which nothing there shows.
@@ -585,7 +585,7 @@ pub struct Settings {
     pub check_interval_minutes: u32,
     /// Where to look for git checkouts on every machine: "dir" or "dir:depth".
     pub code_folders: Vec<String>,
-    /// Repositories the user starred in Muxin ("owner/name"), in the order added.
+    /// Repositories the user starred in AndruIDE ("owner/name"), in the order added.
     pub favorite_repos: Vec<String>,
     /// Text copied here can be pasted on the machines (Linux desktops, Macs), and back.
     /// Off until the user turns it on (a `true` saved before stays on).
@@ -595,10 +595,10 @@ pub struct Settings {
     /// machine (see crate::capture). On unless turned off; either way the
     /// release key and the desktop's toolbar change it for the moment.
     pub desktop_shortcuts: bool,
-    /// Ask GitHub now and then whether a newer Muxin is out (see crate::update).
+    /// Ask GitHub now and then whether a newer AndruIDE is out (see crate::update).
     pub check_updates: bool,
     /// Machines added from now on are connected to directly (QUIC) once
-    /// they answer, without ssh in between: Muxin pairs with their agent,
+    /// they answer, without ssh in between: AndruIDE pairs with their agent,
     /// which then runs as a service of the user's there, listening on UDP.
     /// ssh stays the way in when that can't get through. Off, machines stay
     /// on ssh until the user connects one directly. Machines added before
@@ -606,26 +606,28 @@ pub struct Settings {
     pub connect_directly: bool,
     /// The editor machines' folders open in: "zed", "cursor", "vscode", or "" for the first one installed.
     pub editor: String,
-    /// Cloud machines: how Muxin signs in, what new ones come with, what happens when they sit idle.
+    /// Cloud machines: how AndruIDE signs in, what new ones come with, what happens when they sit idle.
     pub cloud: CloudSettings,
     /// Session actions' prompts the user changed, by action ("commit", "review", ...;
-    /// see fleet::sessions::actions). The others use Muxin's own.
+    /// see fleet::sessions::actions). The others use AndruIDE's own.
     #[serde(skip_serializing_if = "std::collections::BTreeMap::is_empty")]
     pub prompts: std::collections::BTreeMap<String, String>,
     /// Sharing sessions by link (see crate::share).
     pub share: ShareSettings,
+    /// The Valley connection (Settings › Valley; see crate::valley).
+    pub valley: ValleySettings,
     /// What the agents on the machines may do (Settings › Agents).
     pub agents: AgentSettings,
 }
 
 /// What the agents on the user's machines may do (`[settings.agents]`).
 /// Each is on unless turned off, and goes to the machines with when it was
-/// last changed: they keep the newest choice from any of the user's Muxins
+/// last changed: they keep the newest choice from any of the user's AndruIDEs
 /// (a Mac's, an iPad's) and give it back, so all of them agree.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(default)]
 pub struct AgentSettings {
-    /// Muxin's hooks in the agent CLIs' settings (Claude Code, Codex, Copilot
+    /// AndruIDE's hooks in the agent CLIs' settings (Claude Code, Codex, Copilot
     /// CLI, Qwen Code, Kimi Code), so they say when they work, need you or
     /// are done (see fleet::sessions). Off takes them out.
     pub hooks: bool,
@@ -633,8 +635,8 @@ pub struct AgentSettings {
     /// restarting) either way; with this, the agents whose hooks say their
     /// conversation continue it there. Off, they start fresh.
     pub resume: bool,
-    /// Agents in Muxin's sessions may start other sessions (helpers) through
-    /// Muxin's MCP server or CLI; they end with the session that started them
+    /// Agents in AndruIDE's sessions may start other sessions (helpers) through
+    /// AndruIDE's MCP server or CLI; they end with the session that started them
     /// unless kept. Off, starting one from inside a session is refused.
     pub helpers: bool,
     /// When each was last changed (unix seconds), by name ("hooks", "resume", "helpers").
@@ -679,7 +681,7 @@ impl AgentSettings {
     }
 
     /// Takes the choices a machine kept that are newer than these (made in
-    /// another Muxin). True when any was.
+    /// another AndruIDE). True when any was.
     pub fn adopt(&mut self, kept: &serde_json::Value) -> bool {
         let mut took = false;
         for (name, _) in self.choices() {
@@ -698,10 +700,28 @@ impl AgentSettings {
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 #[serde(default)]
 pub struct ShareSettings {
-    /// The share server links go through; empty for Muxin's.
+    /// The share server links go through; empty for AndruIDE's.
     pub server: String,
     /// The name you join others' shares with.
     pub name: String,
+}
+
+/// The Valley connection (`[settings.valley]`): where the Valley page reads
+/// Andrew's work board (see crate::valley). An empty field falls back to the
+/// ANDRUIDE_VALLEY_* environment variables, then to the defaults
+/// (`http://localhost:8001`, no Basic auth).
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+#[serde(default)]
+pub struct ValleySettings {
+    /// Base of Andrew's UI proxy (`http://localhost:8001`).
+    pub base_url: String,
+    /// Basic-auth user; empty falls back to $ANDRUIDE_VALLEY_USER.
+    pub user: String,
+    /// Basic-auth password; empty falls back to $ANDRUIDE_VALLEY_PASSWORD.
+    /// Kept in config.toml like the rest of this file — it's the user's own
+    /// settings file (Father, 11 Nov 2026: valley settings live in the common
+    /// config file, "I wouldn't have to set environment variables").
+    pub password: String,
 }
 
 impl Settings {
@@ -715,7 +735,7 @@ impl Settings {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(default)]
 pub struct CloudSettings {
-    /// How Muxin signs in to DigitalOcean: "token" (kept in the Keychain), "oauth" (browser sign-in) or "doctl" (its CLI's login).
+    /// How AndruIDE signs in to DigitalOcean: "token" (kept in the Keychain), "oauth" (browser sign-in) or "doctl" (its CLI's login).
     pub digitalocean_auth: String,
     /// Defaults for new machines; empty picks for you.
     pub region: String,
@@ -746,7 +766,7 @@ pub fn default_code_folders() -> Vec<String> {
     ["~/Developer", "~/code", "~/Code", "~/src", "~/projects", "~/Projects", "~/repos", "~/git", "~/dev", "~/work", "~/workspace"]
         .iter()
         .map(|d| format!("{d}:4"))
-        .chain(["~/muxen/workspaces:2".to_string(), "~:1".to_string()])
+        .chain(["~/andruide/workspaces:2".to_string(), "~:1".to_string()])
         .collect()
 }
 
@@ -780,6 +800,7 @@ impl Default for Settings {
             cloud: CloudSettings::default(),
             prompts: Default::default(),
             share: ShareSettings::default(),
+            valley: ValleySettings::default(),
             agents: AgentSettings::default(),
         }
     }
@@ -949,7 +970,7 @@ pub fn create_private_dir(dir: &Path) -> std::io::Result<()> {
     #[cfg(not(unix))]
     let made = std::fs::create_dir(dir);
     match made {
-        // Made in the meantime (another Muxin process).
+        // Made in the meantime (another AndruIDE process).
         Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists && dir.is_dir() => Ok(()),
         other => other,
     }
@@ -976,7 +997,7 @@ mod tests {
         assert_eq!(a.for_machines()["hooks"], serde_json::json!({ "on": false, "at": 100 }));
         let saved: Settings = toml::from_str(&toml::to_string(&Settings { agents: a.clone(), ..Settings::default() }).unwrap()).unwrap();
         assert_eq!(saved.agents, a);
-        // A machine kept a newer choice (another Muxin's): taken; an older one isn't.
+        // A machine kept a newer choice (another AndruIDE's): taken; an older one isn't.
         assert!(!a.adopt(&serde_json::json!({ "hooks": { "on": true, "at": 50 } })));
         assert!(a.adopt(&serde_json::json!({ "hooks": { "on": true, "at": 200 } })));
         assert_eq!((a.hooks, a.changed["hooks"]), (true, 200));
@@ -1004,7 +1025,7 @@ mod tests {
 
     #[test]
     fn cloud_history_keeps_one_entry_per_droplet() {
-        let dir = std::env::temp_dir().join(format!("muxen-cloud-history-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("andruide-cloud-history-{}", std::process::id()));
         let path = dir.join("cloud-history.json");
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
@@ -1025,7 +1046,7 @@ mod tests {
 
     #[test]
     fn old_files_become_one_config_toml() {
-        let dir = std::env::temp_dir().join(format!("muxin-migrate-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("andruide-migrate-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         std::fs::write(dir.join("fleet.toml"), "# my machines\n\n[[machine]]\nname = \"Box\" # the NUC\nhost = \"box\"\n").unwrap();
@@ -1102,7 +1123,7 @@ mod tests {
     /// in config files from before the setting too.
     #[test]
     fn connects_directly_unless_turned_off() {
-        let dir = std::env::temp_dir().join(format!("muxin-direct-setting-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("andruide-direct-setting-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let path = dir.join("config.toml");
         std::fs::write(&path, "[settings]\ncheck_interval_minutes = 5\n").unwrap();
@@ -1141,7 +1162,7 @@ mod tests {
         assert!(api("ghe.example.com").is_err());
 
         // One saved before http:// was refused keeps the rest of the settings.
-        let path = std::env::temp_dir().join(format!("muxin-http-api-{}.toml", std::process::id()));
+        let path = std::env::temp_dir().join(format!("andruide-http-api-{}.toml", std::process::id()));
         std::fs::write(&path, "[settings]\ngithub_poll_seconds = 45\nshare_clipboard = true\n\n[settings.github]\napi_url = \"http://ghe.example.com/api/v3\"\n").unwrap();
         let s = Settings::load(&path);
         assert_eq!(s.github.api_url, "https://ghe.example.com/api/v3");
@@ -1153,10 +1174,10 @@ mod tests {
     #[test]
     fn files_are_private_from_the_start() {
         use std::os::unix::fs::PermissionsExt;
-        let root = std::env::temp_dir().join(format!("muxin-private-{}", std::process::id()));
+        let root = std::env::temp_dir().join(format!("andruide-private-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&root);
         let mode = |p: &Path| std::fs::metadata(p).unwrap().permissions().mode() & 0o777;
-        let dir = root.join("muxin");
+        let dir = root.join("andruide");
         let secrets = dir.join("secrets.json");
         write_atomic(&secrets, b"{}").unwrap();
         assert_eq!((mode(&dir), mode(&secrets)), (0o700, 0o600));

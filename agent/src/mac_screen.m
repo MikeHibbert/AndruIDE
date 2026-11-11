@@ -1,4 +1,4 @@
-// The Mac's screen for `muxen-agent screen`: ScreenCaptureKit streams a
+// The Mac's screen for `andruide-agent screen`: ScreenCaptureKit streams a
 // display at the size asked for, and each new frame (BGRA) goes to a
 // callback in Rust (see desktop.rs). Needs Screen Recording permission.
 
@@ -15,15 +15,15 @@
 // The CGWindowID behind an Accessibility window (private, long-standing).
 extern AXError _AXUIElementGetWindow(AXUIElementRef element, CGWindowID *window);
 
-typedef void (*muxen_frame_fn)(void *ctx, const uint8_t *bgra, size_t width, size_t height, size_t stride);
+typedef void (*andruide_frame_fn)(void *ctx, const uint8_t *bgra, size_t width, size_t height, size_t stride);
 
-@interface MuxenOutput : NSObject <SCStreamOutput, SCStreamDelegate>
-@property(nonatomic) muxen_frame_fn fn;
+@interface AndruIDEOutput : NSObject <SCStreamOutput, SCStreamDelegate>
+@property(nonatomic) andruide_frame_fn fn;
 @property(nonatomic) void *ctx;
 @property(atomic) BOOL stopped;
 @end
 
-@implementation MuxenOutput
+@implementation AndruIDEOutput
 - (void)stream:(SCStream *)stream didOutputSampleBuffer:(CMSampleBufferRef)buffer ofType:(SCStreamOutputType)type {
     if (type != SCStreamOutputTypeScreen) {
         return;
@@ -52,13 +52,13 @@ typedef void (*muxen_frame_fn)(void *ctx, const uint8_t *bgra, size_t width, siz
 }
 @end
 
-static SCStream *muxen_stream;
-static MuxenOutput *muxen_output;
-static SCStreamConfiguration *muxen_config;
-// A window captured through its display (see `muxen_capture_window_start`):
+static SCStream *andruide_stream;
+static AndruIDEOutput *andruide_output;
+static SCStreamConfiguration *andruide_config;
+// A window captured through its display (see `andruide_capture_window_start`):
 // where that display sits on the desktop, to place the window on it.
-static BOOL muxen_via_display;
-static CGPoint muxen_display_at;
+static BOOL andruide_via_display;
+static CGPoint andruide_display_at;
 
 static void say(char *err, size_t len, NSString *what) {
     snprintf(err, len, "%s", what.UTF8String ? what.UTF8String : "unknown error");
@@ -66,7 +66,7 @@ static void say(char *err, size_t len, NSString *what) {
 
 /// A display (0: the main one): its size in pixels and in points (what input
 /// uses), and where it sits on the desktop, in points.
-void muxen_display(uint32_t id, size_t *pixels_w, size_t *pixels_h, double *points_w, double *points_h, double *x, double *y) {
+void andruide_display(uint32_t id, size_t *pixels_w, size_t *pixels_h, double *points_w, double *points_h, double *x, double *y) {
     if (id == 0) {
         id = CGMainDisplayID();
     }
@@ -83,12 +83,12 @@ void muxen_display(uint32_t id, size_t *pixels_w, size_t *pixels_h, double *poin
     *y = bounds.origin.y;
 }
 
-uint32_t muxen_display_main(void) {
+uint32_t andruide_display_main(void) {
     return CGMainDisplayID();
 }
 
 /// The displays in use; how many.
-size_t muxen_display_list(uint32_t *ids, size_t max) {
+size_t andruide_display_list(uint32_t *ids, size_t max) {
     uint32_t n = 0;
     if (CGGetActiveDisplayList((uint32_t)max, ids, &n) != kCGErrorSuccess) {
         return 0;
@@ -96,13 +96,13 @@ size_t muxen_display_list(uint32_t *ids, size_t max) {
     return n;
 }
 
-int muxen_display_builtin(uint32_t id) {
+int andruide_display_builtin(uint32_t id) {
     return CGDisplayIsBuiltin(id) ? 1 : 0;
 }
 
 /// The display's own name ("Studio Display", "DELL U2720Q") into `buf`; its
 /// length, or 0 when macOS doesn't say.
-size_t muxen_display_name(uint32_t id, char *buf, size_t len) {
+size_t andruide_display_name(uint32_t id, char *buf, size_t len) {
     @autoreleasepool {
         if (@available(macOS 10.15, *)) {
             for (NSScreen *screen in NSScreen.screens) {
@@ -122,7 +122,7 @@ size_t muxen_display_name(uint32_t id, char *buf, size_t len) {
 }
 
 /// A display's modes, Retina versions included.
-static CFArrayRef muxen_modes(uint32_t id) {
+static CFArrayRef andruide_modes(uint32_t id) {
     const void *keys[] = { kCGDisplayShowDuplicateLowResolutionModes };
     const void *values[] = { kCFBooleanTrue };
     CFDictionaryRef options = CFDictionaryCreate(NULL, keys, values, 1, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
@@ -135,8 +135,8 @@ static CFArrayRef muxen_modes(uint32_t id) {
 /// `sizes` (room for `max` of them); how many there are (repeats included),
 /// which can be more than `max`: then only the first `max` are written. A
 /// big monitor offers well over a hundred, smallest first.
-size_t muxen_display_modes(uint32_t id, uint32_t *sizes, size_t max) {
-    CFArrayRef modes = muxen_modes(id);
+size_t andruide_display_modes(uint32_t id, uint32_t *sizes, size_t max) {
+    CFArrayRef modes = andruide_modes(id);
     if (!modes) {
         return 0;
     }
@@ -159,8 +159,8 @@ size_t muxen_display_modes(uint32_t id, uint32_t *sizes, size_t max) {
 /// Switches a display to `w`×`h` points: the sharpest version of that size
 /// (Retina when it has one), at the highest refresh rate. 0 when done;
 /// otherwise 1 and why in `err`.
-int muxen_display_set_mode(uint32_t id, uint32_t w, uint32_t h, char *err, size_t errlen) {
-    CFArrayRef modes = muxen_modes(id);
+int andruide_display_set_mode(uint32_t id, uint32_t w, uint32_t h, char *err, size_t errlen) {
+    CFArrayRef modes = andruide_modes(id);
     if (!modes) {
         snprintf(err, errlen, "That display isn't on.");
         return 1;
@@ -222,7 +222,7 @@ static SCShareableContent *shareable(BOOL on_screen_only, int timeout, char *err
 /// Streams what `filter` shows (of it, `source` when it isn't null) at
 /// width×height, waiting up to `timeout` seconds for it to start. 0 when
 /// it's going; otherwise 1 and why in `err`.
-static int start_stream(SCContentFilter *filter, CGRect source, int fps, size_t width, size_t height, BOOL cursor, int timeout, muxen_frame_fn fn, void *ctx, char *err, size_t errlen) {
+static int start_stream(SCContentFilter *filter, CGRect source, int fps, size_t width, size_t height, BOOL cursor, int timeout, andruide_frame_fn fn, void *ctx, char *err, size_t errlen) {
     SCStreamConfiguration *config = [SCStreamConfiguration new];
     config.width = width;
     config.height = height;
@@ -233,27 +233,27 @@ static int start_stream(SCContentFilter *filter, CGRect source, int fps, size_t 
     config.minimumFrameInterval = CMTimeMake(1, fps > 0 ? fps : 30);
     config.showsCursor = cursor;
     config.queueDepth = 3;
-    muxen_config = config;
-    muxen_output = [MuxenOutput new];
-    muxen_output.fn = fn;
-    muxen_output.ctx = ctx;
-    muxen_stream = [[SCStream alloc] initWithFilter:filter configuration:config delegate:muxen_output];
+    andruide_config = config;
+    andruide_output = [AndruIDEOutput new];
+    andruide_output.fn = fn;
+    andruide_output.ctx = ctx;
+    andruide_stream = [[SCStream alloc] initWithFilter:filter configuration:config delegate:andruide_output];
     NSError *added = nil;
-    dispatch_queue_t queue = dispatch_queue_create("muxen.screen", DISPATCH_QUEUE_SERIAL);
-    if (![muxen_stream addStreamOutput:muxen_output type:SCStreamOutputTypeScreen sampleHandlerQueue:queue error:&added]) {
+    dispatch_queue_t queue = dispatch_queue_create("andruide.screen", DISPATCH_QUEUE_SERIAL);
+    if (![andruide_stream addStreamOutput:andruide_output type:SCStreamOutputTypeScreen sampleHandlerQueue:queue error:&added]) {
         say(err, errlen, added ? added.localizedDescription : @"couldn't capture the screen");
         return 1;
     }
     dispatch_semaphore_t done = dispatch_semaphore_create(0);
     __block NSError *start = nil;
-    [muxen_stream startCaptureWithCompletionHandler:^(NSError *e) {
+    [andruide_stream startCaptureWithCompletionHandler:^(NSError *e) {
         start = e;
         dispatch_semaphore_signal(done);
     }];
     if (dispatch_semaphore_wait(done, dispatch_time(DISPATCH_TIME_NOW, timeout * NSEC_PER_SEC)) != 0) {
         say(err, errlen, @"the screen capture didn't start");
-        [muxen_stream stopCaptureWithCompletionHandler:nil];
-        muxen_stream = nil;
+        [andruide_stream stopCaptureWithCompletionHandler:nil];
+        andruide_stream = nil;
         return 1;
     }
     if (start) {
@@ -265,7 +265,7 @@ static int start_stream(SCContentFilter *filter, CGRect source, int fps, size_t 
 
 /// Starts streaming a display (0: the main one) at width×height. 0 when it's
 /// going; otherwise 1 and why in `err`.
-int muxen_capture_start(uint32_t id, int fps, size_t width, size_t height, muxen_frame_fn fn, void *ctx, char *err, size_t errlen) {
+int andruide_capture_start(uint32_t id, int fps, size_t width, size_t height, andruide_frame_fn fn, void *ctx, char *err, size_t errlen) {
     @autoreleasepool {
         SCShareableContent *content = shareable(YES, 10, err, errlen);
         if (!content) {
@@ -293,7 +293,7 @@ int muxen_capture_start(uint32_t id, int fps, size_t width, size_t height, muxen
 /// Starts streaming one window on its own (even while it's covered) at
 /// width×height, without the pointer (the app shows its own). 0 when it's
 /// going; 2 when the window is gone; otherwise 1 and why in `err`.
-int muxen_capture_window_start(uint32_t window_id, int fps, size_t width, size_t height, muxen_frame_fn fn, void *ctx, char *err, size_t errlen) {
+int andruide_capture_window_start(uint32_t window_id, int fps, size_t width, size_t height, andruide_frame_fn fn, void *ctx, char *err, size_t errlen) {
     @autoreleasepool {
         SCShareableContent *content = shareable(NO, 5, err, errlen);
         if (!content) {
@@ -326,8 +326,8 @@ int muxen_capture_window_start(uint32_t window_id, int fps, size_t width, size_t
             return 1;
         }
         SCContentFilter *through = [[SCContentFilter alloc] initWithDisplay:display includingWindows:@[ window ]];
-        muxen_via_display = YES;
-        muxen_display_at = display.frame.origin;
+        andruide_via_display = YES;
+        andruide_display_at = display.frame.origin;
         CGRect source = CGRectOffset(window.frame, -display.frame.origin.x, -display.frame.origin.y);
         return start_stream(through, source, fps, width, height, NO, 8, fn, ctx, err, errlen);
     }
@@ -335,20 +335,20 @@ int muxen_capture_window_start(uint32_t window_id, int fps, size_t width, size_t
 
 /// Follows the window shown as it moves (x, y) and changes size (w×h points,
 /// pw×ph pixels of frame).
-void muxen_capture_follow(double x, double y, double w, double h, size_t pw, size_t ph) {
-    if (!muxen_stream || !muxen_config) {
+void andruide_capture_follow(double x, double y, double w, double h, size_t pw, size_t ph) {
+    if (!andruide_stream || !andruide_config) {
         return;
     }
-    BOOL resized = muxen_config.width != pw || muxen_config.height != ph;
-    if (!resized && !muxen_via_display) {
+    BOOL resized = andruide_config.width != pw || andruide_config.height != ph;
+    if (!resized && !andruide_via_display) {
         return;
     }
-    muxen_config.width = pw;
-    muxen_config.height = ph;
-    if (muxen_via_display) {
-        muxen_config.sourceRect = CGRectMake(x - muxen_display_at.x, y - muxen_display_at.y, w, h);
+    andruide_config.width = pw;
+    andruide_config.height = ph;
+    if (andruide_via_display) {
+        andruide_config.sourceRect = CGRectMake(x - andruide_display_at.x, y - andruide_display_at.y, w, h);
     }
-    [muxen_stream updateConfiguration:muxen_config completionHandler:nil];
+    [andruide_stream updateConfiguration:andruide_config completionHandler:nil];
 }
 
 // ---------------------------------------------------------------------------
@@ -357,7 +357,7 @@ void muxen_capture_follow(double x, double y, double w, double h, size_t pw, siz
 
 /// The apps' windows on screen, front first, as JSON:
 /// [{"id", "title", "app", "pid", "x", "y", "width", "height", "scale"}] (points).
-size_t muxen_windows_json(char *buf, size_t len) {
+size_t andruide_windows_json(char *buf, size_t len) {
     @autoreleasepool {
         CFArrayRef list = CGWindowListCopyWindowInfo(kCGWindowListOptionOnScreenOnly | kCGWindowListExcludeDesktopElements, kCGNullWindowID);
         if (!list) {
@@ -404,7 +404,7 @@ size_t muxen_windows_json(char *buf, size_t len) {
 
 /// One window: its place and size (points, top left of the main display at
 /// 0, 0, as for input), its owner, and whether it's on screen. 0 when it's gone.
-int muxen_window_info(uint32_t window_id, double *x, double *y, double *w, double *h, int32_t *pid, int *on_screen) {
+int andruide_window_info(uint32_t window_id, double *x, double *y, double *w, double *h, int32_t *pid, int *on_screen) {
     @autoreleasepool {
         CFArrayRef list = CGWindowListCopyWindowInfo(kCGWindowListOptionIncludingWindow, window_id);
         if (!list) {
@@ -431,7 +431,7 @@ int muxen_window_info(uint32_t window_id, double *x, double *y, double *w, doubl
 }
 
 /// A window's title, or its app's name when it has none.
-size_t muxen_window_title(uint32_t window_id, char *buf, size_t len) {
+size_t andruide_window_title(uint32_t window_id, char *buf, size_t len) {
     @autoreleasepool {
         CFArrayRef list = CGWindowListCopyWindowInfo(kCGWindowListOptionIncludingWindow, window_id);
         if (!list) {
@@ -449,7 +449,7 @@ size_t muxen_window_title(uint32_t window_id, char *buf, size_t len) {
 }
 
 /// How many pixels a point is on the display at (x, y) (points, as for input).
-double muxen_scale_at(double x, double y) {
+double andruide_scale_at(double x, double y) {
     @autoreleasepool {
         CGFloat top = NSMaxY(NSScreen.screens.firstObject.frame);
         for (NSScreen *screen in NSScreen.screens) {
@@ -463,7 +463,7 @@ double muxen_scale_at(double x, double y) {
 }
 
 /// Where the pointer is (points, as for input).
-void muxen_pointer(double *x, double *y) {
+void andruide_pointer(double *x, double *y) {
     CGEventRef e = CGEventCreate(NULL);
     CGPoint p = e ? CGEventGetLocation(e) : CGPointZero;
     if (e) {
@@ -494,12 +494,12 @@ static AXUIElementRef ax_window(uint32_t window_id, int32_t pid) {
 }
 
 /// Whether app `pid` is the one in front.
-int muxen_app_in_front(int32_t pid) {
+int andruide_app_in_front(int32_t pid) {
     return NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier == pid ? 1 : 0;
 }
 
 /// Brings window `id` of app `pid` to the front (out of the Dock when minimized).
-void muxen_window_raise(uint32_t window_id, int32_t pid) {
+void andruide_window_raise(uint32_t window_id, int32_t pid) {
     @autoreleasepool {
         AXUIElementRef w = ax_window(window_id, pid);
         if (w) {
@@ -512,7 +512,7 @@ void muxen_window_raise(uint32_t window_id, int32_t pid) {
 }
 
 /// Resizes window `id` of app `pid` to w×h points.
-void muxen_window_resize(uint32_t window_id, int32_t pid, double w, double h) {
+void andruide_window_resize(uint32_t window_id, int32_t pid, double w, double h) {
     @autoreleasepool {
         AXUIElementRef win = ax_window(window_id, pid);
         if (!win) {
@@ -530,7 +530,7 @@ void muxen_window_resize(uint32_t window_id, int32_t pid, double w, double h) {
 /// press there drags the window (the title bar, an empty toolbar, a label, the
 /// empty part of an Electron app's own title bar), 0 when it's something to
 /// click (anything that can be pressed or typed in), -1 when the app doesn't say.
-int muxen_drags_at(int32_t pid, double x, double y) {
+int andruide_drags_at(int32_t pid, double x, double y) {
     AXUIElementRef app = AXUIElementCreateApplication(pid);
     AXUIElementSetMessagingTimeout(app, 0.1);
     AXUIElementRef element = NULL;
@@ -560,7 +560,7 @@ int muxen_drags_at(int32_t pid, double x, double y) {
 
 /// The shape of the pointer: "arrow", "text", "hand", "ew", "ns",
 /// "crosshair", "move" (the system's own shapes, told apart by size and hot spot).
-const char *muxen_cursor_kind(void) {
+const char *andruide_cursor_kind(void) {
     @autoreleasepool {
         NSCursor *now = NSCursor.currentSystemCursor;
         if (!now) {
@@ -587,33 +587,33 @@ const char *muxen_cursor_kind(void) {
 
 /// Keeps the stream going but next to nothing: a tiny frame a second (see
 /// `linger` in desktop.rs).
-void muxen_capture_idle(void) {
-    if (!muxen_stream || !muxen_config) {
+void andruide_capture_idle(void) {
+    if (!andruide_stream || !andruide_config) {
         return;
     }
-    muxen_config.width = 16;
-    muxen_config.height = 16;
-    muxen_config.minimumFrameInterval = CMTimeMake(1, 1);
-    [muxen_stream updateConfiguration:muxen_config completionHandler:nil];
+    andruide_config.width = 16;
+    andruide_config.height = 16;
+    andruide_config.minimumFrameInterval = CMTimeMake(1, 1);
+    [andruide_stream updateConfiguration:andruide_config completionHandler:nil];
 }
 
 /// Stops the stream and waits a moment for ScreenCaptureKit to let it go.
-void muxen_capture_stop(void) {
-    if (!muxen_stream) {
+void andruide_capture_stop(void) {
+    if (!andruide_stream) {
         return;
     }
     dispatch_semaphore_t done = dispatch_semaphore_create(0);
-    [muxen_stream stopCaptureWithCompletionHandler:^(NSError *e) {
+    [andruide_stream stopCaptureWithCompletionHandler:^(NSError *e) {
         (void)e;
         dispatch_semaphore_signal(done);
     }];
     dispatch_semaphore_wait(done, dispatch_time(DISPATCH_TIME_NOW, 2 * NSEC_PER_SEC));
-    muxen_stream = nil;
+    andruide_stream = nil;
 }
 
 /// Whether the stream stopped on its own (the display went away, permission was taken back).
-int muxen_capture_stopped(void) {
-    return muxen_output && muxen_output.stopped ? 1 : 0;
+int andruide_capture_stopped(void) {
+    return andruide_output && andruide_output.stopped ? 1 : 0;
 }
 
 // ---------------------------------------------------------------------------
@@ -622,7 +622,7 @@ int muxen_capture_stopped(void) {
 
 /// Whether this program may capture the screen; `ask` shows the Mac's own
 /// prompt (once) when it may not.
-int muxen_capture_allowed(int ask) {
+int andruide_capture_allowed(int ask) {
     if (CGPreflightScreenCaptureAccess()) {
         return 1;
     }
@@ -630,7 +630,7 @@ int muxen_capture_allowed(int ask) {
 }
 
 /// Whether this program may send mouse and keyboard events (Accessibility).
-int muxen_input_allowed(int ask) {
+int andruide_input_allowed(int ask) {
     if (CGPreflightPostEventAccess()) {
         return 1;
     }
@@ -639,7 +639,7 @@ int muxen_input_allowed(int ask) {
 
 /// A mouse event at (x, y) in points. `kind`: a CGEventType; `button`: 0 left,
 /// 1 right, 2 middle; `clicks`: 1, or 2 for the second click of a double click.
-void muxen_mouse(uint32_t kind, double x, double y, uint32_t button, int64_t clicks) {
+void andruide_mouse(uint32_t kind, double x, double y, uint32_t button, int64_t clicks) {
     CGEventRef e = CGEventCreateMouseEvent(NULL, (CGEventType)kind, CGPointMake(x, y), (CGMouseButton)button);
     if (!e) {
         return;
@@ -652,7 +652,7 @@ void muxen_mouse(uint32_t kind, double x, double y, uint32_t button, int64_t cli
 }
 
 /// Lines of scrolling: positive `dy` scrolls down (like X11's wheel), `dx` right.
-void muxen_scroll(int32_t dy, int32_t dx) {
+void andruide_scroll(int32_t dy, int32_t dx) {
     CGEventRef e = CGEventCreateScrollWheelEvent(NULL, kCGScrollEventUnitLine, 2, -dy, -dx);
     if (e) {
         CGEventPost(kCGHIDEventTap, e);
@@ -661,7 +661,7 @@ void muxen_scroll(int32_t dy, int32_t dx) {
 }
 
 /// A key (macOS virtual keycode) down or up, with the modifier flags held.
-void muxen_key(uint16_t keycode, int down, uint64_t flags) {
+void andruide_key(uint16_t keycode, int down, uint64_t flags) {
     CGEventRef e = CGEventCreateKeyboardEvent(NULL, keycode, down ? true : false);
     if (!e) {
         return;
@@ -672,7 +672,7 @@ void muxen_key(uint16_t keycode, int down, uint64_t flags) {
 }
 
 /// Types text (any characters, whatever the keyboard layout).
-void muxen_text(const uint16_t *utf16, size_t len) {
+void andruide_text(const uint16_t *utf16, size_t len) {
     for (size_t i = 0; i < len; i += 20) {
         size_t n = len - i < 20 ? len - i : 20;
         for (int down = 1; down >= 0; down--) {
@@ -692,7 +692,7 @@ void muxen_text(const uint16_t *utf16, size_t len) {
 /// or a dead key, which types nothing until the next key. With ⌘ it doesn't wait,
 /// so there it's its character. `board`: what's really there, as some keys are
 /// only on ISO (10) or JIS (93, 94) keyboards. Not the keypad: it repeats these.
-static void muxen_read_keys(const UCKeyboardLayout *layout, UInt32 type, PhysicalKeyboardLayoutType board, uint16_t (*keys)[4], size_t count) {
+static void andruide_read_keys(const UCKeyboardLayout *layout, UInt32 type, PhysicalKeyboardLayoutType board, uint16_t (*keys)[4], size_t count) {
     static const struct {
         UInt32 modifiers;
         OptionBits options;
@@ -721,10 +721,10 @@ static void muxen_read_keys(const UCKeyboardLayout *layout, UInt32 type, Physica
     }
 }
 
-/// What the keys type on this Mac's layout right now (see `muxen_read_keys`); 0
-/// when it can't say. Main thread only (`muxen-agent screen`'s input runs there),
+/// What the keys type on this Mac's layout right now (see `andruide_read_keys`); 0
+/// when it can't say. Main thread only (`andruide-agent screen`'s input runs there),
 /// as Text Input Sources can insist on it.
-int muxen_key_layout(uint16_t (*keys)[4], size_t count) {
+int andruide_key_layout(uint16_t (*keys)[4], size_t count) {
     if (!pthread_main_np()) {
         return 0;
     }
@@ -734,11 +734,11 @@ int muxen_key_layout(uint16_t (*keys)[4], size_t count) {
     TISInputSourceRef source = TISCopyCurrentKeyboardLayoutInputSource();
     CFDataRef data = source ? TISGetInputSourceProperty(source, kTISPropertyUnicodeKeyLayoutData) : NULL;
     // Apps read a key by the keyboard type its event says, so the type of the
-    // events `muxen_key` posts. This one is never posted.
+    // events `andruide_key` posts. This one is never posted.
     CGEventRef e = data ? CGEventCreateKeyboardEvent(NULL, 0, true) : NULL;
     if (e) {
         UInt32 type = (UInt32)CGEventGetIntegerValueField(e, kCGKeyboardEventKeyboardType);
-        muxen_read_keys((const UCKeyboardLayout *)CFDataGetBytePtr(data), type, KBGetLayoutType(LMGetKbdType()), keys, count);
+        andruide_read_keys((const UCKeyboardLayout *)CFDataGetBytePtr(data), type, KBGetLayoutType(LMGetKbdType()), keys, count);
         CFRelease(e);
     }
     if (source) {
@@ -778,11 +778,11 @@ int muxen_key_layout(uint16_t (*keys)[4], size_t count) {
 @property(readonly, nonatomic) unsigned int displayID;
 @end
 
-static CGVirtualDisplay *muxen_virtual;
+static CGVirtualDisplay *andruide_virtual;
 
 /// Makes a virtual display of width×height (points = pixels) called `name`;
 /// its id, or 0 and why in `err`. Keep the process running to keep it.
-uint32_t muxen_vdisplay_create(uint32_t width, uint32_t height, const char *name, char *err, size_t errlen) {
+uint32_t andruide_vdisplay_create(uint32_t width, uint32_t height, const char *name, char *err, size_t errlen) {
     @autoreleasepool {
         Class descriptorClass = NSClassFromString(@"CGVirtualDisplayDescriptor");
         Class displayClass = NSClassFromString(@"CGVirtualDisplay");
@@ -794,7 +794,7 @@ uint32_t muxen_vdisplay_create(uint32_t width, uint32_t height, const char *name
         }
         CGVirtualDisplayDescriptor *descriptor = [[descriptorClass alloc] init];
         [descriptor setDispatchQueue:dispatch_get_main_queue()];
-        descriptor.name = [NSString stringWithUTF8String:name ? name : "Muxen"];
+        descriptor.name = [NSString stringWithUTF8String:name ? name : "AndruIDE"];
         // Room for every size it offers (like a real monitor's list).
         descriptor.maxPixelsWide = width > 3840 ? width : 3840;
         descriptor.maxPixelsHigh = height > 2160 ? height : 2160;
@@ -806,8 +806,8 @@ uint32_t muxen_vdisplay_create(uint32_t width, uint32_t height, const char *name
         descriptor.terminationHandler = ^(id a, id b) {
             exit(0);
         };
-        muxen_virtual = [[displayClass alloc] initWithDescriptor:descriptor];
-        if (!muxen_virtual || muxen_virtual.displayID == 0) {
+        andruide_virtual = [[displayClass alloc] initWithDescriptor:descriptor];
+        if (!andruide_virtual || andruide_virtual.displayID == 0) {
             say(err, errlen, @"macOS refused the virtual display");
             return 0;
         }
@@ -824,27 +824,27 @@ uint32_t muxen_vdisplay_create(uint32_t width, uint32_t height, const char *name
             }
         }
         settings.modes = modes;
-        if (![muxen_virtual applySettings:settings]) {
+        if (![andruide_virtual applySettings:settings]) {
             say(err, errlen, @"macOS didn't accept the display's size");
-            muxen_virtual = nil;
+            andruide_virtual = nil;
             return 0;
         }
-        return muxen_virtual.displayID;
+        return andruide_virtual.displayID;
     }
 }
 
 /// Holds the virtual display until the process is told to stop.
-void muxen_vdisplay_run(void) {
+void andruide_vdisplay_run(void) {
     dispatch_main();
 }
 
 // ---------------------------------------------------------------------------
-// The clipboard, for `muxen-agent clip` (see clipboard.rs).
+// The clipboard, for `andruide-agent clip` (see clipboard.rs).
 
 /// The pasteboard's change count (it goes up with every copy), and in
 /// `concealed` whether what's there is a password manager's: they mark their
 /// copies with these types (nspasteboard.org, and 1Password's own).
-long muxen_pasteboard(int *concealed) {
+long andruide_pasteboard(int *concealed) {
     @autoreleasepool {
         NSPasteboard *pb = [NSPasteboard generalPasteboard];
         NSArray *marks = @[ @"org.nspasteboard.ConcealedType", @"org.nspasteboard.TransientType", @"org.nspasteboard.AutoGeneratedType", @"com.agilebits.onepassword" ];

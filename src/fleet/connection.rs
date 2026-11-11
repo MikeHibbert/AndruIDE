@@ -1,4 +1,4 @@
-//! How Muxin reaches each machine: directly (QUIC, once paired), over a
+//! How AndruIDE reaches each machine: directly (QUIC, once paired), over a
 //! live ssh link, or one ssh call at a time; and turning direct connections on
 //! and off.
 
@@ -40,7 +40,7 @@ pub struct Connection {
 
 impl Engine {
     /// Disconnects from a machine or connects to it again. Disconnected,
-    /// Muxin closes its link and stops checking it and looking at its
+    /// AndruIDE closes its link and stops checking it and looking at its
     /// sessions (they go on there) until it's connected again; it's saved in
     /// config.toml (`disconnected = true`), so it lasts. Connecting checks it.
     pub fn set_connected(self: &Arc<Self>, machine_id: &str, connected: bool) -> Result<(), String> {
@@ -66,7 +66,7 @@ impl Engine {
         Ok(())
     }
 
-    /// How Muxin reaches the machine right now (measured, connecting if needed).
+    /// How AndruIDE reaches the machine right now (measured, connecting if needed).
     pub async fn connection(self: &Arc<Self>, machine_id: &str) -> Result<Connection, String> {
         let (spec, _) = self.machine(machine_id).ok_or_else(|| format!("No machine called {machine_id}."))?;
         let paired = direct::paired(&spec.id);
@@ -116,13 +116,13 @@ impl Engine {
         let shut_in = parent.as_ref().is_some_and(|p| p.inside()) && spec.direct_address.as_deref().is_none_or(|a| a.trim().is_empty());
         if out.direct && out.via == "ssh" && shut_in {
             let host = parent.map(|p| p.name).unwrap_or_default();
-            out.note = Some(format!("{host} doesn't forward a UDP port to it, so it's ssh. VMs Muxin makes now get one."));
+            out.note = Some(format!("{host} doesn't forward a UDP port to it, so it's ssh. VMs AndruIDE makes now get one."));
         } else if out.direct && out.via == "ssh" {
             // A Mac blocks the agent's network until Local Network access is allowed there.
             let mac = self.current().machines.iter().any(|m| m.id == spec.id && m.platform.starts_with("darwin"));
             out.note = Some(if mac {
-                // Muxin Agent since 0.10.0, a plain muxen-agent before.
-                format!("On {}, allow Muxin Agent (or muxen-agent, with an older agent) under Privacy & Security › Local Network.", spec.name)
+                // AndruIDE Agent since 0.10.0, a plain andruide-agent before.
+                format!("On {}, allow AndruIDE Agent (or andruide-agent, with an older agent) under Privacy & Security › Local Network.", spec.name)
             } else {
                 "Direct didn't connect (UDP 47821 blocked?), so it's ssh.".into()
             });
@@ -142,7 +142,7 @@ impl Engine {
                 out.network = l.network().map(str::to_string);
                 out.peer = l.peer().map(|a| a.ip().to_string());
             } else {
-                out.note = Some("Not reachable on this network: allow Muxin in Privacy & Security › Local Network, then reopen it.".into());
+                out.note = Some("Not reachable on this network: allow AndruIDE in Privacy & Security › Local Network, then reopen it.".into());
             }
         }
         if out.via == "direct" && out.network.as_deref() == Some("Tailscale") {
@@ -153,7 +153,7 @@ impl Engine {
         Ok(out)
     }
 
-    /// Pairs with the machine's agent so Muxin connects to it directly
+    /// Pairs with the machine's agent so AndruIDE connects to it directly
     /// (QUIC) instead of through ssh; or undoes that.
     pub async fn set_direct(self: &Arc<Self>, machine_id: &str, enabled: bool) -> Result<Connection, String> {
         let (spec, probe) = self.machine(machine_id).ok_or_else(|| format!("No machine called {machine_id}."))?;
@@ -286,7 +286,7 @@ impl Engine {
         }
     }
 
-    /// Keeps a machine on ssh without changing anything there: Muxin stops
+    /// Keeps a machine on ssh without changing anything there: AndruIDE stops
     /// suggesting a direct connection to it (Connect directly on its page
     /// still works).
     #[cfg_attr(not(feature = "gui"), allow(dead_code))]
@@ -296,7 +296,7 @@ impl Engine {
         Ok(())
     }
 
-    /// A machine that was paired left Muxin: its agent forgets this app too
+    /// A machine that was paired left AndruIDE: its agent forgets this app too
     /// (only this one). In the background and best-effort: a machine that
     /// can't be reached is removed all the same. `unpaired` waits for it.
     pub(crate) fn unpair_removed(self: &Arc<Self>, spec: MachineSpec) {
@@ -347,7 +347,7 @@ mod tests {
 
     #[tokio::test(flavor = "multi_thread")]
     async fn a_removed_machine_leaves_no_pairing_behind() {
-        let tmp = std::env::temp_dir().join(format!("muxin-unpair-{}", std::process::id()));
+        let tmp = std::env::temp_dir().join(format!("andruide-unpair-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&tmp);
         std::fs::create_dir_all(&tmp).unwrap();
         // Disconnected, so nothing reaches out to it.

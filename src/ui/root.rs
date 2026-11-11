@@ -26,7 +26,7 @@ use crate::fleet::model::{Action, Machine, Runner, Snapshot};
 use crate::ops::RunnerAction;
 
 actions!(
-    muxen,
+    andruide,
     [
         CheckNow,
         SyncGitHub,
@@ -136,24 +136,24 @@ pub fn menus() -> Vec<Menu> {
     // A closed window comes back from the Dock, but not while an app's window
     // of ours still shows: the Dock has nothing to do then.
     if cfg!(target_os = "macos") {
-        window_items.extend([MenuItem::separator(), MenuItem::action("Show Muxin", ShowMainWindow)]);
+        window_items.extend([MenuItem::separator(), MenuItem::action("Show AndruIDE", ShowMainWindow)]);
     }
     vec![
         Menu {
-            name: "Muxin".into(),
+            name: "AndruIDE".into(),
             items: vec![
-                MenuItem::action("About Muxin", ShowAbout),
+                MenuItem::action("About AndruIDE", ShowAbout),
                 MenuItem::action("Check for Updates…", CheckForUpdates),
                 MenuItem::separator(),
                 MenuItem::action("Settings…", OpenSettings),
                 MenuItem::separator(),
                 MenuItem::os_submenu("Services", SystemMenuType::Services),
                 MenuItem::separator(),
-                MenuItem::action("Hide Muxin", HideApp),
+                MenuItem::action("Hide AndruIDE", HideApp),
                 MenuItem::action("Hide Others", HideOthers),
                 MenuItem::action("Show All", ShowAll),
                 MenuItem::separator(),
-                MenuItem::action("Quit Muxin", Quit),
+                MenuItem::action("Quit AndruIDE", Quit),
             ],
         },
         // Text fields' editing; a terminal copies and pastes by itself.
@@ -216,20 +216,20 @@ pub fn menus() -> Vec<Menu> {
         Menu {
             name: "Help".into(),
             items: vec![
-                MenuItem::action("Muxin Docs", OpenDocs),
+                MenuItem::action("AndruIDE Docs", OpenDocs),
                 MenuItem::action("Keyboard Shortcuts", ShowShortcuts),
                 MenuItem::separator(),
                 MenuItem::action("What’s New", ShowReleaseNotes),
                 MenuItem::action("Report a Problem…", ReportProblem),
                 MenuItem::action("Ask a Question…", AskQuestion),
                 MenuItem::separator(),
-                MenuItem::action("Muxin on GitHub", OpenGitHub),
+                MenuItem::action("AndruIDE on GitHub", OpenGitHub),
             ],
         },
     ]
 }
 
-/// The menu's app-wide actions: they work in any of Muxin's windows.
+/// The menu's app-wide actions: they work in any of AndruIDE's windows.
 pub fn bind_app_actions(cx: &mut App) {
     cx.on_action(|_: &HideApp, cx| cx.hide());
     cx.on_action(|_: &HideOthers, cx| cx.hide_other_apps());
@@ -242,7 +242,7 @@ pub fn bind_app_actions(cx: &mut App) {
     }
     cx.on_action(|_: &Minimize, cx| on_window(cx, |w| w.minimize_window()));
     cx.on_action(|_: &Zoom, cx| on_window(cx, |w| w.zoom_window()));
-    const REPO: &str = "https://github.com/LumaryLabsLLC/muxin";
+    const REPO: &str = "https://github.com/MikeHibbert/AndruIDE";
     cx.on_action(|_: &OpenDocs, cx| cx.open_url("https://muxin.dev/docs"));
     cx.on_action(|_: &ShowReleaseNotes, cx| cx.open_url(&format!("{REPO}/releases")));
     cx.on_action(|_: &ReportProblem, cx| cx.open_url(&format!("{REPO}/issues/new/choose")));
@@ -536,7 +536,7 @@ pub struct Root {
     /// Sessions others shared with you, joined here.
     pub(super) joined: Vec<super::share::JoinedShare>,
     pub(super) joined_count: u32,
-    /// A share link opened with Muxin, for the Join dialog on the next render.
+    /// A share link opened with AndruIDE, for the Join dialog on the next render.
     pub(super) pending_join: Option<String>,
     /// The window's place and size, as last moved (see `Left`).
     bounds: Option<gpui::WindowBounds>,
@@ -1477,7 +1477,7 @@ impl Root {
     /// Files dropped from the Finder on a machine: copy them there.
     pub(super) fn copy_dropped(&mut self, machine_id: &str, paths: &[std::path::PathBuf], window: &mut Window, cx: &mut Context<Self>) {
         let Some(local) = self.snapshot.machines.iter().find(|m| m.local).map(|m| m.id.clone()) else {
-            self.notify_user("Add this computer to Muxin (host \"local\") to copy files from it.", true, cx);
+            self.notify_user("Add this computer to AndruIDE (host \"local\") to copy files from it.", true, cx);
             return;
         };
         let Some(dir) = paths.first().and_then(|p| p.parent()).map(|p| p.display().to_string()) else { return };
@@ -1499,7 +1499,7 @@ impl Root {
             return false;
         }
         // Wayland says what's on the clipboard only to the program with the
-        // keyboard: with no Muxin window focused, GPUI reads an old copy.
+        // keyboard: with no AndruIDE window focused, GPUI reads an old copy.
         if cx.compositor_name() == "Wayland" && cx.active_window().is_none() {
             return false;
         }
@@ -1545,7 +1545,7 @@ impl Root {
     /// a newer copy was made here (that one goes to the machines instead),
     /// nor when it's there already. Then notes what the clipboard really
     /// holds, which isn't always the text: Wayland ignores the write while no
-    /// Muxin window has focus, and the old text still there isn't a new copy
+    /// AndruIDE window has focus, and the old text still there isn't a new copy
     /// to offer the machines (#20).
     fn paste_copied_there(&mut self, text: String, cx: &mut Context<Self>) {
         if !self.engine.settings().share_clipboard || self.watch_clipboard(cx) {
@@ -1570,7 +1570,7 @@ impl Root {
         let task = cx.spawn(async move |this, cx| {
             let result = job.await.unwrap_or_else(|e| Err(e.to_string()));
             let _ = this.update(cx, |this, cx| match result {
-                Ok(from) => this.notify_user(format!("Woke {name} from {from}. Muxin looks again in a moment."), false, cx),
+                Ok(from) => this.notify_user(format!("Woke {name} from {from}. AndruIDE looks again in a moment."), false, cx),
                 Err(e) => this.notify_user(e, true, cx),
             });
         });
@@ -1850,10 +1850,10 @@ impl Root {
 
     pub(super) fn confirm_remove_machine(&mut self, machine: &Machine, window: &mut Window, cx: &mut Context<Self>) {
         let machine_id = machine.id.clone();
-        // A VM Muxin made goes with its container and disk.
+        // A VM AndruIDE made goes with its container and disk.
         if let Some(vm) = &machine.vm {
             let host = machine.parent.as_ref().map(|p| p.name.clone()).unwrap_or_else(|| vm.host.clone());
-            let detail = format!("Its container {} and its disk on {host} are deleted, and it leaves Muxin. Copy out anything you want to keep first.", vm.container);
+            let detail = format!("Its container {} and its disk on {host} are deleted, and it leaves AndruIDE. Copy out anything you want to keep first.", vm.container);
             let dialog = cx.new(|cx| ConfirmDialog::new(format!("Destroy {}?", machine.name), detail, "Destroy", None, move |_, engine| engine.vm_destroy(&machine_id).map(Some), self.engine.clone(), window, cx));
             self.show_modal(Modal::Confirm(dialog.clone()), window, cx);
             self._subscriptions.push(cx.subscribe_in(&dialog, window, Self::on_dialog_event));
@@ -1862,7 +1862,7 @@ impl Root {
         // A cloud machine goes with its droplet.
         if let Some(c) = &machine.cloud {
             let detail = format!(
-                "Its droplet and everything on it are deleted, and it leaves Muxin. Push your work first. It has cost about ${:.2} so far.",
+                "Its droplet and everything on it are deleted, and it leaves AndruIDE. Push your work first. It has cost about ${:.2} so far.",
                 c.cost_so_far
             );
             let dialog = cx.new(|cx| {
@@ -1889,7 +1889,7 @@ impl Root {
         };
         let dialog = cx.new(|cx| {
             ConfirmDialog::new(
-                format!("Remove {} from Muxin?", machine.name),
+                format!("Remove {} from AndruIDE?", machine.name),
                 detail.into(),
                 "Remove machine",
                 None,
@@ -2213,7 +2213,7 @@ impl Root {
         }
     }
 
-    /// The machine it sits under in the sidebar: the one it runs on, when that's in Muxin.
+    /// The machine it sits under in the sidebar: the one it runs on, when that's in AndruIDE.
     pub(super) fn host_in_sidebar(s: &Snapshot, m: &Machine) -> Option<String> {
         m.parent.as_ref().filter(|p| p.inside() && p.machine_id != m.id && s.machines.iter().any(|x| x.id == p.machine_id)).map(|p| p.machine_id.clone())
     }
@@ -2610,7 +2610,7 @@ impl Root {
                     .flex()
                     .flex_col()
                     .min_w(px(0.))
-                    .child(div().w(px(text_w)).truncate().text_size(px(14.)).font_weight(FontWeight::SEMIBOLD).text_color(theme.text).child("Muxin")),
+                    .child(div().w(px(text_w)).truncate().text_size(px(14.)).font_weight(FontWeight::SEMIBOLD).text_color(theme.text).child("AndruIDE")),
             )
             .when(s.demo && self.demo_badge, |d| d.child(div().flex_1()).child(kit::pill("demo", theme.warning)))
     }
@@ -3314,7 +3314,7 @@ impl Root {
                     .hover(|st| st.bg(theme.ghost_hover))
                     .child(kit::dot(theme.accent, 6.))
                     .child(format!("{} is out", update.version))
-                    .tooltip(move |window, cx| kit::Tooltip::view(format!("Muxin {} is out. See how to update.", update.version).into(), window, cx))
+                    .tooltip(move |window, cx| kit::Tooltip::view(format!("AndruIDE {} is out. See how to update.", update.version).into(), window, cx))
                     .on_click(cx.listener(|this, _, window, cx| this.navigate(Route::About, window, cx)))
                     .into_any_element(),
                 None => div().pr(px(6.)).font_family(mono_font()).text_size(px(11.)).text_color(theme.text_placeholder).child(format!("v{}", env!("CARGO_PKG_VERSION"))).into_any_element(),
@@ -3688,7 +3688,7 @@ impl Root {
             // An explicit width: GPUI 0.2 only ellipsizes text whose width it knows.
             .child(div().w(px((self.row_width() - 20. - 30. - 16. - 16. - 74. - 52.).max(40.))).truncate().text_size(px(12.5)).text_color(if selected { theme.text } else { theme.text_muted }).child(d.name.clone()))
             .child(div().flex_1())
-            // Which ones Muxin added (and the × takes away).
+            // Which ones AndruIDE added (and the × takes away).
             .child(kit::pill("virtual", theme.accent))
             .child(div().flex_none().font_family(mono_font()).text_size(px(10.5)).text_color(theme.text_placeholder).group_hover("monitor-row", |st| st.invisible()).child(format!("{}×{}", d.width as u32, d.height as u32)))
             // On hover, in place of the size: unplug it.

@@ -78,7 +78,7 @@ impl Engine {
         if self.demo_world().is_some() {
             return Ok(demo_listing(&spec, path));
         }
-        let l = self.files_link(&spec).await.ok_or_else(|| format!("Browsing {} needs Muxin's agent there.", spec.name))?;
+        let l = self.files_link(&spec).await.ok_or_else(|| format!("Browsing {} needs AndruIDE's agent there.", spec.name))?;
         let r = l.request(json!({ "op": "files", "path": if path.trim().is_empty() { "~" } else { path } }), Duration::from_secs(20)).await?;
         if r["ok"].as_bool() != Some(true) {
             return Err(r["error"].as_str().unwrap_or("Couldn't list that folder.").to_string());
@@ -419,7 +419,7 @@ fn shell_path(dir: &str) -> String {
 /// iPad can't run.
 fn no_ssh(spec: &MachineSpec) -> Result<(), String> {
     if cfg!(target_os = "ios") {
-        return Err(format!("{} can't be reached for its files over its direct link (Muxin's agent there doesn't copy files on Windows yet).", spec.name));
+        return Err(format!("{} can't be reached for its files over its direct link (AndruIDE's agent there doesn't copy files on Windows yet).", spec.name));
     }
     Ok(())
 }
@@ -469,7 +469,7 @@ fn demo_listing(spec: &MachineSpec, path: &str) -> Listing {
     let abs = if abs.len() > 1 { abs.trim_end_matches('/').to_string() } else { abs };
     let (folders, files): (&[&str], &[&str]) = match abs.strip_prefix(home).map(|r| r.trim_start_matches('/')) {
         Some("") => (&[".config", "code", "Documents", "Downloads", "notes"], &["todo.md"]),
-        Some("code") => (&["api", "checkout", "desktop", "infra", "ios-app", "muxin", "web"], &[]),
+        Some("code") => (&["api", "checkout", "desktop", "infra", "ios-app", "andruide", "web"], &[]),
         Some(p) if p.starts_with("code/") && !p["code/".len()..].contains('/') => (&[".github", "docs", "src", "tests"], &["README.md", "package.json"]),
         _ => (&[], &[]),
     };

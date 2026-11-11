@@ -1,11 +1,11 @@
-//! The agent skill for Muxin (skills/muxin): instructions that teach agents
-//! (Claude Code, Codex, Hermes, ...) to drive the `muxin` command.
+//! The agent skill for AndruIDE (skills/andruide): instructions that teach agents
+//! (Claude Code, Codex, Hermes, ...) to drive the `andruide` command.
 //!
-//! `muxin skill install` puts a stub in the agents' skills folders: the
+//! `andruide skill install` puts a stub in the agents' skills folders: the
 //! skill's description, so agents load it for the same requests, and a few
-//! lines that ask `muxin skill show` for the guide. The guide is built into
-//! the binary, so it always matches the Muxin installed, and an update never
-//! leaves an old copy behind. (Muxin before 0.10 copied the whole folder;
+//! lines that ask `andruide skill show` for the guide. The guide is built into
+//! the binary, so it always matches the AndruIDE installed, and an update never
+//! leaves an old copy behind. (AndruIDE before 0.10 copied the whole folder;
 //! installing again replaces that copy with the stub.)
 
 use std::path::{Path, PathBuf};
@@ -16,31 +16,31 @@ use crate::config::display_path;
 
 /// The skill's files, by their path in its folder: the guide.
 pub const FILES: &[(&str, &str)] = &[
-    ("SKILL.md", include_str!("../skills/muxin/SKILL.md")),
-    ("references/sessions-and-boxes.md", include_str!("../skills/muxin/references/sessions-and-boxes.md")),
-    ("references/github.md", include_str!("../skills/muxin/references/github.md")),
-    ("references/workspaces.md", include_str!("../skills/muxin/references/workspaces.md")),
-    ("references/runners.md", include_str!("../skills/muxin/references/runners.md")),
-    ("references/machines.md", include_str!("../skills/muxin/references/machines.md")),
-    ("references/cloud-and-vms.md", include_str!("../skills/muxin/references/cloud-and-vms.md")),
+    ("SKILL.md", include_str!("../skills/andruide/SKILL.md")),
+    ("references/sessions-and-boxes.md", include_str!("../skills/andruide/references/sessions-and-boxes.md")),
+    ("references/github.md", include_str!("../skills/andruide/references/github.md")),
+    ("references/workspaces.md", include_str!("../skills/andruide/references/workspaces.md")),
+    ("references/runners.md", include_str!("../skills/andruide/references/runners.md")),
+    ("references/machines.md", include_str!("../skills/andruide/references/machines.md")),
+    ("references/cloud-and-vms.md", include_str!("../skills/andruide/references/cloud-and-vms.md")),
 ];
 
 /// Its folder's name, as `name:` in SKILL.md says.
-const NAME: &str = "muxin";
+const NAME: &str = "andruide";
 
 /// In SKILL.md's frontmatter: the folder is ours to replace, not a skill of
 /// the user's own that happens to have the name.
-const MARK: &str = "source: https://github.com/LumaryLabsLLC/muxin/tree/main/skills/muxin";
+const MARK: &str = "source: https://github.com/MikeHibbert/AndruIDE/tree/main/skills/andruide";
 
 /// In the stub's metadata, after `MARK`: it's a stub, of this format.
-const STUB: &str = "muxin-stub: \"1\"";
+const STUB: &str = "andruide-stub: \"1\"";
 
 /// What the stub says, under the skill's frontmatter.
-const STUB_BODY: &str = "<!-- Installed by \"muxin skill install\". Remove it with \"muxin skill remove\". -->
+const STUB_BODY: &str = "<!-- Installed by \"andruide skill install\". Remove it with \"andruide skill remove\". -->
 
-Run `muxin skill show` and follow the guide it prints. The guide comes from the Muxin installed here, so it matches the commands this version has. It names more topics, each with its own command, such as `muxin skill show sessions-and-boxes`.
+Run `andruide skill show` and follow the guide it prints. The guide comes from the AndruIDE installed here, so it matches the commands this version has. It names more topics, each with its own command, such as `andruide skill show sessions-and-boxes`.
 
-If there's no `muxin` command, ask the user to turn it on in Muxin (Settings › General › Command line). If `muxin skill show` fails, this Muxin is older than the guide: start with `muxin status --json`, then `muxin --help`.
+If there's no `andruide` command, ask the user to turn it on in AndruIDE (Settings › General › Command line). If `andruide skill show` fails, this AndruIDE is older than the guide: start with `andruide status --json`, then `andruide --help`.
 ";
 
 /// Where agents look for skills, under the home folder: the agent, the folder
@@ -91,7 +91,7 @@ pub fn targets(agents: &[String], dir: Option<PathBuf>, installing: bool) -> Res
             .iter()
             .map(|a| match AGENTS.iter().find(|(id, ..)| id.eq_ignore_ascii_case(a)) {
                 Some((id, _, skills)) => Ok((id.to_string(), home.join(skills))),
-                None => Err(format!("\"{a}\" isn't an agent Muxin knows ({}). Pass --dir for another one's skills folder.", known())),
+                None => Err(format!("\"{a}\" isn't an agent AndruIDE knows ({}). Pass --dir for another one's skills folder.", known())),
             })
             .collect::<Result<_, String>>()
             .map(once);
@@ -129,7 +129,7 @@ pub fn install(agent: String, skills: &Path) -> Outcome {
         State::Ours => {
             out.result = "updated";
             if !is_stub(&dir) {
-                out.note = Some("It was a full copy, which goes out of date. Now it asks muxin for the guide.".into());
+                out.note = Some("It was a full copy, which goes out of date. Now it asks andruide for the guide.".into());
             }
         }
         State::Link(to) => return out.skipped(format!("It's a link to {}; left as it is.", display_path(&to))),
@@ -172,7 +172,7 @@ pub fn topics() -> Vec<&'static str> {
     FILES.iter().filter_map(|(path, _)| path.strip_prefix("references/")?.strip_suffix(".md")).collect()
 }
 
-/// What `muxin skill show` prints: the guide (SKILL.md without its
+/// What `andruide skill show` prints: the guide (SKILL.md without its
 /// frontmatter), or one of its topics. Links to other files become the
 /// command that shows them.
 pub fn guide(topic: Option<&str>) -> Result<String, String> {
@@ -182,13 +182,13 @@ pub fn guide(topic: Option<&str>) -> Result<String, String> {
     let wanted = topic.trim_end_matches(".md").rsplit('/').next().unwrap_or(topic).to_ascii_lowercase();
     match FILES.iter().find(|(path, _)| path.strip_prefix("references/").and_then(|p| p.strip_suffix(".md")) == Some(wanted.as_str())) {
         Some((_, text)) => Ok(unlink(text)),
-        None if wanted == "skill" || wanted == "muxin" => Ok(unlink(split(FILES[0].1).1.trim_start())),
+        None if wanted == "skill" || wanted == "andruide" => Ok(unlink(split(FILES[0].1).1.trim_start())),
         None => Err(format!("There's no topic \"{topic}\". Topics: {}.", topics().join(", "))),
     }
 }
 
 /// `[sessions and boxes](references/sessions-and-boxes.md#x)` as
-/// "sessions and boxes (`muxin skill show sessions-and-boxes`)". Web links stay.
+/// "sessions and boxes (`andruide skill show sessions-and-boxes`)". Web links stay.
 fn unlink(text: &str) -> String {
     let mut out = String::with_capacity(text.len());
     let mut rest = text;
@@ -207,7 +207,7 @@ fn unlink(text: &str) -> String {
             out.push_str(&rest[..at + close + 1]);
         } else {
             let stem = file.rsplit('/').next().unwrap_or(file).trim_end_matches(".md");
-            let command = if stem == "SKILL" { "muxin skill show".to_string() } else { format!("muxin skill show {stem}") };
+            let command = if stem == "SKILL" { "andruide skill show".to_string() } else { format!("andruide skill show {stem}") };
             out.push_str(&before[..open]);
             out.push_str(&format!("{} (`{command}`)", &before[open + 1..]));
         }
@@ -230,7 +230,7 @@ pub fn remove(agent: String, skills: &Path) -> Outcome {
             }
         }
         State::Link(to) => return out.skipped(format!("It's a link to {}; left as it is.", display_path(&to))),
-        State::Other => return out.skipped("It isn't Muxin's skill; left as it is.".into()),
+        State::Other => return out.skipped("It isn't AndruIDE's skill; left as it is.".into()),
     }
     out
 }
@@ -247,7 +247,7 @@ enum State {
     Absent,
     /// The stub, or a copy an older `install` wrote.
     Ours,
-    /// A link, such as one to a checkout's skills/muxin: the user's to change.
+    /// A link, such as one to a checkout's skills/andruide: the user's to change.
     Link(PathBuf),
     Other,
 }
@@ -256,7 +256,7 @@ fn state(dir: &Path) -> State {
     match std::fs::symlink_metadata(dir) {
         Err(_) => State::Absent,
         Ok(m) if m.file_type().is_symlink() => State::Link(std::fs::read_link(dir).unwrap_or_default()),
-        // The stub, or a full copy an older Muxin wrote.
+        // The stub, or a full copy an older AndruIDE wrote.
         Ok(m) if m.is_dir() && std::fs::read_to_string(dir.join("SKILL.md")).is_ok_and(|s| s.contains(MARK)) => State::Ours,
         Ok(_) => State::Other,
     }
@@ -286,7 +286,7 @@ mod tests {
         on_disk.sort();
         let mut bundled: Vec<String> = FILES.iter().map(|(p, _)| p.to_string()).collect();
         bundled.sort();
-        assert_eq!(on_disk, bundled, "skills/muxin and skill::FILES differ");
+        assert_eq!(on_disk, bundled, "skills/andruide and skill::FILES differ");
     }
 
     #[test]
@@ -316,7 +316,7 @@ mod tests {
 
     #[test]
     fn installs_updates_and_removes() {
-        let skills = std::env::temp_dir().join(format!("muxin-skill-{}", std::process::id()));
+        let skills = std::env::temp_dir().join(format!("andruide-skill-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&skills);
         let dir = skills.join(NAME);
 
@@ -330,7 +330,7 @@ mod tests {
         assert!(!dir.exists());
         assert!(remove("dir".into(), &skills).note.is_some(), "removing it again says it wasn't there");
 
-        // A full copy, as Muxin before the stub wrote it, becomes the stub.
+        // A full copy, as AndruIDE before the stub wrote it, becomes the stub.
         for (path, text) in FILES {
             std::fs::create_dir_all(dir.join(path).parent().unwrap()).unwrap();
             std::fs::write(dir.join(path), text).unwrap();
@@ -344,10 +344,10 @@ mod tests {
 
         // A skill of the user's own with the same name stays.
         std::fs::create_dir_all(&dir).unwrap();
-        std::fs::write(dir.join("SKILL.md"), "---\nname: muxin\ndescription: mine\n---\n").unwrap();
+        std::fs::write(dir.join("SKILL.md"), "---\nname: andruide\ndescription: mine\n---\n").unwrap();
         assert_eq!(install("dir".into(), &skills).result, "skipped");
         assert_eq!(remove("dir".into(), &skills).result, "skipped");
-        assert_eq!(std::fs::read_to_string(dir.join("SKILL.md")).unwrap(), "---\nname: muxin\ndescription: mine\n---\n");
+        assert_eq!(std::fs::read_to_string(dir.join("SKILL.md")).unwrap(), "---\nname: andruide\ndescription: mine\n---\n");
 
         let _ = std::fs::remove_dir_all(&skills);
     }
@@ -361,23 +361,23 @@ mod tests {
             assert!(front.lines().any(|l| l == line), "the stub's frontmatter lacks `{line}`");
         }
         assert!(front.contains(&format!("  {MARK}\n  {STUB}")), "marked as a stub under metadata:\n{front}");
-        assert!(body.contains("`muxin skill show`"));
+        assert!(body.contains("`andruide skill show`"));
         assert!(stub.lines().count() < 20, "a stub, not the guide");
     }
 
     #[test]
     fn shows_the_guide_and_its_topics() {
         let main = guide(None).unwrap();
-        assert!(main.starts_with("# Muxin"), "no frontmatter: {}", &main[..40]);
+        assert!(main.starts_with("# AndruIDE"), "no frontmatter: {}", &main[..40]);
         assert!(!main.contains("](references/"), "links to files it can't open");
-        assert!(main.contains("Sessions and boxes (`muxin skill show sessions-and-boxes`)"));
+        assert!(main.contains("Sessions and boxes (`andruide skill show sessions-and-boxes`)"));
         assert!(!main.contains("[sessions and boxes]"));
         assert_eq!(topics(), ["sessions-and-boxes", "github", "workspaces", "runners", "machines", "cloud-and-vms"]);
         for t in topics() {
             let text = guide(Some(t)).unwrap();
             assert!(!text.contains(".md)") && !text.contains(".md#"), "{t} still links a file");
         }
-        assert!(guide(Some("github")).unwrap().contains("sessions and boxes (`muxin skill show sessions-and-boxes`)"));
+        assert!(guide(Some("github")).unwrap().contains("sessions and boxes (`andruide skill show sessions-and-boxes`)"));
         assert_eq!(guide(Some("references/github.md")), guide(Some("GitHub")));
         assert!(guide(Some("nope")).unwrap_err().contains("sessions-and-boxes"));
         assert_eq!(unlink("see [the docs](https://muxin.dev/docs) and [x](y)"), "see [the docs](https://muxin.dev/docs) and [x](y)");

@@ -142,6 +142,98 @@ dependencies = [
 ]
 
 [[package]]
+name = "andruide"
+version = "0.14.0"
+dependencies = [
+ "alacritty_terminal",
+ "anyhow",
+ "async-trait",
+ "base64 0.22.1",
+ "block",
+ "bytes",
+ "chrono",
+ "clap",
+ "cocoa 0.26.0",
+ "dirs 7.0.0",
+ "flate2",
+ "futures",
+ "gpui",
+ "image",
+ "ksni",
+ "libc",
+ "mdns-sd",
+ "objc",
+ "qrcode",
+ "quinn",
+ "raw-window-handle",
+ "rcgen 0.13.2",
+ "reqwest",
+ "resvg",
+ "ring",
+ "rtc",
+ "russh",
+ "russh-sftp",
+ "rustls",
+ "security-framework",
+ "serde",
+ "serde_json",
+ "smallvec",
+ "socket2",
+ "tokio",
+ "toml 1.1.7+spec-1.1.0",
+ "toml_edit 0.25.16+spec-1.1.0",
+ "tracing",
+ "tracing-subscriber",
+ "tray-icon",
+ "unicode-segmentation",
+ "wayland-backend",
+ "wayland-client",
+ "wayland-protocols 0.31.2",
+ "webrtc",
+ "windows 0.61.3",
+ "windows-sys 0.61.2",
+ "winresource",
+ "x11rb",
+ "zbus",
+]
+
+[[package]]
+name = "andruide-agent"
+version = "0.6.0"
+dependencies = [
+ "alacritty_terminal",
+ "anyhow",
+ "base64 0.22.1",
+ "cc",
+ "jpeg-encoder",
+ "libc",
+ "portable-pty",
+ "quinn",
+ "rcgen 0.13.2",
+ "ring",
+ "rustls",
+ "serde_json",
+ "socket2",
+ "tokio",
+ "webpki-roots",
+ "windows-sys 0.61.2",
+ "x11rb",
+]
+
+[[package]]
+name = "andruide-share-server"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "base64 0.22.1",
+ "ring",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "anstream"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4391,98 +4483,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.119",
-]
-
-[[package]]
-name = "muxen-agent"
-version = "0.6.0"
-dependencies = [
- "alacritty_terminal",
- "anyhow",
- "base64 0.22.1",
- "cc",
- "jpeg-encoder",
- "libc",
- "portable-pty",
- "quinn",
- "rcgen 0.13.2",
- "ring",
- "rustls",
- "serde_json",
- "socket2",
- "tokio",
- "webpki-roots",
- "windows-sys 0.61.2",
- "x11rb",
-]
-
-[[package]]
-name = "muxin"
-version = "0.14.0"
-dependencies = [
- "alacritty_terminal",
- "anyhow",
- "async-trait",
- "base64 0.22.1",
- "block",
- "bytes",
- "chrono",
- "clap",
- "cocoa 0.26.0",
- "dirs 7.0.0",
- "flate2",
- "futures",
- "gpui",
- "image",
- "ksni",
- "libc",
- "mdns-sd",
- "objc",
- "qrcode",
- "quinn",
- "raw-window-handle",
- "rcgen 0.13.2",
- "reqwest",
- "resvg",
- "ring",
- "rtc",
- "russh",
- "russh-sftp",
- "rustls",
- "security-framework",
- "serde",
- "serde_json",
- "smallvec",
- "socket2",
- "tokio",
- "toml 1.1.7+spec-1.1.0",
- "toml_edit 0.25.16+spec-1.1.0",
- "tracing",
- "tracing-subscriber",
- "tray-icon",
- "unicode-segmentation",
- "wayland-backend",
- "wayland-client",
- "wayland-protocols 0.31.2",
- "webrtc",
- "windows 0.61.3",
- "windows-sys 0.61.2",
- "winresource",
- "x11rb",
- "zbus",
-]
-
-[[package]]
-name = "muxin-share-server"
-version = "0.1.0"
-dependencies = [
- "axum",
- "base64 0.22.1",
- "ring",
- "serde_json",
- "tokio",
- "tracing",
- "tracing-subscriber",
 ]
 
 [[package]]

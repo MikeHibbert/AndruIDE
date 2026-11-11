@@ -4,14 +4,14 @@
 //! so they go to the machine. GPUI has nothing for this, so each system is
 //! asked in its own way, around GPUI:
 //!
-//! - a Mac: an event tap that hands the keys to Muxin itself. macOS allows
+//! - a Mac: an event tap that hands the keys to AndruIDE itself. macOS allows
 //!   one only to an app the user allowed under Accessibility.
 //! - Windows: a low-level keyboard hook. What it takes never reaches GPUI,
 //!   so those keys come through `Capture::keys`.
 //! - Linux on X11: a keyboard grab from a connection of our own, each key
-//!   passed on to Muxin's window.
+//!   passed on to AndruIDE's window.
 //! - Linux on Wayland: the compositor is asked not to act on shortcuts while
-//!   Muxin's window has the keyboard (keyboard-shortcuts-inhibit); it may
+//!   AndruIDE's window has the keyboard (keyboard-shortcuts-inhibit); it may
 //!   ask the user first.
 //!
 //! Nothing here takes Ctrl+Alt+Del or Win+L on Windows, ⌘⌥Esc on a Mac, or
@@ -32,7 +32,7 @@ mod x11;
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Ready {
     Yes,
-    /// A Mac: once Muxin is allowed under Privacy & Security › Accessibility.
+    /// A Mac: once AndruIDE is allowed under Privacy & Security › Accessibility.
     NeedsPermission,
     /// Not on this system.
     #[cfg_attr(any(target_os = "macos", windows, target_os = "linux"), allow(dead_code))]
@@ -55,7 +55,7 @@ pub fn ready() -> Ready {
     }
 }
 
-/// A Mac: asks the user to allow Muxin under Accessibility. macOS shows its
+/// A Mac: asks the user to allow AndruIDE under Accessibility. macOS shows its
 /// own request once, with a button to System Settings; asked again, this
 /// opens that page of System Settings itself.
 #[cfg(feature = "gui")]

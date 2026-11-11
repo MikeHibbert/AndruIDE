@@ -1,5 +1,5 @@
-# Muxin: install GitHub Actions runners (Windows).
-# Muxin prepends: $OR_VERSION, $OR_SHA256 (array of "<platform>=<hex>": each
+# AndruIDE: install GitHub Actions runners (Windows).
+# AndruIDE prepends: $OR_VERSION, $OR_SHA256 (array of "<platform>=<hex>": each
 # package's SHA-256 from the release notes), $OR_URL, $OR_TOKEN, $OR_NAMES (array),
 # $OR_LABELS, $OR_GROUP, $OR_SERVICE (bool), $OR_BASE (empty: C:\actions-runner).
 
@@ -10,7 +10,7 @@ $ProgressPreference = 'SilentlyContinue'
 trap { [Console]::Error.WriteLine("error: " + $_.Exception.Message); exit 1 }
 function say($m) { Write-Output $m }
 
-# Starts a program that outlives this session. Muxin runs this script over ssh,
+# Starts a program that outlives this session. AndruIDE runs this script over ssh,
 # and sshd ends everything the connection that started it leaves behind when it
 # closes, so a plain Start-Process leaves nothing running. A process made by WMI
 # isn't in that session; the agent starts itself the same way (agent/src/sys.rs).
@@ -62,12 +62,12 @@ $me = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
 $trusted = @('S-1-5-32-544', 'S-1-5-18', $me)
 function Get-Owner($path) { (Get-Acl -LiteralPath $path).GetOwner([Security.Principal.SecurityIdentifier]).Value }
 # Refuses a folder another account owns. -NoLink: also one that's a link, which
-# Muxin never makes (it could lead somewhere others can change).
+# AndruIDE never makes (it could lead somewhere others can change).
 function Assert-Owner($path, [switch]$NoLink) {
   $item = Get-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue
   if (-not $item) { return }
   if ($NoLink -and $item.Attributes.HasFlag([IO.FileAttributes]::ReparsePoint)) {
-    throw "$path is a link to another folder, which Muxin doesn't make. Check it, delete it and try again."
+    throw "$path is a link to another folder, which AndruIDE doesn't make. Check it, delete it and try again."
   }
   $owner = try { Get-Owner $path } catch { throw "Couldn't see who owns $path. Check what's in it, delete it and try again." }
   if ($trusted -notcontains $owner) {

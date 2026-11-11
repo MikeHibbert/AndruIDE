@@ -67,7 +67,7 @@ pub fn usage(req: &Value) -> Value {
     let days = req["days"].as_u64().unwrap_or(30).clamp(1, 400);
     let since = SystemTime::now() - Duration::from_secs(days * 86_400);
     let cutoff = utc_hour(since);
-    // The user's home (crate::home_dir is the agent's own ~/.muxen).
+    // The user's home (crate::home_dir is the agent's own ~/.andruide).
     let home = crate::sys::user_home();
     let mut tally = Tally::default();
     let mut found = Vec::new();
@@ -255,7 +255,7 @@ mod tests {
 
     #[test]
     fn counts_claude_once_and_codex_by_turn() {
-        let dir = std::env::temp_dir().join(format!("muxen-usage-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("andruide-usage-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         let claude = dir.join("c.jsonl");

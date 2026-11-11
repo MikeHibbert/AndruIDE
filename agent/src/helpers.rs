@@ -1,14 +1,14 @@
 //! Helper sessions: a session an agent started from inside another one (its
-//! parent). Muxin's CLI and MCP server know they run in a session from
-//! `MUXEN_SESSION` (the session server sets it), and say so when they start
+//! parent). AndruIDE's CLI and MCP server know they run in a session from
+//! `ANDRUIDE_SESSION` (the session server sets it), and say so when they start
 //! one: `{"op": "start", ..., "parent": "codex-3f9a", "keep": false}`.
 //!
-//! Which session started which is kept here, `~/.muxen/helpers.json`
+//! Which session started which is kept here, `~/.andruide/helpers.json`
 //! (`{"<helper>": {"parent": "<name>", "keep": false, "at": <unix>}}`), rather
 //! than in the session server, which goes on running the build it started
 //! with: so a session server of any version has helpers. A parent on another
 //! machine is `<machine-id>/<name>` (as the app that started it calls it);
-//! Muxin itself ends those.
+//! AndruIDE itself ends those.
 //!
 //! A helper ends with its parent unless it was started with `keep`: the
 //! session server ends them when the parent is stopped or closes, and
@@ -39,7 +39,7 @@ fn write(helpers: &Map<String, Value>) {
     }
 }
 
-/// Changes the helpers kept here, one process at a time (several Muxins
+/// Changes the helpers kept here, one process at a time (several AndruIDEs
 /// look at a machine at once): `change` says whether it changed them.
 fn change(change: impl FnOnce(&mut Map<String, Value>) -> bool) {
     let lock = std::fs::OpenOptions::new().create(true).truncate(false).write(true).open(home_dir().join("helpers.lock"));
@@ -116,7 +116,7 @@ pub fn annotate(sessions: &mut Value, helpers: &Map<String, Value>) {
 /// machine isn't one of its sessions (`sessions`, the server's list).
 pub fn refused(parent: &str, choices: &Value, sessions: Option<&Value>) -> Option<String> {
     if !crate::settings::on(choices, "helpers", true) {
-        return Some("Agents can't start other sessions: the user turned that off in Muxin (Settings › General › Agents).".into());
+        return Some("Agents can't start other sessions: the user turned that off in AndruIDE (Settings › General › Agents).".into());
     }
     if here(parent) {
         let known = sessions.and_then(Value::as_array).is_some_and(|a| a.iter().any(|s| s["name"].as_str() == Some(parent)));
@@ -186,7 +186,7 @@ mod tests {
         let off = refused("claude-aaaa", &json!({ "helpers": { "on": false, "at": 5 } }), Some(&list)).unwrap();
         assert!(off.contains("turned that off"), "{off}");
         assert!(refused("codex-9999", &json!({}), Some(&list)).unwrap().contains("no session called codex-9999"));
-        // A parent on another machine: Muxin found it there.
+        // A parent on another machine: AndruIDE found it there.
         assert_eq!(refused("mac/claude-bbbb", &json!({}), None), None);
         assert!(refused("mac/claude-bbbb", &json!({ "helpers": { "on": false, "at": 5 } }), None).is_some());
     }

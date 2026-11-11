@@ -45,7 +45,7 @@ impl Root {
                                 "Hand a task to an agent that works on it by itself: the agent lives in the box, a container of its own on one of your machines, on a new branch of a fresh checkout, with its permission prompts off. A box pauses when its agent has been quiet for a while, and picks up where it left off when you ask it more.",
                             ),
                         ).child(div().text_size(px(12.)).text_color(theme.text_placeholder).child(if docker {
-                            "Agents make them with the box_create MCP tool or `muxin box new`."
+                            "Agents make them with the box_create MCP tool or `andruide box new`."
                         } else {
                             "Boxes run in Docker: install it on a Linux machine or a Mac (Docker Desktop, OrbStack or Colima)."
                         })),
