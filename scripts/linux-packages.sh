@@ -7,10 +7,14 @@
 #   dist/AndruIDE-<version>-linux-<arch>.pkg.tar.zst  Arch
 #   dist/AndruIDE-<version>-linux-<arch>.AppImage   any distribution
 #
-# The packages put the app in /usr/lib/andruide, `andruide` (and `andruide`, its name
-# from before) in /usr/bin, and AndruIDE in the app menu; they ask for the
-# libraries it loads (xcb, xkbcommon, Vulkan) and glibc 2.35 or newer. The
-# AppImage carries the same folder and runs without FUSE 2.
+# The packages put the app in /usr/lib/andruide, `andruide` in /usr/bin, and
+# AndruIDE in the app menu; they ask for the libraries it loads (xcb, xkbcommon,
+# Vulkan) and glibc 2.35 or newer. The AppImage carries the same folder and runs
+# without FUSE 2.
+# One symlink, not two: upstream muxin shipped a legacy `muxen` beside `muxin`,
+# and the brand rename collapsed the pair into identical entries, which nfpm
+# rejects as a duplicate destination ("content collision", release run
+# 43093498505). AndruIDE has never shipped under a former name.
 #
 # nfpm, appimagetool and the AppImage runtime are pinned and checked against
 # their SHA-256; they're fetched into target/tools the first time.
@@ -84,9 +88,6 @@ contents:
   - src: $stage/agents/
     dst: /usr/lib/andruide/agents/
     file_info: { mode: 0755 }
-  - src: /usr/lib/andruide/andruide
-    dst: /usr/bin/andruide
-    type: symlink
   - src: /usr/lib/andruide/andruide
     dst: /usr/bin/andruide
     type: symlink
