@@ -511,6 +511,12 @@ pub struct Root {
     pub(super) run_history: Vec<String>,
     /// The machine whose output is shown bigger.
     pub(super) run_expanded: Option<String>,
+    /// The Run page: the valley's live kumbaya runs as last read (Father's
+    /// nav story, 11 Nov 2026 — current runs at the campfire, by camper);
+    /// which run's verses are shown open; when the list was read.
+    pub(super) valley_runs: Option<super::github::Load<Vec<crate::valley::RunSummary>>>,
+    pub(super) valley_runs_at: Option<Instant>,
+    pub(super) run_open: Option<String>,
     pub(super) ports_more: std::collections::HashSet<String>,
     /// Each machine's GPUs (its page's GPU card), as last read.
     pub(super) machine_gpus: std::collections::HashMap<String, Vec<crate::fleet::procs::Gpu>>,
@@ -729,6 +735,9 @@ impl Root {
             run_last: None,
             run_history: Vec::new(),
             run_expanded: None,
+            valley_runs: None,
+            valley_runs_at: None,
+            run_open: None,
             offline_details: Default::default(),
             last_notice: None,
             refocus: false,
