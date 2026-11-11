@@ -23,6 +23,7 @@ mod update;
 #[cfg(feature = "gui")]
 mod ui;
 mod util;
+mod valley;
 
 use std::io::IsTerminal;
 use std::path::PathBuf;
