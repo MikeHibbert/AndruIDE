@@ -3,15 +3,18 @@
 //! operation, so the Activity page has the whole output too.
 
 use std::collections::HashSet;
+use std::time::Instant;
 
 use gpui::{AnyElement, Context, Focusable, FontWeight, SharedString, Window, div, prelude::*, px};
 
 use super::format;
+use super::github::Load;
 use super::kit::{self, Button, ButtonStyle, card, section_title, spinner};
 use super::overview::page;
 use super::root::Root;
 use super::theme::{ActiveTheme, Theme, mono_font};
 use crate::fleet::model::{Machine, Operation};
+use crate::valley::{self, RunSummary};
 
 /// Output lines each machine's card shows, and the one made bigger.
 const LINES: usize = 14;
@@ -74,6 +77,8 @@ impl Root {
 
     pub(super) fn render_run(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> AnyElement {
         let theme = cx.theme();
+        // The valley's runs are the page's live half; keep them fresh.
+        self.maybe_load_runs(cx);
         let header = div()
             .flex()
             .flex_col()
@@ -153,7 +158,10 @@ impl Root {
             )
             .child(picker);
 
-        let mut body = page("run-page", &self.page_scroll).child(header).child(form);
+        let mut body = page("run-page", &self.page_scroll)
+            .child(header)
+            .child(self.render_valley_runs(&theme, cx))
+            .child(form);
         if !self.run_history.is_empty() {
             body = body.child(
                 div()
@@ -327,6 +335,256 @@ impl Root {
                     .when(shown.is_empty() && op.is_some_and(|o| o.status != "running"), |d| d.child(div().text_color(theme.text_placeholder).child("No output")))
                     .children(shown.iter().map(|l| div().whitespace_nowrap().text_color(theme.text).child(l.clone()))),
             )
+            .into_any_element()
+    }
+
+    // --- The campfire live (Father's nav story, 11 Nov 2026: the Run page
+    // shows the valley's current runs, by camper and what they're doing;
+    // the verse drill-down is the seed of Torches). ---
+
+    /// (Re)reads the valley's run list, like the Valley page loads its board.
+    fn load_runs(&mut self, cx: &mut Context<Self>) {
+        self.valley_runs = Some(Load::Loading);
+        self.valley_runs_at = Some(Instant::now());
+        let valley = crate::valley::Valley::from_parts(self.engine.settings().valley.clone());
+        if !valley.configured() {
+            self.valley_runs = Some(Load::Failed("not-configured".into()));
+            cx.notify();
+            return;
+        }
+        let job = self.engine.runtime().spawn(async move { valley.runs().await });
+        let task = cx.spawn(async move |this, cx| {
+            // The spawn yields Result<Result<Vec<RunSummary>, String>, JoinError>; flatten it.
+            let result = job.await.map_err(|e| e.to_string()).and_then(|r| r);
+            let _ = this.update(cx, |this, cx| {
+                this.valley_runs = Some(match result {
+                    Ok(runs) => Load::Ready(runs),
+                    Err(e) => Load::Failed(e),
+                });
+                cx.notify();
+            });
+        });
+        self.track(task);
+    }
+
+    /// Loads when the list is missing or stale (60s); never while loading.
+    fn maybe_load_runs(&mut self, cx: &mut Context<Self>) {
+        let loading = matches!(self.valley_runs, Some(Load::Loading));
+        let stale = self.valley_runs.is_none() || self.valley_runs_at.is_some_and(|t| t.elapsed().as_secs() > 60);
+        if !loading && stale {
+            self.load_runs(cx);
+        }
+    }
+
+    /// The campfire's live runs, grouped by camper: what's happening at the
+    /// valley right now. Clicking a run opens its verses.
+    fn render_valley_runs(&mut self, theme: &Theme, cx: &mut Context<Self>) -> AnyElement {
+        // Load isn't Clone: work on the stored list by reference, sorting it
+        // in place (stable, and this render is the only consumer of its order).
+        if let Some(Load::Ready(runs)) = self.valley_runs.as_mut() {
+            valley::order_runs(runs);
+        }
+        let (note, groups): (Option<String>, Vec<(String, Vec<&RunSummary>)>) = match &self.valley_runs {
+            None | Some(Load::Loading) => (Some("Checking the campfire…".into()), Vec::new()),
+            Some(Load::Failed(e)) if e == "not-configured" => {
+                (Some("The valley isn't configured — Settings › Valley.".into()), Vec::new())
+            }
+            Some(Load::Failed(e)) => (Some(format!("The campfire is out of reach: {e}")), Vec::new()),
+            Some(Load::Ready(runs)) if runs.is_empty() => {
+                (Some("The campfire is quiet — nothing is running right now.".into()), Vec::new())
+            }
+            Some(Load::Ready(runs)) => (None, valley::group_by_camper(runs)),
+        };
+        let count = self
+            .valley_runs
+            .as_ref()
+            .and_then(|l| match l {
+                Load::Ready(runs) if !runs.is_empty() => Some(runs.len()),
+                _ => None,
+            });
+        let mut section = div()
+            .flex()
+            .flex_col()
+            .gap(px(8.))
+            .child(
+                div()
+                    .flex()
+                    .items_center()
+                    .gap(px(8.))
+                    .child(section_title(theme, "At the campfire", count))
+                    .child(
+                        Button::icon_only("valley-runs-refresh", "refresh-cw")
+                            .tooltip("Read the campfire's runs again")
+                            .on_click(cx.listener(|this, _, _, cx| {
+                                this.valley_runs = None;
+                                this.maybe_load_runs(cx);
+                            })),
+                    ),
+            );
+        if let Some(note) = note {
+            section = section.child(div().text_size(px(12.)).text_color(theme.text_muted).child(note));
+        }
+        for (camper, group) in &groups {
+            section = section.child(
+                div()
+                    .flex()
+                    .flex_col()
+                    .gap(px(2.))
+                    .child(
+                        div()
+                            .text_size(px(11.))
+                            .font_weight(FontWeight::MEDIUM)
+                            .text_color(theme.text_muted)
+                            .child(format!("{camper} · {}", group.len())),
+                    )
+                    .children(group.iter().flat_map(|run| {
+                        let row = self.render_valley_run(theme, run, cx);
+                        let mut items = vec![row];
+                        if self.run_open.as_deref() == Some(run.id.as_str()) {
+                            items.push(self.render_valley_run_verses(theme, run));
+                        }
+                        items
+                    })),
+            );
+        }
+        section.into_any_element()
+    }
+
+    /// One run row: what it is, who's driving, where it has got to.
+    fn render_valley_run(&self, theme: &Theme, run: &RunSummary, cx: &mut Context<Self>) -> AnyElement {
+        let open = self.run_open.as_deref() == Some(run.id.as_str());
+        let chip: AnyElement = match run.status.as_str() {
+            "running" => div()
+                .flex()
+                .items_center()
+                .gap(px(5.))
+                .child(spinner(("vr-spin", run.id.len()), 11., theme.text_muted))
+                .into_any_element(),
+            "waiting_checkpoint" => div()
+                .flex()
+                .items_center()
+                .gap(px(4.))
+                .child(kit::icon("flame", 12., theme.accent))
+                .child(
+                    div()
+                        .text_size(px(10.5))
+                        .font_weight(FontWeight::MEDIUM)
+                        .text_color(theme.accent)
+                        .child("NEEDS YOU"),
+                )
+                .into_any_element(),
+            "completed" => kit::icon("check", 12., theme.success).into_any_element(),
+            "failed" => kit::icon("x", 12., theme.error).into_any_element(),
+            other => div()
+                .flex()
+                .child(div().text_size(px(10.5)).text_color(theme.text_muted).child(other.to_string()))
+                .into_any_element(),
+        };
+        let at = run
+            .current_verse()
+            .map(|v| v.verse.clone())
+            .unwrap_or_else(|| format!("{} of {} verses", run.settled_verses(), run.verses.len()));
+        let age = valley::age_text(&run.created_at).unwrap_or_default();
+        let click = {
+            let id = run.id.clone();
+            cx.listener(move |this: &mut Root, _: &gpui::ClickEvent, _: &mut Window, cx: &mut Context<Root>| {
+                this.run_open = if this.run_open.as_deref() == Some(id.as_str()) { None } else { Some(id.clone()) };
+                cx.notify();
+            })
+        };
+        div()
+            .id(SharedString::from(format!("vr-{}", run.id)))
+            .flex()
+            .items_center()
+            .gap(px(8.))
+            .h(px(28.))
+            .px(px(10.))
+            .pl(px(4.))
+            .rounded(kit::corner(7.))
+            .cursor_pointer()
+            .hover(|st| st.bg(theme.element_hover))
+            .when(open, |d| d.bg(theme.element))
+            .child(chip)
+            .child(
+                div()
+                    .flex_none()
+                    .w(px(190.))
+                    .truncate()
+                    .text_size(px(12.5))
+                    .font_weight(FontWeight::MEDIUM)
+                    .child(run.kumbaya.clone()),
+            )
+            .child(
+                div()
+                    .flex_1()
+                    .min_w(px(0.))
+                    .truncate()
+                    .font_family(mono_font())
+                    .text_size(px(11.5))
+                    .text_color(theme.text_muted)
+                    .child(at),
+            )
+            .when(!age.is_empty(), |d| {
+                d.child(div().flex_none().text_size(px(11.)).text_color(theme.text_placeholder).child(age))
+            })
+            .on_click(click)
+            .into_any_element()
+    }
+
+    /// The verses of one open run — each turn, its kind and where it got to
+    /// (what was said and thought joins it when Torches reads the results).
+    fn render_valley_run_verses(&self, theme: &Theme, run: &RunSummary) -> AnyElement {
+        card(theme)
+            .mx(px(10.))
+            .mb(px(4.))
+            .p(px(12.))
+            .gap(px(4.))
+            .overflow_hidden()
+            .child(div().text_size(px(11.)).text_color(theme.text_muted).child(format!("{} verses", run.verses.len())))
+            .children(run.verses.iter().enumerate().map(|(i, verse)| {
+                let glyph: AnyElement = match verse.status.as_str() {
+                    "completed" => kit::icon("check", 11., theme.success).into_any_element(),
+                    "skipped" => div()
+                        .flex()
+                        .justify_center()
+                        .child(div().text_size(px(11.)).text_color(theme.text_placeholder).child("–"))
+                        .into_any_element(),
+                    "failed" => kit::icon("x", 11., theme.error).into_any_element(),
+                    "running" => spinner(("vr-vspin", i), 10., theme.text_muted).into_any_element(),
+                    other => div()
+                        .flex()
+                        .justify_center()
+                        .child(div().text_size(px(10.)).text_color(theme.text_placeholder).child(other.to_string()))
+                        .into_any_element(),
+                };
+                let tool = if verse.tool_name.is_empty() { verse.kind.clone() } else { format!("{} · {}", verse.kind, verse.tool_name) };
+                div()
+                    .flex()
+                    .items_center()
+                    .gap(px(7.))
+                    .h(px(20.))
+                    .child(div().w(px(14.)).flex_none().flex().justify_center().child(glyph))
+                    .child(
+                        div()
+                            .flex_1()
+                            .min_w(px(0.))
+                            .truncate()
+                            .font_family(mono_font())
+                            .text_size(px(11.5))
+                            .text_color(theme.text)
+                            .child(verse.verse.clone()),
+                    )
+                    .child(
+                        div()
+                            .flex_none()
+                            .min_w(px(0.))
+                            .max_w(px(240.))
+                            .truncate()
+                            .text_size(px(10.5))
+                            .text_color(theme.text_placeholder)
+                            .child(tool),
+                    )
+            }))
             .into_any_element()
     }
 }
