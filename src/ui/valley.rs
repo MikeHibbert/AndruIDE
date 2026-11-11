@@ -3,12 +3,12 @@
 
 use std::time::Instant;
 
-use gpui::{AnyElement, Context, FontWeight, SharedString, div, prelude::*, px};
+use gpui::{AnyElement, Context, FontWeight, SharedString, Window, div, prelude::*, px};
 
 use super::github::Load;
 use super::kit::{self, Button, card, spinner};
 use super::overview::page;
-use super::root::Root;
+use super::root::{Root, Route};
 use super::theme::{ActiveTheme, mono_font};
 use crate::valley::{LANES, Valley};
 
@@ -20,7 +20,13 @@ impl Root {
     pub(super) fn load_valley(&mut self, cx: &mut Context<Self>) {
         self.valley_data = Some(Load::Loading);
         self.valley_at = Some(Instant::now());
-        let valley = Valley::from_parts(self.engine.settings().valley);
+        // A valley picked from the network is viewed here for the session;
+        // Settings › Valley keeps the durable URL. (Father, 11 Nov 2026.)
+        let mut cfg = self.engine.settings().valley.clone();
+        if let Some(base) = self.valley_view.clone() {
+            cfg.base_url = base;
+        }
+        let valley = Valley::from_parts(cfg);
         if !valley.configured() {
             self.valley_data = Some(Load::Failed("not-configured".into()));
             cx.notify();
@@ -42,6 +48,39 @@ impl Root {
             });
         });
         self.track(task);
+    }
+
+    /// The sidebar's "Valleys on the network": a fresh mDNS listen on the
+    /// blocking thread; empty when nothing answers (no valley running).
+    pub(super) fn scan_valleys(&mut self, cx: &mut Context<Self>) {
+        self.valleys_scanning = true;
+        self.valleys_at = Some(Instant::now());
+        let job = self.engine.runtime().spawn_blocking(|| {
+            crate::fleet::discover::browse_valleys(std::time::Duration::from_millis(2000))
+        });
+        let task = cx.spawn(async move |this, cx| {
+            let found = job.await.unwrap_or_default();
+            let _ = this.update(cx, |this, cx| {
+                this.valleys = found;
+                this.valleys_scanning = false;
+                cx.notify();
+            });
+        });
+        self.track(task);
+    }
+
+    /// Scans when the last listen is old enough (5 min) and none is running;
+    /// cheap enough to call every sidebar render.
+    pub(super) fn maybe_scan_valleys(&mut self, cx: &mut Context<Self>) {
+        if !self.valleys_scanning && self.valleys_at.is_none_or(|t| t.elapsed().as_secs() > 300) {
+            self.scan_valleys(cx);
+        }
+    }
+
+    /// Opens a network valley in the Valley page for this session.
+    pub(super) fn open_valley(&mut self, base: String, window: &mut Window, cx: &mut Context<Self>) {
+        self.valley_view = Some(base);
+        self.navigate(Route::Valley, window, cx);
     }
 
     /// How many items are running, for the sidebar badge.
@@ -70,7 +109,24 @@ impl Root {
                     .flex_col()
                     .gap(px(4.))
                     .child(div().text_size(px(22.)).font_weight(FontWeight::SEMIBOLD).child("Valley"))
-                    .child(div().text_size(px(13.)).text_color(theme.text_muted).child("Andrew's work board, read live from his API. How many items wait in each lane, and what his workers hold now.")),
+                    .child(div().text_size(px(13.)).text_color(theme.text_muted).child("Andrew's work board, read live from his API. How many items wait in each lane, and what his workers hold now."))
+                    .when_some(self.valley_view.clone(), |d, base| {
+                        // Click the line to leave the network valley again.
+                        d.child(
+                            div()
+                                .id("valley-viewing")
+                                .text_size(px(13.))
+                                .font_family(mono_font())
+                                .text_color(theme.text_muted)
+                                .cursor_pointer()
+                                .hover(|st| st.text_color(theme.text))
+                                .child(format!("Looking at {base} on the network — click to go back to your valley."))
+                                .on_click(cx.listener(|this, _, _, cx| {
+                                    this.valley_view = None;
+                                    this.load_valley(cx);
+                                })),
+                        )
+                    }),
             )
             .child(
                 div()
