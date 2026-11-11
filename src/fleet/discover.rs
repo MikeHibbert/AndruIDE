@@ -123,9 +123,14 @@ pub fn browse_valleys(listen: Duration) -> Vec<ValleyHost> {
             if addr.is_empty() {
                 continue;
             }
+            // The valley may sit behind a front that keeps the API under a
+            // path (Andrew's nginx keeps its routes under /api): the TXT
+            // `path` record carries it, so the open base actually answers.
+            let path = s.get_property_val_str("path").unwrap_or("").trim_matches('/').to_string();
+            let suffix = if path.is_empty() { String::new() } else { format!("/{path}") };
             found.insert(
                 instance.to_ascii_lowercase(),
-                ValleyHost { name: instance, product, base: format!("http://{addr}:{port}") },
+                ValleyHost { name: instance, product, base: format!("http://{addr}:{port}{suffix}") },
             );
         }
         std::thread::sleep(Duration::from_millis(50));
