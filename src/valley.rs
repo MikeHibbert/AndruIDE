@@ -73,9 +73,11 @@ pub struct ItemDetail {
     pub started_at: Option<String>,
     #[serde(default)]
     pub claim_run_id: Option<String>,
-    /// Why a claim failed, when it did (the empty string reads as none).
+    /// Why a claim failed, when it did. The server sends `""` for some
+    /// items and `null` for others (the null form broke the item page,
+    /// Father 12 Nov 2026); both read as none.
     #[serde(default)]
-    pub error: String,
+    pub error: Option<String>,
     /// The item's log as it was worked, oldest entries first.
     #[serde(default)]
     pub progress_log: Vec<String>,
@@ -85,6 +87,13 @@ impl ItemDetail {
     /// The claim run when the item carries a real one.
     pub fn claim_run(&self) -> Option<&str> {
         self.claim_run_id.as_deref().map(str::trim).filter(|s| !s.is_empty())
+    }
+
+    /// The failure text, when a real one is present. Null and `""` both read
+    /// as none (the server sends null form in detail bodies, Father 12 Nov
+    /// 2026).
+    pub fn failed_text(&self) -> Option<&str> {
+        self.error.as_deref().filter(|e| !e.trim().is_empty())
     }
 
     /// The log's newest entries, last first, capped for the page.
@@ -729,7 +738,7 @@ mod tests {
 
     /// A trimmed slice of the real `GET /work/{id}` answer, captured live
     /// on 12 Nov 2026 (extra fields included on purpose: serde must ignore
-    /// them, and the empty strings the board sends read as none).
+    /// them, and empty strings AND nulls read as none).
     const ITEM_FIXTURE: &str = r##"{
         "id": "work_ab12cd34ef", "title": "One-list routine taxonomy",
         "description": "Render schedules, todos and ceremonies through ONE presentation function.\n\nSecond paragraph of the spec.",
@@ -754,9 +763,22 @@ mod tests {
         assert_eq!(item.title, "One-list routine taxonomy");
         assert_eq!(item.status, "running");
         assert_eq!(item.priority, 20);
-        assert!(item.progress_log.len() == 2 && item.error.is_empty());
+        assert!(item.progress_log.len() == 2 && item.failed_text().is_none());
         assert_eq!(item.claim_run(), Some("f7f19b49-3878-47c9-a0f3-bf635c13c10d"));
         assert_eq!(item.recent_log(1), ["[2026-11-11 21:02] plan landed"]);
+    }
+
+    /// The null form the detail bodies actually send (7 of 8 probed on
+    /// 12 Nov 2026, Father m1593): one null field must not kill the decode.
+    #[test]
+    fn error_null_reads_as_none() {
+        let item: ItemDetail = serde_json::from_str(
+            r#"{"id":"work_null","title":"t","error":null,"priority":3}"#,
+        )
+        .expect("a null error parses");
+        assert!(item.failed_text().is_none());
+        assert_eq!(item.description, "");
+        assert_eq!(item.claim_run(), None);
     }
 
     #[test]
@@ -764,7 +786,7 @@ mod tests {
         let item: ItemDetail = serde_json::from_str("{\"id\":\"x\",\"title\":\"t\"}")
             .expect("a bare item object parses");
         assert_eq!(item.claim_run(), None);
-        assert!(item.error.is_empty());
+        assert!(item.failed_text().is_none());
         assert!(item.progress_log.is_empty());
     }
 
