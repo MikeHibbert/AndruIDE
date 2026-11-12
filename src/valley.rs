@@ -297,7 +297,17 @@ impl Valley {
         if !self.configured() {
             return Err("The valley isn't configured — set it in Settings › Valley.".into());
         }
-        let resp = self.get("/kumbayas/runs").await.map_err(|e| format!("The runs: {e}"))?;
+        // lite=1 asks the valley to strip the verse result/intent and
+        // report/inputs from the list read (depth stays on /kumbayas/runs/{id}).
+        // Measured live 13 Nov 2026: the plain list shipped 3.98MB and took
+        // 14.3s under pool load -- what made the board unreadable in this app.
+        // Backends that don't know the param ignore it, so this stays safe
+        // against every valley. (Father 13 Nov 2026: "you can't even look to
+        // see what jobs are in the valley now.")
+        let resp = self
+            .get("/kumbayas/runs?lite=1")
+            .await
+            .map_err(|e| format!("The runs: {e}"))?;
         resp.json::<Vec<RunSummary>>()
             .await
             .map_err(|e| format!("The runs aren't the shape we expect: {e}"))
