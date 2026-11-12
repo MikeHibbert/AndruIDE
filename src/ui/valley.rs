@@ -6,7 +6,8 @@ use std::time::Instant;
 use gpui::{AnyElement, Context, FontWeight, SharedString, Window, div, prelude::*, px};
 
 use super::github::Load;
-use super::kit::{self, Button, card, spinner};
+use super::input::TextInput;
+use super::kit::{self, Button, ButtonStyle, card, spinner};
 use super::overview::page;
 use super::root::{Root, Route};
 use super::theme::{ActiveTheme, mono_font};
@@ -81,6 +82,33 @@ impl Root {
     pub(super) fn open_valley(&mut self, base: String, window: &mut Window, cx: &mut Context<Self>) {
         self.valley_view = Some(base);
         self.navigate(Route::Valley, window, cx);
+    }
+
+    /// Applies a pasted Valley invite from the not-configured card: writes
+    /// it into Settings › Valley (durable) and reads the board right away.
+    pub(super) fn join_valley(&mut self, cx: &mut Context<Self>) {
+        let text = self
+            .valley_join_input
+            .as_ref()
+            .map(|i| i.read(cx).text().trim().to_string())
+            .unwrap_or_default();
+        let Some(parts) = crate::valley::parse_join(&text) else {
+            self.notify_user("That doesn't look like a valley invite.", true, cx);
+            return;
+        };
+        let mut s = self.engine.settings();
+        s.valley.base_url = parts.base;
+        s.valley.user = parts.user;
+        s.valley.password = parts.password;
+        if let Err(e) = self.engine.update_settings(s) {
+            self.notify_user(SharedString::from(e), true, cx);
+            return;
+        }
+        // A join is durable: leave any network valley behind and read fresh.
+        self.valley_view = None;
+        self.valley_at = None;
+        self.load_valley(cx);
+        self.notify_user("Joined the valley — reading its board now.", false, cx);
     }
 
     /// How many items are running, for the sidebar badge.
@@ -158,6 +186,17 @@ impl Root {
                     .child(Button::icon_only("valley-refresh", "refresh-cw").tooltip("Read the board again").on_click(cx.listener(|this, _, _, cx| this.load_valley(cx)))),
             );
         let mut body = page("valley-page", &self.page_scroll).child(header);
+        // Join-a-valley (Father, 12 Nov 2026: "Join a valley" first run):
+        // the paste box is created once, before the state match borrows it.
+        let need_join = matches!(self.valley_data.as_ref(), Some(Load::Failed(e)) if e == "not-configured");
+        let join_input = if need_join {
+            Some(self
+                .valley_join_input
+                .get_or_insert_with(|| cx.new(|cx| TextInput::new(cx, "andruide://join?base=…&user=…&password=…").mono()))
+                .clone())
+        } else {
+            None
+        };
         let data = match &self.valley_data {
             Some(Load::Ready(data)) => data,
             Some(Load::Loading) => {
@@ -166,13 +205,24 @@ impl Root {
                     .into_any_element();
             }
             Some(Load::Failed(e)) if e == "not-configured" => {
+                let input = join_input.expect("pre-created just above for the not-configured arm");
                 return body
-                    .child(card(&theme).p(px(18.)).flex_col().gap(px(8.)).text_size(px(13.)).text_color(theme.text_muted)
-                        .child("The valley isn't configured in this app yet.")
-                        .child(div().text_size(px(12.)).child("Set these before starting the app, then press refresh:"))
-                        .child(div().text_size(px(12.)).font_family(mono_font()).child("ANDRUIDE_VALLEY_URL=http://localhost:8001"))
-                        .child(div().text_size(px(12.)).font_family(mono_font()).child("ANDRUIDE_VALLEY_USER=…"))
-                        .child(div().text_size(px(12.)).font_family(mono_font()).child("ANDRUIDE_VALLEY_PASSWORD=…")))
+                    .child(card(&theme).p(px(18.)).flex_col().gap(px(10.))
+                        .child(div().text_size(px(13.)).child("The valley isn't configured in this app yet."))
+                        .child(div().text_size(px(12.)).text_color(theme.text_muted).child("Paste a valley invite below — the join link or QR the valley shows you — and press Join."))
+                        .child(
+                            div()
+                                .flex()
+                                .items_center()
+                                .gap(px(8.))
+                                .child(div().w(px(360.)).flex_none().flex().flex_col().child(input))
+                                .child(
+                                    Button::new("valley-join", "Join the valley")
+                                        .style(ButtonStyle::Primary)
+                                        .on_click(cx.listener(|this, _, _, cx| this.join_valley(cx))),
+                                ),
+                        )
+                        .child(div().text_size(px(11.)).text_color(theme.text_placeholder).child("Or set ANDRUIDE_VALLEY_URL / _USER / _PASSWORD before starting the app; Settings › Valley holds them either way.")))
                     .into_any_element();
             }
             Some(Load::Failed(e)) => {
