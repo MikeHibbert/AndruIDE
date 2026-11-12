@@ -8,7 +8,11 @@
 //!
 //! Father, 13 Nov 2026, on this same page: a camera too - drag to pan, the
 //! wheel to zoom, and the Wide / At-the-fire altitudes with reset.
+//! Father, 12 Nov 2026: the ambient light follows this machine's clock - at
+//! night the fires and torches carry the valley and the light dances from
+//! one campfire to the next, through to the river boat.
 
+use chrono::Timelike;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -273,6 +277,15 @@ impl Root {
             .as_secs_f32();
         let dark = cx.theme().canvas.l < 0.5;
 
+        // The ambient light follows the clock on this machine (Father,
+        // 12 Nov 2026): as night falls the fires and the torches carry the
+        // valley and the light dances from one campfire to the next, on to
+        // the river boat. Bright around 13:00, fully dark outside 06:00..20:00.
+        let now_local = chrono::Local::now();
+        let hour = now_local.hour() as f32 + now_local.minute() as f32 / 60.0;
+        let daylight = ((hour - 13.0) * std::f32::consts::PI / 14.0).cos().clamp(0.0, 1.0);
+        let night = 1.0 - daylight;
+
         let shared_prepaint = shared.clone();
         let shared_paint = shared.clone();
         let sites_paint = sites.clone();
@@ -280,6 +293,7 @@ impl Root {
         let pending_paint = pending;
         let t_paint = t;
         let dark_paint = dark;
+        let night_paint = night;
         // The camera travels into the paint pass, the event handlers and
         // the preset buttons by Arc, like the shared paint state.
         let cam_shared = self.scene_cam.clone();
@@ -316,7 +330,7 @@ impl Root {
                 cam.cx += cam_state.2;
                 cam.cy += cam_state.3;
                 let cam = cam;
-                let pal = palette(dark_paint);
+                let pal = palette(dark_paint, 1.0 - night_paint);
                 let mut faces: Vec<Face> = Vec::new();
                 let mut labels: Vec<SceneLabel> = Vec::new();
                 let mut hits: Vec<SceneHit> = Vec::new();
@@ -388,7 +402,20 @@ impl Root {
                             &mut faces,
                             &cam,
                             [bxx, 0.58, bzz],
-                            0.55,
+                            // night raises every flame (Father, 12 Nov 2026)
+                            0.55 * (0.8 + 0.6 * night_paint),
+                            t_paint,
+                            k as f32 * 2.1,
+                            &pal,
+                        );
+                    } else if night_paint > 0.2 {
+                        // at night the dock torches stay lit even when
+                        // nothing waits on them
+                        flame(
+                            &mut faces,
+                            &cam,
+                            [bxx, 0.58, bzz],
+                            0.22 * night_paint,
                             t_paint,
                             k as f32 * 2.1,
                             &pal,
@@ -432,6 +459,21 @@ impl Root {
                         ],
                         hsl(0.07, 0.8, 0.55, 0.8),
                     );
+                    // the water round the boat catches the light as the
+                    // dance passes through it (Father, 12 Nov 2026)
+                    if night_paint > 0.05 {
+                        face(
+                            &mut faces,
+                            &cam,
+                            &ring([bxx, 0.045, bzz], 1.4, 14, 0.0, 0.0, 0.0),
+                            hsl(
+                                pal.glow.h,
+                                pal.glow.s,
+                                pal.glow.l,
+                                0.10 * night_paint * (1.0 + 0.5 * (t_paint * 1.1).sin()),
+                            ),
+                        );
+                    }
                 }
 
                 // the campfires
@@ -518,15 +560,41 @@ impl Root {
                             &mut faces,
                             &cam,
                             base,
-                            scale_of(site),
+                            // night raises the fires that are burning
+                            // (Father, 12 Nov 2026)
+                            scale_of(site) * (0.75 + 0.65 * night_paint),
                             t_paint,
                             site.phase,
                             &pal,
                         );
+                        // the light dances round the ring: each pool breathes
+                        // on its own phase, so the glow passes from one
+                        // campfire to the next (Father, 12 Nov 2026)
+                        if night_paint > 0.05 {
+                            let dance =
+                                0.75 + 0.25 * (t_paint * 0.9 + site.phase * 1.7).sin();
+                            face(
+                                &mut faces,
+                                &cam,
+                                &ring(
+                                    [site.x, 0.035, site.z],
+                                    1.9 * breathe,
+                                    16,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                ),
+                                hsl(
+                                    pal.glow.h,
+                                    pal.glow.s,
+                                    pal.glow.l,
+                                    0.14 * night_paint * dance * breathe.max(1.0),
+                                ),
+                            );
+                        }
                     } else {
                         // cold fire: low coals
-                        for e in 0..3 {
-                            let prog = (t_paint * 0.12 + e as f32 * 0.41) % 1.0;
+                        for e in 0..3 {                            let prog = (t_paint * 0.12 + e as f32 * 0.41) % 1.0;
                             face(
                                 &mut faces,
                                 &cam,
@@ -537,6 +605,16 @@ impl Root {
                                     5,
                                 ),
                                 hsl(0.06, 0.7, 0.45, 0.5 * (1.0 - prog)),
+                            );
+                        }
+                        // at night a cold fire keeps a coal glow on the
+                        // ground, so the valley never goes fully dark
+                        if night_paint > 0.2 {
+                            face(
+                                &mut faces,
+                                &cam,
+                                &ring([site.x, 0.035, site.z], 0.62, 12, 0.0, 0.0, 0.0),
+                                hsl(pal.glow.h, pal.glow.s, pal.glow.l, 0.07 * night_paint),
                             );
                         }
                     }
@@ -816,7 +894,23 @@ fn flame(faces: &mut Vec<Face>, cam: &Cam, base: [f32; 3], intensity: f32, t: f3
     }
 }
 
-fn palette(dark: bool) -> Palette {
+/// The palette for the time of day: the theme's base, then the night pulls
+/// the land and water down and lifts the firelight that answers (Father,
+/// 12 Nov 2026: the ambient light follows the clock).
+fn palette(dark: bool, daylight: f32) -> Palette {
+    let mut pal = base_palette(dark);
+    let night = 1.0 - daylight;
+    pal.ground.l *= 1.0 - 0.45 * night;
+    pal.water.l *= 1.0 - 0.35 * night;
+    pal.foam.l *= 1.0 - 0.10 * night;
+    pal.wood_a.l *= 1.0 - 0.35 * night;
+    pal.wood_b.l *= 1.0 - 0.35 * night;
+    pal.stone.l *= 1.0 - 0.25 * night;
+    pal.glow = hsl(pal.glow.h, pal.glow.s, pal.glow.l, 0.30 * night);
+    pal
+}
+
+fn base_palette(dark: bool) -> Palette {
     Palette {
         ground: hsl(0.34, if dark { 0.13 } else { 0.15 }, if dark { 0.150 } else { 0.350 }, 1.0),
         water: hsl(0.55, 0.42, if dark { 0.20 } else { 0.46 }, 1.0),
