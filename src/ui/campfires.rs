@@ -15,7 +15,7 @@ use super::kit::{self, Button, ButtonStyle, card, section_title, spinner};
 use super::overview::page;
 use super::root::Root;
 use super::theme::{ActiveTheme, Theme, mono_font};
-use crate::valley::{self, RunSummary};
+use crate::valley::{self, CheckpointAsk, RunSummary};
 
 /// The page's sidebar tile colour: campfire orange.
 pub const TILE: (u32, u32) = (0xffa94d, 0xe0432d);
@@ -121,6 +121,15 @@ impl Root {
                     area = area.child(self.render_torch_row(&theme, run, torch_open, cx));
                     if torch_open {
                         area = area.child(self.render_valley_run_verses(&theme, run));
+                        if run.status == "waiting_checkpoint" {
+                            // The responder card rides only owned clones: the
+                            // loop holds the runs borrow, and the card's
+                            // buttons must outlive it (rustc E0502 rule).
+                            if let Some(ask) = run.waiting_ask() {
+                                let run_id = run.id.clone();
+                                area = area.child(self.render_checkpoint_card(&theme, run_id, ask.clone(), cx));
+                            }
+                        }
                         if run.status == "running" {
                             area = area.child(self.render_instruct_row(run, cx));
                         }
@@ -308,9 +317,102 @@ impl Root {
             .into_any_element()
     }
 
+    /// The responder card: a checkpoint holds this run, and here are the
+    /// answers it will take. (Father, 13 Nov 2026: "what a shame I can't
+    /// respond to that needs you work_day_review" — and "Those needs need
+    /// you could also be pop up on the overview page".) `run_id` and `ask`
+    /// arrive owned (cloned by the caller) so the card's buttons don't
+    /// borrow the runs list the page is iterating.
+    pub(super) fn render_checkpoint_card(
+        &self,
+        theme: &Theme,
+        run_id: String,
+        ask: CheckpointAsk,
+        cx: &mut Context<Self>,
+    ) -> AnyElement {
+        let question = ask.question.trim();
+        let buttons = ask
+            .options
+            .iter()
+            .filter(|o| !o.trim().is_empty())
+            .map(|option| {
+                let run_id = run_id.clone();
+                let answer = option.clone();
+                Button::new(SharedString::from(format!("cp-{run_id}-{option}")), option.clone())
+                    .style(ButtonStyle::Primary)
+                    .on_click(cx.listener(move |this: &mut Root, _: &gpui::ClickEvent, _: &mut Window, cx: &mut Context<Root>| {
+                        this.resume_checkpoint(run_id.clone(), answer.clone(), cx);
+                    }))
+            })
+            .collect::<Vec<_>>();
+        card(&theme)
+            .mx(px(16.))
+            .mb(px(8.))
+            .p(px(12.))
+            .flex()
+            .flex_col()
+            .gap(px(8.))
+            .border_1()
+            .border_color(theme.accent)
+            .child(
+                div()
+                    .flex()
+                    .items_center()
+                    .gap(px(6.))
+                    .child(kit::icon("flame", 12., theme.accent))
+                    .child(
+                        div()
+                            .text_size(px(11.))
+                            .font_weight(FontWeight::MEDIUM)
+                            .text_color(theme.accent)
+                            .child("NEEDS YOU — ANDREW IS WAITING"),
+                    ),
+            )
+            .when(!question.is_empty(), |d| {
+                d.child(div().text_size(px(12.5)).text_color(theme.text).whitespace_normal().child(super::valley_item::clipped(
+                    question,
+                    600,
+                )))
+            })
+            .when(buttons.is_empty(), |d| {
+                d.child(div().text_size(px(11.5)).text_color(theme.text_muted).child(
+                    "No answer options came with the ask — instruct the camper instead.",
+                ))
+            })
+            .child(div().flex().flex_wrap().items_center().gap(px(8.)).children(buttons))
+            .into_any_element()
+    }
+
+    /// Answers the checkpoint: the run resumes on the valley, and the page's
+    /// caches are dropped so the next paint reads the run's new state.
+    pub(super) fn resume_checkpoint(&mut self, run_id: String, answer: String, cx: &mut Context<Self>) {
+        let valley = crate::valley::Valley::from_parts(self.engine.settings().valley.clone());
+        let answer_for_job = answer.clone();
+        let job = self.engine.runtime().spawn(async move {
+            valley.resume(&run_id, &answer_for_job).await
+        });
+        let task = cx.spawn(async move |this, cx| {
+            let result = job.await.unwrap_or_else(|e| Err(e.to_string()));
+            let _ = this.update(cx, |this, cx| {
+                let (msg, err) = match &result {
+                    Ok(_) => (format!("Answered with \"{}\" — the camper carries on.", answer), false),
+                    Err(e) => (e.clone(), true),
+                };
+                this.notify_user(msg, err, cx);
+                if result.is_ok() {
+                    // Drop the caches: the run left the checkpoint, so both
+                    // the torch trail and the runs list are stale now.
+                    this.valley_talks.clear();
+                    this.valley_runs = None;
+                    this.maybe_load_runs(cx);
+                }
+            });
+        });
+        self.track(task);
+    }
+
     /// Sends the instruction: interrupt the camper mid-run.
-    fn campfire_instruct(&mut self, session_id: String, cx: &mut Context<Self>) {
-        let text = self
+    fn campfire_instruct(&mut self, session_id: String, cx: &mut Context<Self>) {        let text = self
             .campfire_input
             .as_ref()
             .map(|i| i.read(cx).text().trim().to_string())

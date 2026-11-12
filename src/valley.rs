@@ -407,6 +407,46 @@ impl Valley {
             .await
             .map_err(|e| format!("The conversation isn't the shape we expect: {e}"))
     }
+
+    /// Answers a waiting checkpoint: POST /kumbayas/runs/{id}/resume with
+    /// `{"answer": …}`. (Father, 13 Nov 2026: "what a shame I can't respond
+    /// to that needs you work_day_review" — the responder card on the
+    /// Campfires and item pages rides this.)
+    pub async fn resume(&self, run_id: &str, answer: &str) -> Result<(), String> {
+        if !self.configured() {
+            return Err("The valley isn't configured — set it in Settings › Valley.".into());
+        }
+        let body = serde_json::json!({ "answer": answer });
+        let mut url = self.url_for(&format!("/kumbayas/runs/{run_id}/resume"));
+        let mut resp = self
+            .auth(self.http.post(&url).json(&body))
+            .send()
+            .await
+            .map_err(|e| format!("Couldn't reach the valley at {url}: {e}"))?;
+        if self.can_learn() && Self::looks_like_html(&resp) {
+            let _ = self.prefix.set("/api".to_string());
+            url = self.url_for(&format!("/kumbayas/runs/{run_id}/resume"));
+            resp = self
+                .auth(self.http.post(&url).json(&body))
+                .send()
+                .await
+                .map_err(|e| format!("Couldn't reach the valley at {url}: {e}"))?;
+        }
+        resp.error_for_status()
+            .map(|_| ())
+            .map_err(|e| format!("The valley answered {e}"))
+    }
+}
+
+/// A checkpoint's ask: the question Andrew holds a run on, and the answers
+/// it will take ("accept" / "refine" / "skip" on the day review, captured
+/// live 13 Nov 2026).
+#[derive(Debug, Clone, Deserialize, PartialEq)]
+pub struct CheckpointAsk {
+    #[serde(default)]
+    pub question: String,
+    #[serde(default)]
+    pub options: Vec<String>,
 }
 
 /// The body of a chat turn.
@@ -439,6 +479,12 @@ pub struct VerseLite {
     pub status: String,
     #[serde(default)]
     pub tool_name: String,
+    /// The ask a checkpoint verse holds the run on; the lite list read
+    /// keeps it (the server strips result/intent, not checkpoint), so the
+    /// Needs-you card can show the question without a deep read. (Father,
+    /// 13 Nov 2026: needs-you should pop up on the Overview.)
+    #[serde(default)]
+    pub checkpoint: Option<CheckpointAsk>,
 }
 
 /// One kumbaya run as `GET /kumbayas/runs` reports it, trimmed like its
@@ -483,6 +529,12 @@ impl RunSummary {
     /// How far the run has got: the verses passed over or finished.
     pub fn settled_verses(&self) -> usize {
         self.verses.iter().filter(|v| matches!(v.status.as_str(), "completed" | "skipped" | "failed")).count()
+    }
+
+    /// The ask this run waits on (its newest checkpoint verse that carries
+    /// one) — the Needs-you cards read the question from here.
+    pub fn waiting_ask(&self) -> Option<&CheckpointAsk> {
+        self.verses.iter().rev().find_map(|v| v.checkpoint.as_ref())
     }
 }
 
@@ -555,6 +607,8 @@ pub struct VerseTalk {
     pub result: Option<String>,
     #[serde(default)]
     pub error: Option<String>,
+    #[serde(default)]
+    pub checkpoint: Option<CheckpointAsk>,
 }
 
 impl VerseTalk {
@@ -585,6 +639,15 @@ pub struct RunTalk {
     pub created_at: String,
     #[serde(default)]
     pub verses: Vec<VerseTalk>,
+}
+
+impl RunTalk {
+    /// The ask this conversation's run waits on (its newest checkpoint
+    /// verse that carries one) — the item page's responder card reads it
+    /// from here.
+    pub fn waiting_ask(&self) -> Option<&CheckpointAsk> {
+        self.verses.iter().rev().find_map(|v| v.checkpoint.as_ref())
+    }
 }
 
 #[cfg(test)]
@@ -823,5 +886,41 @@ mod tests {
         assert!(said.contains("\"title\": \"One-list routine taxonomy\""));
         assert!(talk.verses[1].said().is_none(), "a running verse hasn't spoken yet");
         assert!(talk.verses[2].said().is_none(), "a pending verse hasn't spoken yet");
+    }
+
+    /// The checkpoint ask travels on both the lite list read and the full
+    /// detail read (the day review's ask, captured live 13 Nov 2026:
+    /// question plus accept/refine/skip). A checkpoint verse without an
+    /// ask still parses, as none.
+    #[test]
+    fn waiting_ask_carries_the_question_and_options() {
+        let runs: Vec<RunSummary> = serde_json::from_str(
+            r#"[{"id":"r-ask","kumbaya":"work_day_review","status":"waiting_checkpoint",
+                 "session_id":"scheduled:work_day_review","created_at":"2026-11-13T15:30:22Z",
+                 "verses":[{"verse":"review_checkpoint","kind":"checkpoint","status":"running",
+                            "checkpoint":{"question":"Accept the scorecard, request a refine pass, or skip?",
+                                          "options":["accept","refine","skip"]}}]}]"#,
+        )
+        .expect("a run with a checkpoint ask parses");
+        let ask = runs[0].waiting_ask().expect("the ask is on the newest checkpoint verse");
+        assert_eq!(ask.options, ["accept", "refine", "skip"]);
+        assert!(ask.question.contains("Accept the scorecard"));
+        let bare: RunSummary = serde_json::from_str(
+            r#"{"id":"r-bare","status":"waiting_checkpoint",
+                "verses":[{"verse":"review_checkpoint","kind":"checkpoint","status":"running"}]}"#,
+        )
+        .expect("a checkpoint verse without an ask parses (serde default)");
+        assert_eq!(bare.waiting_ask(), None, "missing checkpoint reads as none");
+    }
+
+    #[test]
+    fn the_detail_conversation_carries_the_ask_too() {
+        let talk: RunTalk = serde_json::from_str(
+            r#"{"id":"f7f19b49","kumbaya":"work_board_worker","status":"waiting_checkpoint",
+                "verses":[{"verse":"review_checkpoint","kind":"checkpoint","status":"pending",
+                           "checkpoint":{"question":"Accept the scorecard?","options":["accept"]}}]}"#,
+        )
+        .expect("the detail run shape parses");
+        assert_eq!(talk.waiting_ask().expect("the ask").question, "Accept the scorecard?");
     }
 }
