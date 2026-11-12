@@ -145,6 +145,36 @@ impl Root {
         self.track(task);
     }
 
+    /// Opens the thread with a message handed in (the New-session dialog's
+    /// opening line): sends it and drops the cached transcript so the page
+    /// reloads with the turn in it.
+    pub(super) fn andrew_send_open(&mut self, key: &str, text: String, cx: &mut Context<Root>) {
+        let valley = valley::Valley::from_parts(self.engine.settings().valley.clone());
+        let key_for_job = key.to_string();
+        let key = key.to_string();
+        let job = self
+            .engine
+            .runtime()
+            .spawn(async move { valley.chat(&key_for_job, &text, false).await });
+        let task = cx.spawn(async move |this, cx| {
+            let result = job.await;
+            let _ = this.update(cx, |this, cx| {
+                match result {
+                    Ok(Ok(_)) => {
+                        // The cached transcript predates the new turn: drop
+                        // it so the page reads the fresh one.
+                        this.andrew_talks.remove(&key);
+                        this.notify_user("Sent - Andrew is thinking.", false, cx);
+                    }
+                    Ok(Err(e)) => this.notify_user(e, true, cx),
+                    Err(e) => this.notify_user(e.to_string(), true, cx),
+                }
+                cx.notify();
+            });
+        });
+        self.track(task);
+    }
+
     /// The page: Andrew's conversations, the one Dad is reading, and the
     /// composer.
     pub(super) fn render_andrew_chat(&mut self, key: &str, cx: &mut Context<Self>) -> AnyElement {
