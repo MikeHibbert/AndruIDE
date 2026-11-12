@@ -533,6 +533,12 @@ pub struct Root {
     /// The Valley page's clicked lane chip ("all" included; None = the
     /// running lane, as the page always showed). (Father, 12 Nov 2026.)
     pub(super) valley_lane: Option<String>,
+    /// The Valley page's clicked project chip (None = the default, which
+    /// is "andrew" when that project is present). (Father, 12 Nov 2026:
+    /// "we need to look at the different projects which are within that
+    /// valley and group our jobs by project. So the default one will be
+    /// Andrew's project".)
+    pub(super) valley_project: Option<String>,
     pub(super) run_open: Option<String>,
     /// The item pages: each board item's full detail (what it's about) and
     /// its claim run's conversation, as last read (Father's three levels,
@@ -785,6 +791,7 @@ impl Root {
             valley_scheds: None,
             valley_scheds_at: None,
             valley_lane: None,
+            valley_project: None,
             run_open: None,
             valley_items: Default::default(),
             valley_talks: Default::default(),

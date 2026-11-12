@@ -111,6 +111,25 @@ pub struct ReadyOut {
     pub status: String,
     #[serde(default)]
     pub draining: bool,
+    /// The contract capabilities this valley advertises (contract v1:
+    /// bare valleys say ["agent"], Andrew's tier adds the work board).
+    /// A valley without the work tier gets the graceful "campers take
+    /// work by handoff" card instead of an error (Father, 12 Nov 2026,
+    /// on Valley A: "it doesn't have an API work endpoint... it's just
+    /// a campfire valley").
+    #[serde(default)]
+    pub capabilities: Vec<String>,
+}
+
+impl ReadyOut {
+    /// Does this valley run the work board (the /work surface)?
+    pub fn has_work_tier(&self) -> bool {
+        // Andrew's tier keeps serving the board regardless of how the
+        // capability marker evolves, so an EMPTY list reads as Andrew
+        // (backwards-compatible with builds that never sent the field).
+        self.capabilities.is_empty()
+            || self.capabilities.iter().any(|c| c == "planner" || c == "work")
+    }
 }
 
 /// One read of the valley: the whole board plus the service pill.
@@ -428,6 +447,34 @@ impl Valley {
             url = self.url_for(&format!("/kumbayas/runs/{run_id}/resume"));
             resp = self
                 .auth(self.http.post(&url).json(&body))
+                .send()
+                .await
+                .map_err(|e| format!("Couldn't reach the valley at {url}: {e}"))?;
+        }
+        resp.error_for_status()
+            .map(|_| ())
+            .map_err(|e| format!("The valley answered {e}"))
+    }
+
+    /// Stops a running job: POST /kumbayas/runs/{id}/cancel. The server
+    /// cancels the run and requeues its work item if this run owns one
+    /// (Father, 12 Nov 2026: "we'll be able to control there those from
+    /// the valley too" — the stop rides the Valley board's inline button).
+    pub async fn cancel_run(&self, run_id: &str) -> Result<(), String> {
+        if !self.configured() {
+            return Err("The valley isn't configured — set it in Settings › Valley.".into());
+        }
+        let mut url = self.url_for(&format!("/kumbayas/runs/{run_id}/cancel"));
+        let mut resp = self
+            .auth(self.http.post(&url))
+            .send()
+            .await
+            .map_err(|e| format!("Couldn't reach the valley at {url}: {e}"))?;
+        if self.can_learn() && Self::looks_like_html(&resp) {
+            let _ = self.prefix.set("/api".to_string());
+            url = self.url_for(&format!("/kumbayas/runs/{run_id}/cancel"));
+            resp = self
+                .auth(self.http.post(&url))
                 .send()
                 .await
                 .map_err(|e| format!("Couldn't reach the valley at {url}: {e}"))?;

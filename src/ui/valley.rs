@@ -52,6 +52,30 @@ impl Root {
         self.track(task);
     }
 
+    /// Stops one run from the board's inline button: cancel the run, then
+    /// re-read the board. (Father, 12 Nov 2026: "we'll be able to control
+    /// there those from the valley too".)
+    fn valley_stop_item(&mut self, run_id: String, cx: &mut Context<Self>) {
+        let mut cfg = self.engine.settings().valley.clone();
+        if let Some(base) = self.valley_view.clone() {
+            cfg.base_url = base;
+        }
+        let valley = Valley::from_parts(cfg);
+        let job = self.engine.runtime().spawn(async move { valley.cancel_run(&run_id).await });
+        let task = cx.spawn(async move |this, cx| {
+            let result = job.await.unwrap_or_else(|e| Err(e.to_string()));
+            let _ = this.update(cx, |this, cx| match result {
+                Ok(()) => {
+                    this.notify_user("The run stopped.", false, cx);
+                    this.valley_data = None;
+                    this.load_valley(cx);
+                }
+                Err(e) => this.notify_user(SharedString::from(e), true, cx),
+            });
+        });
+        self.track(task);
+    }
+
     /// The sidebar's "Valleys on the network": a fresh mDNS listen on the
     /// blocking thread; empty when nothing answers (no valley running).
     pub(super) fn scan_valleys(&mut self, cx: &mut Context<Self>) {
@@ -233,12 +257,91 @@ impl Root {
             }
             None => return body.into_any_element(),
         };
+        // A bare valley (contract v1 capabilities without the work tier)
+        // has no board to read: say so gracefully instead of failing the
+        // page. (Father, 12 Nov 2026, on Valley A: "it doesn't have an
+        // API work endpoint... it's just a campfire valley".)
+        if let Some(ready) = &data.ready {
+            if !ready.has_work_tier() {
+                return body
+                    .child(
+                        card(&theme)
+                            .p(px(18.))
+                            .flex_col()
+                            .gap(px(10.))
+                            .child(div().text_size(px(13.)).font_weight(FontWeight::MEDIUM).child("This valley doesn't run a work board."))
+                            .child(div().text_size(px(12.)).text_color(theme.text_muted).child("Its campers take work by handoff — watch them at the campfire instead."))
+                            .child(
+                                Button::new("valley-open-campfires", "Open Campfires")
+                                    .style(ButtonStyle::Primary)
+                                    .on_click(cx.listener(|this, _, window, cx| {
+                                        this.navigate(Route::Campfires, window, cx)
+                                    })),
+                            ),
+                    )
+                    .into_any_element();
+            }
+        }
         // The lanes, as chips, count over label. Clicking a chip opens its
         // lane below; "all" opens the whole board. (Father, 12 Nov 2026:
         // "statistics at the top for running blocked. Pending complete
         // stopped and failed. click those and the list below actually
         // shows what's in there. And there should be a one for all.") The
         // list defaults to the running lane, as it always has.
+        // The projects, as a chip row: the board reads one project at a
+        // time, defaulting to Andrew's. (Father, 12 Nov 2026: "we need to
+        // look at the different projects which are within that valley and
+        // group our jobs by project. So the default one will be Andrew's
+        // project".)
+        let mut projects: Vec<String> = data
+            .items
+            .iter()
+            .map(|i| i.project.clone())
+            .filter(|p| !p.is_empty())
+            .collect::<std::collections::BTreeSet<_>>()
+            .into_iter()
+            .collect();
+        if let Some(idx) = projects.iter().position(|p| p == "andrew") {
+            let andrew = projects.remove(idx);
+            projects.insert(0, andrew);
+        }
+        let project_sel: Option<String> = match &self.valley_project {
+            Some(p) => Some(p.clone()),
+            None if projects.iter().any(|p| p == "andrew") => Some("andrew".to_string()),
+            None => None,
+        };
+        if !projects.is_empty() {
+            body = body.child(
+                div()
+                    .flex()
+                    .flex_wrap()
+                    .gap(px(8.))
+                    .children(
+                        std::iter::once("all".to_string())
+                            .chain(projects)
+                            .map(|project| {
+                                let on = project_sel.as_deref() == Some(project.as_str());
+                                let proj = project.clone();
+                                div()
+                                    .id(SharedString::from(format!("valley-project-{project}")))
+                                    .px(px(10.))
+                                    .py(px(6.))
+                                    .flex()
+                                    .items_center()
+                                    .rounded(kit::corner(7.))
+                                    .cursor_pointer()
+                                    .text_size(px(12.))
+                                    .bg(if on { theme.element_selected } else { theme.element })
+                                    .hover(|st| st.bg(theme.element_selected))
+                                    .on_click(cx.listener(move |this, _, _, cx| {
+                                        this.valley_project = Some(proj.clone());
+                                        cx.notify();
+                                    }))
+                                    .child(project)
+                            }),
+                    ),
+            );
+        }
         let counts = crate::valley::counts(&data.items);
         let selected = self.valley_lane.clone().unwrap_or_else(|| "running".to_string());
         let show_status = selected == "all";
@@ -278,19 +381,35 @@ impl Root {
                 })),
         );
         // The selected lane's items ("all" = the whole board), in the
-        // claim order the server already sent them.
-        let items: Vec<&crate::valley::WorkItem> = if selected == "all" {
-            data.items.iter().collect()
-        } else {
-            data.items.iter().filter(|i| i.status == selected).collect()
-        };
+        // claim order the server already sent them, narrowed to the
+        // selected project (the lane chips keep whole-board counts; the
+        // list is what filters). Honest v1 — noted in the PR.
+        let items: Vec<&crate::valley::WorkItem> = data
+            .items
+            .iter()
+            .filter(|i| selected == "all" || i.status == selected)
+            .filter(|i| match &project_sel {
+                Some(p) if p != "all" => i.project == *p,
+                _ => true,
+            })
+            .collect();
         if items.is_empty() {
+            let on_project = project_sel.as_deref().filter(|p| *p != "all");
             let note = if selected == "all" {
-                "The board is empty right now.".to_string()
+                match on_project {
+                    Some(p) => format!("Nothing from the {p} project on the board right now."),
+                    None => "The board is empty right now.".to_string(),
+                }
             } else if selected == "running" {
-                "Nothing is running on the board right now.".to_string()
+                match on_project {
+                    Some(p) => format!("Nothing from the {p} project is running right now."),
+                    None => "Nothing is running on the board right now.".to_string(),
+                }
             } else {
-                format!("Nothing in the {selected} lane right now.")
+                match on_project {
+                    Some(p) => format!("Nothing from the {p} project in the {selected} lane right now."),
+                    None => format!("Nothing in the {selected} lane right now."),
+                }
             };
             body = body.child(
                 card(&theme).p(px(18.)).flex_row().items_center().gap(px(10.)).text_size(px(13.)).text_color(theme.text_muted).child(note),
@@ -305,6 +424,11 @@ impl Root {
                         // Three levels, Father 12 Nov 2026: the card opens the
                         // item's own page (detail + the job's conversation).
                         let open_id = item.id.clone();
+                        // The inline stop rides running rows only, and only
+                        // when the item names its claim run. (Father, 12 Nov
+                        // 2026: "we'll be able to control there those from
+                        // the valley too".)
+                        let stop_run = if item.status == "running" { item.claim_run() } else { None };
                         card(&theme)
                             .id(SharedString::from(format!("valley-item-{}", item.id)))
                             .p(px(14.))
@@ -327,7 +451,20 @@ impl Root {
                                     .child(item.id.clone())
                                     .when(!item.project.is_empty(), |d| d.child(item.project.clone()))
                                     .when(show_status, |d| d.child(item.status.clone()))
-                                    .child(format!("p{}", item.priority)),
+                                    .child(format!("p{}", item.priority))
+                                    .when(stop_run.is_some(), |d| {
+                                        let run_id = stop_run.clone().expect("checked is_some just above").to_string();
+                                        d.child(div().flex_1()).child(
+                                            Button::new(SharedString::from(format!("valley-stop-{}", item.id)), "Stop")
+                                                .icon("square")
+                                                .on_click(cx.listener(move |this, _, _, cx| {
+                                                    // The row is clickable too: keep the
+                                                    // stop click from also opening the page.
+                                                    cx.stop_propagation();
+                                                    this.valley_stop_item(run_id.clone(), cx);
+                                                })),
+                                        )
+                                    }),
                             )
                     })),
             );
