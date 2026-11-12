@@ -2213,6 +2213,13 @@ impl Root {
                 cx.notify();
                 return;
             }
+            DialogEvent::Andrew(key, message) => {
+                self.andrew_read = Some(key.clone());
+                self.navigate(Route::AndrewChat(key.clone()), window, cx);
+                if let Some(text) = message {
+                    self.andrew_send_open(key, text.clone(), cx);
+                }
+            }
         }
         window.focus(&self.focus);
         cx.notify();

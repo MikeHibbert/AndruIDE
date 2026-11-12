@@ -36,6 +36,9 @@ pub enum DialogEvent {
     CreateWorkspace(CreateWorkspace, WorkspaceIsolation),
     /// The root view starts it, sized to the page, and opens its terminal.
     StartSession(StartSession),
+    /// A conversation with Andrew, on the machine's valley thread; the
+    /// message (when there is one) opens it. Nothing runs on the machine.
+    Andrew(String, Option<String>),
     /// Set up the workspace first, then start the session in its folder.
     StartInWorkspace(CreateWorkspace, StartSession),
     /// Make a VM first, then (a workspace in it and) the session there.
@@ -1694,6 +1697,24 @@ impl NewSessionDialog {
     }
 
     fn submit(&mut self, cx: &mut Context<Self>) {
+        // A conversation with Andrew: it lives on the valley, not on the
+        // machine, so none of the VM, workspace or folder logic runs
+        // (Father, 13 Nov 2026: the New-session dialog had no way in to
+        // Andrew). The prepared message plus whatever was typed opens the
+        // thread.
+        if self.agent == "andrew" {
+            let Some(machine_id) = self.machine.clone() else { return };
+            let text = |e: &Entity<TextInput>, cx: &Context<Self>| {
+                Some(e.read(cx).text().trim().to_string()).filter(|t| !t.is_empty())
+            };
+            let message = match (self.prefill.message.clone(), text(&self.prompt, cx)) {
+                (Some(m), Some(extra)) => Some(format!("{m}\n\n{extra}")),
+                (m, extra) => m.or(extra),
+            };
+            let key = format!("chat:andruide-machine-{machine_id}");
+            cx.emit(DialogEvent::Andrew(key, message));
+            return;
+        }
         // A new VM: its id is its name's, and it's made first.
         let vm = self.new_vm.clone().and_then(|(system, host)| {
             let host = host?;
@@ -2293,7 +2314,46 @@ impl Render for NewSessionDialog {
         if checked && self.new_vm.is_none() {
             kinds.sort_by_key(|k| !(k.id == "shell" || installed.iter().any(|a| a == k.id)));
         }
-        let mut rows = Vec::new();
+        let mut rows: Vec<AnyElement> = Vec::new();
+        // Andrew first: there is no CLI to install, his thread lives on the
+        // valley (Father, 13 Nov 2026: start a conversation with Andrew from
+        // this dialog).
+        let andrew_card = |cx: &mut Context<Self>| {
+            let selected = self.agent == "andrew";
+            div()
+                .id("ns-agent-andrew")
+                .flex_1()
+                .min_w(px(0.))
+                .flex()
+                .items_center()
+                .gap(px(10.))
+                .p(px(10.))
+                .rounded(crate::ui::kit::corner(8.))
+                .border_1()
+                .cursor_pointer()
+                .border_color(if selected { theme.accent } else { theme.border_variant })
+                .bg(if selected { theme.accent.opacity(0.10) } else { theme.element })
+                .child(super::kit::tile("flame", 0xffb35c, 0xf0703f, 28.))
+                .child(
+                    div()
+                        .flex()
+                        .flex_col()
+                        .min_w(px(0.))
+                        .child(div().text_size(px(12.5)).font_weight(FontWeight::MEDIUM).child("Andrew"))
+                        .child(
+                            div()
+                                .text_size(px(11.))
+                                .text_color(theme.text_placeholder)
+                                .child(if selected { "He opens with Start" } else { "His valley thread, right here" }),
+                        ),
+                )
+                .on_click(cx.listener(move |this, _, _, cx| {
+                    this.agent = "andrew";
+                    this.agent_picked = true;
+                    cx.notify()
+                }))
+        };
+        rows.push(div().flex().gap(px(8.)).child(andrew_card(cx)).into_any_element());
         for (r, chunk) in kinds.chunks(3).enumerate() {
             let cards: Vec<AnyElement> = chunk.iter().enumerate().map(|(c, k)| card(r * 3 + c, k, cx).into_any_element()).collect();
             rows.push(div().flex().gap(px(8.)).children(cards).into_any_element());
@@ -2345,7 +2405,8 @@ impl Render for NewSessionDialog {
         }));
 
         // Without the agent the session lives in this window only; say so.
-        let in_app = self.without_agent(&snapshot);
+        // Andrew says nothing here: nothing runs on the machine for him.
+        let in_app = self.agent != "andrew" && self.without_agent(&snapshot);
         let machine_name = machine.as_ref().map(|m| m.name.clone()).unwrap_or_default();
         let in_app_note = in_app.then(|| {
             div()
@@ -2364,17 +2425,23 @@ impl Render for NewSessionDialog {
         });
         let place = self.place(&snapshot, cx);
         let source = self.worktree_source(&snapshot, cx);
-        let into_workspace = place != Place::Folder;
+        let into_workspace = place != Place::Folder && self.agent != "andrew";
         let can_start = match &self.new_vm {
-            Some((_, host)) => host.is_some(),
-            None => self.machine.is_some() && (!into_workspace || self.workspaces_allowed(&snapshot)),
+            Some((_, host)) if self.agent != "andrew" => host.is_some(),
+            _ if self.agent == "andrew" => self.machine.is_some(),
+            _ => self.machine.is_some() && (!into_workspace || self.workspaces_allowed(&snapshot)),
         };
-        let start_label = match (self.new_vm.is_some(), into_workspace) {
-            (true, true) => "Create VM, workspace and start",
-            (true, false) => "Create VM and start",
-            (false, true) if place == Place::Worktree => "Create worktree and start",
-            (false, true) => "Create workspace and start",
-            (false, false) => "Start session",
+        let start_label = if self.agent == "andrew" {
+            "Talk with Andrew".to_string()
+        } else {
+            match (self.new_vm.is_some(), into_workspace) {
+                (true, true) => "Create VM, workspace and start",
+                (true, false) => "Create VM and start",
+                (false, true) if place == Place::Worktree => "Create worktree and start",
+                (false, true) => "Create workspace and start",
+                (false, false) => "Start session",
+            }
+            .to_string()
         };
 
         // The buttons stay in view; what's between them and the title scrolls.
@@ -2389,8 +2456,9 @@ impl Render for NewSessionDialog {
             Some((_, what)) => d.child(field(&theme, "Runs", div().text_size(px(12.5)).text_color(theme.text_muted).child(what.clone()), None)),
             None => d.child(field(&theme, "Agent", div().flex().flex_col().gap(px(8.)).children(rows), None)),
         })
-        .when(self.prefill.workspace.is_some() || source.is_some(), |d| d.child(field(&theme, "Where", self.where_choice(&theme, place, source.as_ref(), cx), None)))
+        .when(self.agent != "andrew" && (self.prefill.workspace.is_some() || source.is_some()), |d| d.child(field(&theme, "Where", self.where_choice(&theme, place, source.as_ref(), cx), None)))
         .map(|d| match place {
+            _ if self.agent == "andrew" => d,
             Place::Worktree | Place::Clone => d.child(self.workspace_fields(&theme, place, source.as_ref(), machine.as_ref(), cx)),
             Place::Folder if self.new_vm.is_some() => d,
             Place::Folder => d.child(field(&theme, "Folder", div().flex().flex_col().gap(px(8.)).child(self.cwd.clone()).child(folder_chips).children(self.folder_browser(&theme, cx)), None)),
@@ -2424,14 +2492,20 @@ impl Render for NewSessionDialog {
         frame(
             &theme,
             "New session",
-            Some("Runs an agent (or a shell) in a terminal on one of your machines. It keeps running when you close AndruIDE; come back to it from the sidebar.".into()),
+            Some("Runs an agent (or a shell) in a terminal on one of your machines. It keeps running when you close AndruIDE; come back to it from the sidebar. Or pick Andrew to talk with him, right here.".into()),
         )
         .child(body)
         .child(footer(vec![
             Button::new("ns-cancel", "Cancel").style(ButtonStyle::Ghost).on_click(cx.listener(|_, _, _, cx| cx.emit(DialogEvent::Dismissed))).into_any_element(),
             Button::new("ns-start", start_label)
                 .style(ButtonStyle::Primary)
-                .icon(if into_workspace { "layers" } else { "square-terminal" })
+                .icon(if self.agent == "andrew" {
+                    "flame"
+                } else if into_workspace {
+                    "layers"
+                } else {
+                    "square-terminal"
+                })
                 .disabled(!can_start)
                 .on_click(cx.listener(|this, _, _, cx| this.submit(cx)))
                 .into_any_element(),
