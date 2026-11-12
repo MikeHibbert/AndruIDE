@@ -17,9 +17,15 @@ use crate::valley::{ItemDetail, RunTalk, Valley};
 const SAID_CAP: usize = 700;
 
 impl Root {
-    /// Reads one item's detail into the store (always fresh on entry;
-    /// the refresh button asks again).
+    /// Reads one item's detail into the store, ONCE: render runs many times
+    /// a second, and an unconditional insert here wiped Ready back to Loading
+    /// on every paint, so a clicked job never settled (Father, 12 Nov 2026:
+    /// "you click one of the jobs and it doesn't give you the details").
+    /// The Try-again and refresh controls remove the entry first.
     pub(super) fn load_valley_item(&mut self, id: &str, cx: &mut Context<Self>) {
+        if self.valley_items.contains_key(id) {
+            return;
+        }
         self.valley_items.insert(id.to_string(), Load::Loading);
         let mut cfg = self.engine.settings().valley.clone();
         if let Some(base) = self.valley_view.clone() {
@@ -51,8 +57,12 @@ impl Root {
         self.track(task);
     }
 
-    /// Reads one run's conversation into the store, keyed by run id.
+    /// Reads one run's conversation into the store, keyed by run id — once
+    /// (same render-time guard as the item above).
     pub(super) fn load_valley_talk(&mut self, run_id: &str, cx: &mut Context<Self>) {
+        if self.valley_talks.contains_key(run_id) {
+            return;
+        }
         self.valley_talks.insert(run_id.to_string(), Load::Loading);
         let mut cfg = self.engine.settings().valley.clone();
         if let Some(base) = self.valley_view.clone() {
@@ -201,6 +211,17 @@ impl Root {
                 Some(Load::Failed(e)) => body
                     .child(
                         card(&theme).p(px(18.)).text_size(px(13.)).text_color(theme.text_muted).child(e.clone()),
+                    )
+                    .child(
+                        Button::new("vi-retry", "Try again")
+                            .tooltip("Read this item from the valley again")
+                            .on_click({
+                                let key = id.to_string();
+                                cx.listener(move |this: &mut Root, _: &ClickEvent, _: &mut Window, cx: &mut Context<Root>| {
+                                    this.valley_items.remove(&key);
+                                    this.load_valley_item(&key, cx);
+                                })
+                            }),
                     )
                     .into_any_element(),
                 _ => body

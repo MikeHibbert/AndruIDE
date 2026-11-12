@@ -45,7 +45,94 @@ impl Root {
         if s.attention.iter().any(|a| !on_cards(a)) {
             body = body.child(self.heads_up(&theme, &s, content_width, cx));
         }
+        body = body.child(self.overview_valley(&theme, cx));
         body.child(self.render_machine_grid(&theme, &s, content_width, cx)).child(self.render_agents(&theme, &s, cx))
+    }
+
+    /// The valley strip: what Andrew's campfire holds, in one line, leading
+    /// the page (Father, 12 Nov 2026: the overview "doesn't really give me an
+    /// overview of anything other than a locally found machine"). Reads only
+    /// what is already cached — Overview never fires the heavy work-board
+    /// read itself; the deep reads live on the Valley and Campfires pages.
+    fn overview_valley(&self, theme: &Theme, cx: &mut Context<Self>) -> AnyElement {
+        let items: Option<&Vec<crate::valley::WorkItem>> = match &self.valley_data {
+            Some(super::github::Load::Ready(v)) => Some(&v.items),
+            _ => None,
+        };
+        let runs: Option<&Vec<crate::valley::RunSummary>> = match &self.valley_runs {
+            Some(super::github::Load::Ready(r)) => Some(r),
+            _ => None,
+        };
+        let mut parts: Vec<String> = Vec::new();
+        if let Some(items) = items {
+            let running = items.iter().filter(|i| i.status == "running").count();
+            let blocked = items.iter().filter(|i| i.status == "blocked").count();
+            let pending = items.iter().filter(|i| i.status == "pending").count();
+            if running > 0 {
+                parts.push(format!("{running} running"));
+            }
+            if blocked > 0 {
+                parts.push(format!("{blocked} blocked"));
+            }
+            if pending > 0 {
+                parts.push(format!("{pending} waiting"));
+            }
+        }
+        if let Some(runs) = runs {
+            let need = crate::valley::need_you(runs);
+            let lit = runs.iter().filter(|r| r.status == "running").count();
+            if need > 0 {
+                parts.push(format!("{need} need{} you", if need == 1 { "s" } else { "" }));
+            }
+            if lit > 0 {
+                parts.push(format!("{lit} campfires lit"));
+            }
+        }
+        let summary = if parts.is_empty() {
+            "Nothing read from the valley yet — its work board is a heavy read; open Campfires or Valley.".to_string()
+        } else {
+            parts.join(" · ")
+        };
+        card(&theme)
+            .p(px(14.))
+            .flex()
+            .items_center()
+            .justify_between()
+            .gap(px(12.))
+            .child(
+                div()
+                    .flex()
+                    .flex_col()
+                    .gap(px(2.))
+                    .min_w(px(0.))
+                    .child(div().text_size(px(12.5)).font_weight(FontWeight::MEDIUM).child("The valley"))
+                    .child(div().text_size(px(11.5)).text_color(theme.text_muted).child(summary)),
+            )
+            .child(
+                div()
+                    .flex()
+                    .flex_none()
+                    .gap(px(8.))
+                    .child(
+                        Button::new("ov-valley", "Valley")
+                            .tooltip("The work board")
+                            .on_click(cx.listener(
+                                |this: &mut Root, _: &gpui::ClickEvent, window: &mut Window, cx: &mut Context<Root>| {
+                                    this.navigate(Route::Valley, window, cx)
+                                },
+                            )),
+                    )
+                    .child(
+                        Button::new("ov-campfires", "Campfires")
+                            .tooltip("What the campers are doing now")
+                            .on_click(cx.listener(
+                                |this: &mut Root, _: &gpui::ClickEvent, window: &mut Window, cx: &mut Context<Root>| {
+                                    this.navigate(Route::Campfires, window, cx)
+                                },
+                            )),
+                    ),
+            )
+            .into_any_element()
     }
 
     /// A greeting, then the day in one line: machines, agents, runners.
