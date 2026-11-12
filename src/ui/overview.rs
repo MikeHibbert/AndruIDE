@@ -173,7 +173,7 @@ impl Root {
                 .items_center()
                 .gap(px(8.))
                 .min_w(px(0.))
-                .child(kit::icon("flame", 11., theme.accent))
+                .child(kit::breathing(("ov-ny-flame", run.id.len()), kit::icon("flame", 11., theme.accent)))
                 .child(
                     div()
                         .flex_none()
@@ -205,7 +205,7 @@ impl Root {
                     .flex()
                     .items_center()
                     .gap(px(6.))
-                    .child(kit::icon("flame", 12., theme.accent))
+                    .child(kit::breathing("ov-ny-head", kit::icon("flame", 12., theme.accent)))
                     .child(
                         div()
                             .text_size(px(12.5))

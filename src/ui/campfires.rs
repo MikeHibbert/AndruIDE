@@ -158,7 +158,7 @@ impl Root {
                 .flex()
                 .items_center()
                 .gap(px(4.))
-                .child(kit::icon("flame", 12., theme.accent))
+                .child(kit::breathing(("cf-flame", camper.len()), kit::icon("flame", 12., theme.accent)))
                 .child(div().text_size(px(10.5)).font_weight(FontWeight::MEDIUM).text_color(theme.accent).child("NEEDS YOU"))
                 .into_any_element()
         } else if running > 0 {
@@ -224,7 +224,7 @@ impl Root {
     ) -> AnyElement {
         let chip: AnyElement = match run.status.as_str() {
             "running" => spinner(("torch-spin", run.id.len()), 10., theme.text_muted).into_any_element(),
-            "waiting_checkpoint" => kit::icon("flame", 11., theme.accent).into_any_element(),
+            "waiting_checkpoint" => kit::breathing(("torch-flame", run.id.len()), kit::icon("flame", 11., theme.accent)).into_any_element(),
             "completed" => kit::icon("check", 11., theme.success).into_any_element(),
             "failed" => kit::icon("x", 11., theme.error).into_any_element(),
             other => div().text_size(px(10.)).text_color(theme.text_placeholder).child(other.to_string()).into_any_element(),
@@ -359,7 +359,7 @@ impl Root {
                     .flex()
                     .items_center()
                     .gap(px(6.))
-                    .child(kit::icon("flame", 12., theme.accent))
+                    .child(kit::breathing("cp-flame", kit::icon("flame", 12., theme.accent)))
                     .child(
                         div()
                             .text_size(px(11.))
