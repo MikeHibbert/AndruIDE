@@ -367,10 +367,15 @@ impl Root {
         self.track(task);
     }
 
-    /// Loads when the list is missing or stale (60s); never while loading.
+    /// Loads when the list is missing or stale (60s; a Failed read tries
+    /// again after 15s — the valley can go quiet mid-read under pool load,
+    /// Father 12 Nov 2026: "error decoding response body" on Campfires);
+    /// never while loading.
     pub(super) fn maybe_load_runs(&mut self, cx: &mut Context<Self>) {
         let loading = matches!(self.valley_runs, Some(Load::Loading));
-        let stale = self.valley_runs.is_none() || self.valley_runs_at.is_some_and(|t| t.elapsed().as_secs() > 60);
+        let failed = matches!(self.valley_runs, Some(Load::Failed(_)));
+        let window = if failed { 15 } else { 60 };
+        let stale = self.valley_runs.is_none() || self.valley_runs_at.is_some_and(|t| t.elapsed().as_secs() > window);
         if !loading && stale {
             self.load_runs(cx);
         }

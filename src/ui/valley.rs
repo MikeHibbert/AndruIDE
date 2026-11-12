@@ -93,8 +93,12 @@ impl Root {
 
     pub(super) fn render_valley(&mut self, cx: &mut Context<Self>) -> AnyElement {
         let theme = cx.theme();
-        // First visit, or stale after two minutes: look again.
-        if self.valley_data.is_none() || self.valley_at.is_some_and(|t| t.elapsed().as_secs() > 120) {
+        // First visit, or stale after five minutes: look again. The work
+        // board is a heavy read and slow under pool load (Father, 12 Nov
+        // 2026: "reading Andrew's workboard is really slow for the valley
+        // tab"); the lite read is filed on Andrew's board as its own item,
+        // until then this page leans on its cache and the refresh button.
+        if self.valley_data.is_none() || self.valley_at.is_some_and(|t| t.elapsed().as_secs() > 300) {
             self.load_valley(cx);
         }
         let header = div()

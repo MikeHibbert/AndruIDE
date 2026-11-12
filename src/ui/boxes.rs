@@ -19,7 +19,9 @@ use super::root::{Modal, Root, Route};
 use super::theme::{ActiveTheme, Theme, mono_font};
 use crate::fleet::boxes::BoxInfo;
 
-pub const TILE: (u32, u32) = (0xffb36b, 0xe0702c);
+// The tile colours go with the boxes page's nav entry, retired 12 Nov 2026
+// (Father: torches were redundant — handoff goes through the chat). Put them
+// back when the page returns to the sidebar.
 
 /// Per-view state for the Boxes page, kept on the root view.
 #[derive(Default)]

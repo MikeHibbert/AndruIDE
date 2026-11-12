@@ -2683,8 +2683,9 @@ impl Root {
                     .pt(px(6.))
                     .child(self.nav_item("nav-overview", "gauge", kit::tiles::OVERVIEW, "Overview", None, Route::Overview, "overview", cx))
                     .child(self.nav_item("nav-jobs", "workflow", kit::tiles::JOBS, "Jobs", Some(s.counts.queued + s.counts.running), Route::Jobs, "jobs", cx))
-                    .child(self.nav_item("nav-boxes", "box", super::boxes::TILE, "Torches", Some(s.boxes.iter().filter(|b| b.state != "paused").count()), Route::Boxes, "boxes", cx))
-                    .child(self.nav_item("nav-github", "agent-github", super::github::TILE, "GitHub", self.gh.waiting(), Route::Github, "github", cx))
+                    // The Torches page is off the nav (Father, 12 Nov 2026:
+                    // work hands to Andrew through the chat, so the page is
+                    // redundant; Route::Boxes stays for deep links).                    .child(self.nav_item("nav-github", "agent-github", super::github::TILE, "GitHub", self.gh.waiting(), Route::Github, "github", cx))
                     .child(self.nav_item("nav-usage", "gauge", kit::tiles::USAGE, "Usage", None, Route::Usage, "usage", cx))
                     .child(self.nav_item("nav-valley", "flame", super::valley::TILE, "Valley", self.valley_badge(), Route::Valley, "valley", cx))
                     .child(self.nav_item("nav-campfires", "eye", super::campfires::TILE, "Campfires", self.campfires_badge(), Route::Campfires, "campfires", cx))
