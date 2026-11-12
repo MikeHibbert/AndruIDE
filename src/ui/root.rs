@@ -296,6 +296,9 @@ pub enum Route {
     Usage,
     /// Andrew's work board, read live from his valley.
     Valley,
+    /// One item on Andrew's board: what it's about, and the conversation
+    /// of the job working it (three levels, Father 12 Nov 2026).
+    ValleyItem(String),
     /// One command on several machines.
     Run,
     /// Commands and agent sessions that run on machines at set times.
@@ -520,6 +523,12 @@ pub struct Root {
     pub(super) valley_runs: Option<super::github::Load<Vec<crate::valley::RunSummary>>>,
     pub(super) valley_runs_at: Option<Instant>,
     pub(super) run_open: Option<String>,
+    /// The item pages: each board item's full detail (what it's about) and
+    /// its claim run's conversation, as last read (Father's three levels,
+    /// 12 Nov 2026); the field to instruct a running camper with.
+    pub(super) valley_items: std::collections::HashMap<String, super::github::Load<crate::valley::ItemDetail>>,
+    pub(super) valley_talks: std::collections::HashMap<String, super::github::Load<crate::valley::RunTalk>>,
+    pub(super) valley_item_input: Option<Entity<TextInput>>,
     /// The Campfires page (Father's directive, 12 Nov 2026): which camper is
     /// opened, which of their runs is open, and the line that instructs a
     /// running camper (interrupt: true, feedback/training).
@@ -747,6 +756,9 @@ impl Root {
             valley_runs: None,
             valley_runs_at: None,
             run_open: None,
+            valley_items: Default::default(),
+            valley_talks: Default::default(),
+            valley_item_input: None,
             campfire_open: None,
             campfire_torch: None,
             campfire_input: None,
@@ -3894,6 +3906,7 @@ impl Root {
             Route::Activity => self.render_activity(cx).into_any_element(),
             Route::Usage => self.render_usage(cx),
             Route::Valley => self.render_valley(cx),
+            Route::ValleyItem(id) => self.render_valley_item(&id, cx),
             Route::Run => self.render_run(window, cx),
             Route::Schedules => self.render_schedules(window, cx),
             Route::Machine(id) => self.render_machine(&id, cx),
@@ -4155,6 +4168,7 @@ fn route_title(s: &Snapshot, route: &Route) -> (Option<&'static str>, String) {
         Route::Activity => (None, "Activity".into()),
         Route::Usage => (None, "Usage".into()),
         Route::Valley => (None, "Valley".into()),
+        Route::ValleyItem(id) => (Some("Valley"), format!("Item {id}")),
         Route::Run => (None, "Run".into()),
         Route::Schedules => (None, "Schedules".into()),
         Route::Workspace(id) => (Some("Agents' workspaces"), s.workspaces.iter().find(|w| &w.id == id).map(|w| w.name.clone()).unwrap_or_else(|| id.clone())),
