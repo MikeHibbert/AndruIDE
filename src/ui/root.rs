@@ -198,7 +198,7 @@ pub fn menus() -> Vec<Menu> {
                 MenuItem::separator(),
                 MenuItem::action("Overview", ShowOverview),
                 MenuItem::action("Jobs", ShowJobs),
-                MenuItem::action("Boxes", ShowBoxes),
+                MenuItem::action("Torches", ShowBoxes),
                 MenuItem::action("Workspaces", ShowWorkspaces),
                 MenuItem::action("GitHub", ShowGithub),
                 MenuItem::action("Usage", ShowUsage),
@@ -283,6 +283,9 @@ pub enum Route {
     Workspace(String),
     /// Tasks agents work on in containers of their own.
     Boxes,
+    /// Look in on the valley's campfires: the campers and what they're up
+    /// to (Father's directive, 12 Nov 2026).
+    Campfires,
     /// What needs you on GitHub.
     Github,
     GithubRepo(String),
@@ -517,6 +520,12 @@ pub struct Root {
     pub(super) valley_runs: Option<super::github::Load<Vec<crate::valley::RunSummary>>>,
     pub(super) valley_runs_at: Option<Instant>,
     pub(super) run_open: Option<String>,
+    /// The Campfires page (Father's directive, 12 Nov 2026): which camper is
+    /// opened, which of their runs is open, and the line that instructs a
+    /// running camper (interrupt: true, feedback/training).
+    pub(super) campfire_open: Option<String>,
+    pub(super) campfire_torch: Option<String>,
+    pub(super) campfire_input: Option<Entity<TextInput>>,
     pub(super) ports_more: std::collections::HashSet<String>,
     /// Each machine's GPUs (its page's GPU card), as last read.
     pub(super) machine_gpus: std::collections::HashMap<String, Vec<crate::fleet::procs::Gpu>>,
@@ -738,6 +747,9 @@ impl Root {
             valley_runs: None,
             valley_runs_at: None,
             run_open: None,
+            campfire_open: None,
+            campfire_torch: None,
+            campfire_input: None,
             offline_details: Default::default(),
             last_notice: None,
             refocus: false,
@@ -1099,6 +1111,7 @@ impl Root {
             }
             "workspaces" => self.navigate(Route::Workspaces, window, cx),
             "boxes" => self.navigate(Route::Boxes, window, cx),
+            "campfires" => self.navigate(Route::Campfires, window, cx),
             "new-box" => self.show_box_dialog(Default::default(), window, cx),
             "workspace" => self.navigate(Route::Workspace(arg.into()), window, cx),
             "new-workspace" => {
@@ -2658,10 +2671,11 @@ impl Root {
                     .pt(px(6.))
                     .child(self.nav_item("nav-overview", "gauge", kit::tiles::OVERVIEW, "Overview", None, Route::Overview, "overview", cx))
                     .child(self.nav_item("nav-jobs", "workflow", kit::tiles::JOBS, "Jobs", Some(s.counts.queued + s.counts.running), Route::Jobs, "jobs", cx))
-                    .child(self.nav_item("nav-boxes", "box", super::boxes::TILE, "Boxes", Some(s.boxes.iter().filter(|b| b.state != "paused").count()), Route::Boxes, "boxes", cx))
+                    .child(self.nav_item("nav-boxes", "box", super::boxes::TILE, "Torches", Some(s.boxes.iter().filter(|b| b.state != "paused").count()), Route::Boxes, "boxes", cx))
                     .child(self.nav_item("nav-github", "agent-github", super::github::TILE, "GitHub", self.gh.waiting(), Route::Github, "github", cx))
                     .child(self.nav_item("nav-usage", "gauge", kit::tiles::USAGE, "Usage", None, Route::Usage, "usage", cx))
                     .child(self.nav_item("nav-valley", "flame", super::valley::TILE, "Valley", self.valley_badge(), Route::Valley, "valley", cx))
+                    .child(self.nav_item("nav-campfires", "eye", super::campfires::TILE, "Campfires", self.campfires_badge(), Route::Campfires, "campfires", cx))
                     .child(self.nav_item("nav-run", "zap", kit::tiles::RUN, "Run", None, Route::Run, "run", cx))
                     .child(self.nav_item("nav-schedules", "clock", super::schedules::TILE, "Schedules", None, Route::Schedules, "schedules", cx))
                     .child(self.activity_nav(&theme, running_ops, cx)),
@@ -3875,6 +3889,7 @@ impl Root {
             Route::Jobs => self.render_jobs(cx).into_any_element(),
             Route::Workspaces => self.render_workspaces(cx).into_any_element(),
             Route::Boxes => self.render_boxes(cx).into_any_element(),
+            Route::Campfires => self.render_campfires(cx).into_any_element(),
             Route::Workspace(id) => self.render_workspace(&id, cx),
             Route::Activity => self.render_activity(cx).into_any_element(),
             Route::Usage => self.render_usage(cx),
@@ -4134,8 +4149,9 @@ fn route_title(s: &Snapshot, route: &Route) -> (Option<&'static str>, String) {
     match route {
         Route::Overview => (None, "Overview".into()),
         Route::Jobs => (None, "Jobs".into()),
-        Route::Workspaces => (Some("Boxes"), "Agents' workspaces".into()),
-        Route::Boxes => (None, "Boxes".into()),
+        Route::Workspaces => (Some("Torches"), "Agents' workspaces".into()),
+        Route::Boxes => (None, "Torches".into()),
+        Route::Campfires => (None, "Campfires".into()),
         Route::Activity => (None, "Activity".into()),
         Route::Usage => (None, "Usage".into()),
         Route::Valley => (None, "Valley".into()),
@@ -4152,7 +4168,7 @@ fn route_title(s: &Snapshot, route: &Route) -> (Option<&'static str>, String) {
         Route::Machine(id) => (Some("Machines"), s.machines.iter().find(|m| &m.id == id).map(|m| m.name.clone()).unwrap_or_else(|| id.clone())),
         Route::Session(id) => {
             let x = s.sessions.iter().find(|x| &x.id == id);
-            let section = if x.is_some_and(|x| x.box_id.is_some()) { "Boxes" } else { "Sessions" };
+            let section = if x.is_some_and(|x| x.box_id.is_some()) { "Torches" } else { "Sessions" };
             (Some(section), x.map(|x| x.title.clone()).unwrap_or_else(|| id.clone()))
         }
         Route::Desktop(id) => (Some("Desktop"), s.machines.iter().find(|m| &m.id == id).map(|m| m.name.clone()).unwrap_or_else(|| id.clone())),

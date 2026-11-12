@@ -1,6 +1,11 @@
-//! Boxes: tasks handed to agents that work on them by themselves, each in a
+//! Torches: tasks handed to agents that work on them by themselves, each in a
 //! container of its own on one of your machines. Lists them and opens their
 //! agent's terminal (starting a paused one again).
+//!
+//! The task was called a "box" before; Father's directive of 12 Nov 2026
+//! ("works perfect so lets turn Boxes into Torches...") gave the story its
+//! real name. The backend keeps its box names — only what the user reads
+//! calls it a torch.
 
 use std::collections::HashSet;
 
@@ -42,12 +47,12 @@ impl Root {
                     .child(
                         div().flex().flex_col().flex_none().w(px(intro_width)).gap(px(4.)).child(
                             div().text_size(px(12.5)).text_color(theme.text_muted).child(
-                                "Hand a task to an agent that works on it by itself: the agent lives in the box, a container of its own on one of your machines, on a new branch of a fresh checkout, with its permission prompts off. A box pauses when its agent has been quiet for a while, and picks up where it left off when you ask it more.",
+                                "Hand a task to an agent that works on it by itself: the agent lives in the torch's box, a container of its own on one of your machines, on a new branch of a fresh checkout, with its permission prompts off. A torch pauses when its agent has been quiet for a while, and picks up where it left off when you ask it more.",
                             ),
                         ).child(div().text_size(px(12.)).text_color(theme.text_placeholder).child(if docker {
                             "Agents make them with the box_create MCP tool or `andruide box new`."
                         } else {
-                            "Boxes run in Docker: install it on a Linux machine or a Mac (Docker Desktop, OrbStack or Colima)."
+                            "Torches run in Docker: install it on a Linux machine or a Mac (Docker Desktop, OrbStack or Colima)."
                         })),
                     )
                     .child(
@@ -62,9 +67,9 @@ impl Root {
                     .flex()
                     .flex_col()
                     .gap(px(10.))
-                    .child(section_title(&theme, "Boxes", Some(s.boxes.len())))
+                    .child(section_title(&theme, "Torches", Some(s.boxes.len())))
                     .children(cards)
-                    .when(s.boxes.is_empty(), |d| d.child(card(&theme).child(kit::empty_state(&theme, "box", "No boxes yet. Start one, or ask an agent to.")))),
+                    .when(s.boxes.is_empty(), |d| d.child(card(&theme).child(kit::empty_state(&theme, "box", "No torches yet. Start one, or ask an agent to.")))),
             )
             .child(self.boxes_page_workspaces(&theme, &s, cx))
     }
@@ -222,7 +227,7 @@ impl Root {
                             .loading(self.box_ui.opening.contains(&b.id))
                             .on_click(cx.listener(move |this, _, window, cx| this.open_box(&id, window, cx))),
                     )
-                    .child(Button::new("paused-box-back", "All boxes").icon("arrow-left").on_click(cx.listener(|this, _, window, cx| this.navigate(Route::Boxes, window, cx)))),
+                    .child(Button::new("paused-box-back", "All torches").icon("arrow-left").on_click(cx.listener(|this, _, window, cx| this.navigate(Route::Boxes, window, cx)))),
             )
             .into_any_element()
     }

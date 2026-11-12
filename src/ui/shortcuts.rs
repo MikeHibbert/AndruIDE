@@ -41,7 +41,7 @@ pub const ALL: &[Shortcut] = &[
     shortcut!("commands", "Command palette", "secondary-shift-p", CommandPalette),
     shortcut!("overview", "Overview", page("ctrl-1", "alt-1"), ShowOverview),
     shortcut!("jobs", "Jobs", page("ctrl-2", "alt-2"), ShowJobs),
-    shortcut!("boxes", "Boxes", page("ctrl-3", "alt-3"), ShowBoxes),
+    shortcut!("boxes", "Torches", page("ctrl-3", "alt-3"), ShowBoxes),
     shortcut!("github", "GitHub", page("ctrl-4", "alt-4"), ShowGithub),
     shortcut!("usage", "Usage", page("ctrl-5", "alt-5"), ShowUsage),
     shortcut!("run", "Run on machines", page("ctrl-6", "alt-6"), ShowRun),

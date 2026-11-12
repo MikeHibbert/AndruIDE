@@ -315,7 +315,7 @@ impl Engine {
             Some(a) => {
                 let m = snap.machines.iter().find(|m| m.id == a || m.name.eq_ignore_ascii_case(a)).ok_or_else(|| format!("No machine called {a}."))?;
                 if m.platform.starts_with("windows") {
-                    return Err(format!("Boxes don't run on Windows machines yet ({}). Pick a Linux machine or a Mac with Docker.", m.name));
+                    return Err(format!("Torches don't run on Windows machines yet ({}). Pick a Linux machine or a Mac with Docker.", m.name));
                 }
                 if m.status != "online" {
                     return Err(format!("{} isn't online.", m.name));
