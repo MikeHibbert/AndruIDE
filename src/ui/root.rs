@@ -296,6 +296,8 @@ pub enum Route {
     Usage,
     /// Andrew's work board, read live from his valley.
     Valley,
+    /// The whole valley as a living 3d scene (Father 13 Nov 2026).
+    ValleyScene,
     /// One item on Andrew's board: what it's about, and the conversation
     /// of the job working it (three levels, Father 12 Nov 2026).
     ValleyItem(String),
@@ -538,6 +540,10 @@ pub struct Root {
     pub(super) valley_items: std::collections::HashMap<String, super::github::Load<crate::valley::ItemDetail>>,
     pub(super) valley_talks: std::collections::HashMap<String, super::github::Load<crate::valley::RunTalk>>,
     pub(super) valley_item_input: Option<Entity<TextInput>>,
+    /// The 3d valley scene: paint-pass state (bounds, label projections, click
+    /// targets) shared with the canvas closures, plus the scene clock.
+    pub(super) scene: std::sync::Arc<std::sync::Mutex<super::valley_scene::SceneShared>>,
+    pub(super) scene_start: Option<Instant>,
     /// Andrew on the machine page (Father 13 Nov 2026: run Andrew there
     /// like an IDE of his own): the list of his conversations, each
     /// conversation read, and the composer.
@@ -783,6 +789,8 @@ impl Root {
             valley_items: Default::default(),
             valley_talks: Default::default(),
             valley_item_input: None,
+            scene: Default::default(),
+            scene_start: None,
             andrew_sessions: None,
             andrew_sessions_at: None,
             andrew_talks: std::collections::HashMap::new(),
@@ -1114,6 +1122,7 @@ impl Root {
             "jobs" => self.navigate(Route::Jobs, window, cx),
             "usage" => self.navigate(Route::Usage, window, cx),
             "valley" => self.navigate(Route::Valley, window, cx),
+            "valley-scene" => self.navigate(Route::ValleyScene, window, cx),
             // "schedules", or "schedules:<machine>/<id>" with that one's runs open.
             "schedules" => {
                 self.navigate(Route::Schedules, window, cx);
@@ -2718,6 +2727,7 @@ impl Root {
                     // redundant; Route::Boxes stays for deep links).                    .child(self.nav_item("nav-github", "agent-github", super::github::TILE, "GitHub", self.gh.waiting(), Route::Github, "github", cx))
                     .child(self.nav_item("nav-usage", "gauge", kit::tiles::USAGE, "Usage", None, Route::Usage, "usage", cx))
                     .child(self.nav_item("nav-valley", "flame", super::valley::TILE, "Valley", self.valley_badge(), Route::Valley, "valley", cx))
+                    .child(self.nav_item("nav-scene", "layers", super::valley_scene::TILE, "The Valley", None, Route::ValleyScene, "valley-scene", cx))
                     .child(self.nav_item("nav-campfires", "eye", super::campfires::TILE, "Campfires", self.campfires_badge(), Route::Campfires, "campfires", cx))
                     .child(self.nav_item("nav-run", "zap", kit::tiles::RUN, "Run", None, Route::Run, "run", cx))
                     .child(self.nav_item("nav-schedules", "clock", super::schedules::TILE, "Schedules", None, Route::Schedules, "schedules", cx))
@@ -3937,6 +3947,7 @@ impl Root {
             Route::Activity => self.render_activity(cx).into_any_element(),
             Route::Usage => self.render_usage(cx),
             Route::Valley => self.render_valley(cx),
+            Route::ValleyScene => self.render_valley_scene(cx),
             Route::ValleyItem(id) => self.render_valley_item(&id, cx),
             Route::AndrewChat(key) => self.render_andrew_chat(&key, cx),
             Route::Run => self.render_run(window, cx),
@@ -4200,6 +4211,7 @@ fn route_title(s: &Snapshot, route: &Route) -> (Option<&'static str>, String) {
         Route::Activity => (None, "Activity".into()),
         Route::Usage => (None, "Usage".into()),
         Route::Valley => (None, "Valley".into()),
+        Route::ValleyScene => (None, "The Valley".into()),
         Route::ValleyItem(id) => (Some("Valley"), format!("Item {id}")),
         Route::AndrewChat(_) => (Some("Andrew"), "Chat with Andrew".into()),
         Route::Run => (None, "Run".into()),
