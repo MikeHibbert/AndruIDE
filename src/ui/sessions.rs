@@ -1200,6 +1200,7 @@ impl Root {
         let sessions: Vec<&SessionInfo> = s.sessions.iter().filter(|x| x.machine_id == m.id && x.box_id.is_none()).collect();
         let installed: Vec<&str> = AGENTS.iter().filter(|a| m.agents.iter().any(|i| i == a.id)).map(|a| a.name).collect();
         let mid = m.id.clone();
+        let andrew_key = format!("chat:andruide-machine-{mid}");
         let title = div()
             .flex()
             .items_center()
@@ -1207,15 +1208,26 @@ impl Root {
             .child(div().flex_1())
             .when(!installed.is_empty(), |d| {
                 d.child(div().text_size(px(11.5)).text_color(theme.text_placeholder).child(format!("Installed: {}", installed.join(", "))))
+            })
+            // Andrew lives here too (Father, 13 Nov 2026: run Andrew from
+            // the machine page, manage his sessions and talk with him).
+            .when(!m.is_disconnected(), |d| {
+                d.child(
+                    Button::new("msr-andrew", "Open Andrew")
+                        .icon("flame")
+                        .on_click(cx.listener(move |this, _, window, cx| {
+                            this.navigate(crate::ui::root::Route::AndrewChat(andrew_key.clone()), window, cx)
+                        })),
+                )
             });
 
 
         let content = if sessions.is_empty() {
             let text = match runs_in_app(m) {
-                _ if m.is_disconnected() => format!("Connect to {} to start Claude Code, Codex or a shell there.", m.name),
-                _ if m.is_down() => format!("Start Claude Code, Codex or a shell here once {} is back.", m.name),
-                true => format!("Run Claude Code, Codex or a shell here. {} so sessions run while AndruIDE is open.", m.sessions_error.clone().unwrap_or_default().trim_end_matches('.')),
-                false => "Run Claude Code, Codex, OpenCode or a shell here. Sessions keep working on the machine after you close AndruIDE.".to_string(),
+                _ if m.is_disconnected() => format!("Connect to {} to talk with Andrew or open a shell there.", m.name),
+                _ if m.is_down() => format!("Talk with Andrew here, or open a shell once {} is back.", m.name),
+                true => format!("Talk with Andrew or open a shell here. {} so sessions run while AndruIDE is open.", m.sessions_error.clone().unwrap_or_default().trim_end_matches('.')),
+                false => "Talk with Andrew here, or open a shell. Sessions keep working on the machine after you close AndruIDE.".to_string(),
             };
             card(theme)
                 .p(px(16.))
