@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="AndruIDE recommended mark: solid A with negative-space caret">
+  <title>AndruIDE — recommended mark (Direction 3, finished)</title>
+  <!--
+    AndruIDE RECOMMENDED MARK — Direction 3 (negative-space caret), finished.
+    Item: work_c458cded7e ("AndruIDE: brand concept directions")
+    This is the sketch of direction 3 carried to its shipped form: identical
+    construction, with the caret widened so it holds at a 16 px render and the
+    leg tapers set so the outer silhouette still reads A when the badge is
+    dropped (mono / reversed use).
+    Geometry (512x512 box):
+      badge      : rounded rect rx 96, pine #1F3D2B
+      letter     : snow #F4F1EA, ONE fill, fill-rule evenodd
+      apex       : (256, 68)
+      outer feet : (404, 452) and (108, 452); inner feet (338, 452)/(174, 452)
+      leg taper  : inner notch shoulders at y 360, x 204 / 308 -> 104 px of
+                   stem width at the feet, 0 px at the apex (true A)
+      caret cut  : outer apex (256,192), outer arms (200,336)/(312,336);
+                   inner apex (256,252), inner arms (272,336)/(240,336)
+                   -> 44 px caret band at the arms (>= 3 px at 32 px render),
+                      60 px at the apex so the join does not close up at 16 px
+    WHY (work_c458cded7e): it inherits Timberwolf's proven solid-badge-plus-cutout
+    construction (the r9 cutout eye) so the two marks read as one family; it holds
+    the family palette exactly; one fill means mono and reversed use need no
+    second file; and it degrades to a legible A at 16 px, which is the first
+    criterion in the recommendation.
+  -->
+  <rect x="0" y="0" width="512" height="512" rx="96" fill="#1F3D2B"/>
+  <path fill="#F4F1EA" fill-rule="evenodd" d="
+    M 256 68 L 404 452 L 338 452 L 308 360 L 204 360 L 174 452 L 108 452 Z
+    M 200 336 L 256 192 L 312 336 L 272 336 L 256 252 L 240 336 Z
+  "/>
+</svg>
