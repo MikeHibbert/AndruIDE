@@ -299,6 +299,8 @@ pub enum Route {
     /// One item on Andrew's board: what it's about, and the conversation
     /// of the job working it (three levels, Father 12 Nov 2026).
     ValleyItem(String),
+    /// A conversation with Andrew, opened from a context (machine page).
+    AndrewChat(String),
     /// One command on several machines.
     Run,
     /// Commands and agent sessions that run on machines at set times.
@@ -536,6 +538,14 @@ pub struct Root {
     pub(super) valley_items: std::collections::HashMap<String, super::github::Load<crate::valley::ItemDetail>>,
     pub(super) valley_talks: std::collections::HashMap<String, super::github::Load<crate::valley::RunTalk>>,
     pub(super) valley_item_input: Option<Entity<TextInput>>,
+    /// Andrew on the machine page (Father 13 Nov 2026: run Andrew there
+    /// like an IDE of his own): the list of his conversations, each
+    /// conversation read, and the composer.
+    pub(super) andrew_sessions: Option<super::github::Load<Vec<crate::valley::SessionRow>>>,
+    pub(super) andrew_sessions_at: Option<std::time::Instant>,
+    pub(super) andrew_talks: std::collections::HashMap<String, super::github::Load<crate::valley::SessionRead>>,
+    pub(super) andrew_read: Option<String>,
+    pub(super) andrew_text: Option<Entity<TextInput>>,
     /// The paste-in box for a Valley invite (Join-a-valley, Father 12 Nov
     /// 2026) on the page's not-configured card; a bare base URL joins with
     /// no credentials.
@@ -773,6 +783,11 @@ impl Root {
             valley_items: Default::default(),
             valley_talks: Default::default(),
             valley_item_input: None,
+            andrew_sessions: None,
+            andrew_sessions_at: None,
+            andrew_talks: std::collections::HashMap::new(),
+            andrew_read: None,
+            andrew_text: None,
             valley_join_input: None,
             campfire_open: None,
             campfire_torch: None,
@@ -3923,6 +3938,7 @@ impl Root {
             Route::Usage => self.render_usage(cx),
             Route::Valley => self.render_valley(cx),
             Route::ValleyItem(id) => self.render_valley_item(&id, cx),
+            Route::AndrewChat(key) => self.render_andrew_chat(&key, cx),
             Route::Run => self.render_run(window, cx),
             Route::Schedules => self.render_schedules(window, cx),
             Route::Machine(id) => self.render_machine(&id, cx),
@@ -4185,6 +4201,7 @@ fn route_title(s: &Snapshot, route: &Route) -> (Option<&'static str>, String) {
         Route::Usage => (None, "Usage".into()),
         Route::Valley => (None, "Valley".into()),
         Route::ValleyItem(id) => (Some("Valley"), format!("Item {id}")),
+        Route::AndrewChat(_) => (Some("Andrew"), "Chat with Andrew".into()),
         Route::Run => (None, "Run".into()),
         Route::Schedules => (None, "Schedules".into()),
         Route::Workspace(id) => (Some("Agents' workspaces"), s.workspaces.iter().find(|w| &w.id == id).map(|w| w.name.clone()).unwrap_or_else(|| id.clone())),

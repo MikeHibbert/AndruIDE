@@ -43,6 +43,7 @@ mod updates;
 mod usage;
 mod valley;
 mod valley_item;
+mod andrew_chat;
 mod vm_dialog;
 mod themes;
 mod workspaces;

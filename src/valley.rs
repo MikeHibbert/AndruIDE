@@ -454,6 +454,37 @@ impl Valley {
             .await
             .map_err(|e| format!("The schedules aren't the shape we expect: {e}"))
     }
+
+    /// Andrew's conversations, his side of the chat queue (GET /sessions
+    /// returns a bare list; probed live 13 Nov 2026). (Father, 13 Nov 2026:
+    /// run Andrew from the machine page like an IDE of his own - a
+    /// conversation, and sessions you can manage.)
+    pub async fn sessions(&self) -> Result<Vec<SessionRow>, String> {
+        if !self.configured() {
+            return Err("The valley isn't configured — set it in Settings › Valley.".into());
+        }
+        let resp = self
+            .get("/sessions")
+            .await
+            .map_err(|e| format!("The sessions: {e}"))?;
+        resp.json::<Vec<SessionRow>>()
+            .await
+            .map_err(|e| format!("The sessions aren't the shape we expect: {e}"))
+    }
+
+    /// One conversation's transcript: Andrew's turns and Dad's.
+    pub async fn read_session(&self, id: &str) -> Result<SessionRead, String> {
+        if !self.configured() {
+            return Err("The valley isn't configured — set it in Settings › Valley.".into());
+        }
+        let resp = self
+            .get(&format!("/sessions/{}", id.replace(' ', "%20")))
+            .await
+            .map_err(|e| format!("The conversation: {e}"))?;
+        resp.json::<SessionRead>()
+            .await
+            .map_err(|e| format!("The transcript isn't the shape we expect: {e}"))
+    }
 }
 
 /// A checkpoint's ask: the question Andrew holds a run on, and the answers
@@ -465,6 +496,51 @@ pub struct CheckpointAsk {
     pub question: String,
     #[serde(default)]
     pub options: Vec<String>,
+}
+
+/// One of Andrew's conversations in the list (GET /sessions; live shape,
+/// probed 13 Nov 2026: session_id, message_count, created_at, last_active,
+/// preview, phase, mode).
+#[derive(Clone, Debug, Deserialize)]
+pub struct SessionRow {
+    pub session_id: String,
+    #[serde(default)]
+    pub message_count: Option<i64>,
+    /// Parsed but not shown (the list leads with preview + phase + count).
+    #[serde(default)]
+    #[allow(dead_code)]
+    pub created_at: Option<String>,
+    #[serde(default)]
+    pub last_active: Option<String>,
+    #[serde(default)]
+    pub preview: Option<String>,
+    #[serde(default)]
+    pub phase: Option<String>,
+    /// Parsed but not shown (phase carries the plan/execute split already).
+    #[serde(default)]
+    #[allow(dead_code)]
+    pub mode: Option<String>,
+}
+
+/// One turn of a transcript (GET /sessions/{id}; role is user/assistant,
+/// content is the text).
+#[derive(Clone, Debug, Deserialize)]
+pub struct SessionTurn {
+    pub role: String,
+    pub content: String,
+    /// Parsed but not shown (turns read in list order, no clock per turn).
+    #[serde(default)]
+    #[allow(dead_code)]
+    pub timestamp: Option<String>,
+}
+
+/// A transcript: the conversation under one session id.
+#[derive(Clone, Debug, Deserialize)]
+pub struct SessionRead {
+    /// Parsed but not shown (the page is already keyed by the session id).
+    #[allow(dead_code)]
+    pub session_id: String,
+    pub messages: Vec<SessionTurn>,
 }
 
 /// The body of a chat turn.
@@ -1043,5 +1119,65 @@ mod tests {
         assert!(age_seconds("2026-01-01T00:00:00.000000Z").is_some(), "a past stamp parses");
         assert!(age_seconds("").is_none());
         assert!(age_seconds("not a stamp").is_none());
+    }
+
+    const SESSIONS_FIXTURE: &str = r##"[
+  {
+    "session_id": "scheduled:self_improve (kumbaya)",
+    "message_count": 4,
+    "created_at": "2026-11-13T09:00:00Z",
+    "last_active": "2026-11-13T09:12:00Z",
+    "preview": "you returned no result",
+    "phase": "discuss",
+    "mode": "plan",
+    "result_history": [{"at": "2026-11-13T09:12:00Z", "summary": "ignored"}]
+  },
+  {
+    "session_id": "chat:andruide-machine-beelink",
+    "message_count": 0,
+    "preview": "Andrew is listening."
+  }
+]"##;
+
+    #[test]
+    fn parses_the_conversation_list() {
+        let rows: Vec<SessionRow> = serde_json::from_str(SESSIONS_FIXTURE).expect("parses");
+        assert_eq!(rows.len(), 2, "both rows land");
+        assert_eq!(rows[0].session_id, "scheduled:self_improve (kumbaya)");
+        assert_eq!(rows[0].message_count, Some(4));
+        assert_eq!(rows[0].phase.as_deref(), Some("discuss"));
+        // Extra fields the server carries are ignored, not fatal.
+        assert!(rows[0].mode.is_some());
+        assert!(rows[1].phase.is_none(), "a sparse row still lands");
+        assert_eq!(rows[1].message_count, Some(0));
+    }
+
+    const TRANSCRIPT_FIXTURE: &str = r##"{
+  "session_id": "chat:andruide-machine-beelink",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Morning Andrew - what is on the board?",
+      "images": [],
+      "timestamp": "2026-11-13T09:00:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "Morning Dad. Eleven things pending, one is waiting on you.",
+      "timestamp": "2026-11-13T09:00:04Z",
+      "meta": {"duration_ms": 812}
+    }
+  ]
+}"##;
+
+    #[test]
+    fn parses_a_transcript_of_his_turns() {
+        let read: SessionRead = serde_json::from_str(TRANSCRIPT_FIXTURE).expect("parses");
+        assert_eq!(read.session_id, "chat:andruide-machine-beelink");
+        assert_eq!(read.messages.len(), 2, "both turns land");
+        assert_eq!(read.messages[0].role, "user");
+        assert_eq!(read.messages[1].role, "assistant");
+        assert!(read.messages[1].content.contains("waiting on you"));
+        assert!(read.messages[1].timestamp.is_some(), "the timestamp rides along");
     }
 }
