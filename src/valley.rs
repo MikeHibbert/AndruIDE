@@ -194,6 +194,12 @@ pub struct Valley {
     base: String,
     user: Option<String>,
     password: Option<String>,
+    // Learned on the first read that comes back as the valley's HTML front
+    // door: nginx-fronted valleys keep the API under /api, so a bare base
+    // (a hand-typed Settings entry or a bare-URL join, Father's 13 Nov
+    // 2026 screenshots) self-heals by retrying under /api. OnceLock keeps
+    // the client Send+Sync while the prefix sticks for its lifetime.
+    prefix: std::sync::OnceLock<String>,
 }
 
 impl Valley {
@@ -224,7 +230,7 @@ impl Valley {
             .timeout(std::time::Duration::from_secs(120))
             .build()
             .unwrap_or_else(|_| reqwest::Client::new());
-        Self { http, base, user, password }
+        Self { http, base, user, password, prefix: std::sync::OnceLock::new() }
     }
 
     /// Whether credentials are configured; the page fetches only when true.
@@ -232,17 +238,61 @@ impl Valley {
         self.user.is_some() && self.password.is_some()
     }
 
+    /// The URL for one API path under the current base and learned prefix.
+    fn url_for(&self, path: &str) -> String {
+        let prefix = self.prefix.get().map(String::as_str).unwrap_or("");
+        format!("{}{}{}", self.base.trim_end_matches('/'), prefix, path)
+    }
+
+    /// Learning is available until the prefix is set — and never on a base
+    /// that already carries the /api tail (learning there would double it).
+    fn can_learn(&self) -> bool {
+        self.prefix.get().is_none()
+            && !self
+                .base
+                .trim_end_matches('/')
+                .to_ascii_lowercase()
+                .ends_with("/api")
+    }
+
+    /// The valley's nginx answers unknown bare-host paths with the HTML
+    /// front door (verified live 13 Nov 2026: GET /kumbayas/runs on
+    /// localhost:8001 → 200 text/html). HTML says we hit the door, not the
+    /// API. (Father: "still not working" on item detail + campfires.)
+    fn looks_like_html(resp: &reqwest::Response) -> bool {
+        resp.headers()
+            .get(reqwest::header::CONTENT_TYPE)
+            .and_then(|v| v.to_str().ok())
+            .map(|v| v.trim().to_ascii_lowercase().starts_with("text/html"))
+            .unwrap_or(false)
+    }
+
+    fn auth(&self, req: reqwest::RequestBuilder) -> reqwest::RequestBuilder {
+        if let (Some(user), Some(password)) = (&self.user, &self.password) {
+            req.basic_auth(user, Some(password))
+        } else {
+            req
+        }
+    }
+
     /// One GET against the valley, with Basic auth when configured.
     async fn get(&self, path: &str) -> Result<reqwest::Response, String> {
-        let url = format!("{}{}", self.base.trim_end_matches('/'), path);
-        let mut req = self.http.get(&url);
-        if let (Some(user), Some(password)) = (&self.user, &self.password) {
-            req = req.basic_auth(user, Some(password));
-        }
-        req.send()
+        let url = self.url_for(path);
+        let mut resp = self
+            .auth(self.http.get(&url))
+            .send()
             .await
-            .map_err(|e| format!("Couldn't reach the valley at {url}: {e}"))?
-            .error_for_status()
+            .map_err(|e| format!("Couldn't reach the valley at {url}: {e}"))?;
+        if self.can_learn() && Self::looks_like_html(&resp) {
+            let _ = self.prefix.set("/api".to_string());
+            let url = self.url_for(path);
+            resp = self
+                .auth(self.http.get(&url))
+                .send()
+                .await
+                .map_err(|e| format!("Couldn't reach the valley at {url}: {e}"))?;
+        }
+        resp.error_for_status()
             .map_err(|e| format!("The valley answered {e}"))
     }
 
@@ -273,15 +323,22 @@ impl Valley {
             return Err("The valley isn't configured — set it in Settings › Valley.".into());
         }
         let body = ChatIn { session_id: session_id.to_string(), message: message.to_string(), mode: "plan".into(), interrupt };
-        let url = format!("{}{}", self.base.trim_end_matches('/'), "/chat");
-        let mut req = self.http.post(&url).json(&body);
-        if let (Some(user), Some(password)) = (&self.user, &self.password) {
-            req = req.basic_auth(user, Some(password));
-        }
-        let out: ChatOut = req
+        let mut url = self.url_for("/chat");
+        let mut resp = self
+            .auth(self.http.post(&url).json(&body))
             .send()
             .await
-            .map_err(|e| format!("Couldn't reach Andrew at {url}: {e}"))?
+            .map_err(|e| format!("Couldn't reach Andrew at {url}: {e}"))?;
+        if self.can_learn() && Self::looks_like_html(&resp) {
+            let _ = self.prefix.set("/api".to_string());
+            url = self.url_for("/chat");
+            resp = self
+                .auth(self.http.post(&url).json(&body))
+                .send()
+                .await
+                .map_err(|e| format!("Couldn't reach Andrew at {url}: {e}"))?;
+        }
+        let out: ChatOut = resp
             .error_for_status()
             .map_err(|e| format!("The valley answered {e}"))?
             .json()
