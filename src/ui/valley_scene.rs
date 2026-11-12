@@ -5,13 +5,16 @@
 //! one. The projection, shading and particle math is ours, written from
 //! standard technique (perspective projection, painter's-algorithm faces,
 //! sin-flickered flame stacks). No third-party UI code.
+//!
+//! Father, 13 Nov 2026, on this same page: a camera too - drag to pan, the
+//! wheel to zoom, and the Wide / At-the-fire altitudes with reset.
 
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use gpui::{
-    canvas, Animation, AnimationExt, AnyElement, ClickEvent, Context, Hsla, PathBuilder, Point,
-    Window, div, prelude::*, px,
+    canvas, Animation, AnimationExt, AnyElement, ClickEvent, Context, Hsla, MouseButton,
+    PathBuilder, Point, ScrollDelta, Window, div, prelude::*, px,
 };
 
 use super::kit::{self, Button, card};
@@ -47,6 +50,48 @@ pub(super) struct SceneHit {
 }
 
 type Shared = Arc<Mutex<SceneShared>>;
+
+/// The scene's camera state (Father, 13 Nov 2026: zoom controls, panning,
+/// one or two default altitudes with reset). Held on the Root as an
+/// Arc<Mutex<...>> so the canvas paint pass, the event handlers and the
+/// preset buttons all read and write the same camera without borrowing
+/// Root in the closures.
+pub(super) struct SceneCam {
+    pitch: f32,
+    zoom: f32,
+    pan_x: f32,
+    pan_y: f32,
+    /// The live drag: last x, last y, and how far the gesture has moved
+    /// (the click gate skips a hit when a drag moved more than 6 px).
+    drag: Option<(f32, f32, f32)>,
+}
+
+impl Default for SceneCam {
+    fn default() -> Self {
+        Self::wide()
+    }
+}
+
+impl SceneCam {
+    /// The wide field the scene opened with.
+    fn wide() -> Self {
+        Self { pitch: 0.56, zoom: 1.0, pan_x: 0.0, pan_y: 0.0, drag: None }
+    }
+
+    /// Down at fire level.
+    fn close() -> Self {
+        Self { pitch: 0.92, zoom: 1.9, pan_x: 0.0, pan_y: 0.0, drag: None }
+    }
+
+    fn zoom_by(&mut self, factor: f32) {
+        self.zoom = (self.zoom * factor).clamp(0.55, 4.5);
+    }
+
+    fn pan_by(&mut self, dx: f32, dy: f32) {
+        self.pan_x = (self.pan_x + dx).clamp(-1800.0, 1800.0);
+        self.pan_y = (self.pan_y + dy).clamp(-1200.0, 1200.0);
+    }
+}
 
 struct Palette {
     ground: Hsla,
@@ -235,6 +280,10 @@ impl Root {
         let pending_paint = pending;
         let t_paint = t;
         let dark_paint = dark;
+        // The camera travels into the paint pass, the event handlers and
+        // the preset buttons by Arc, like the shared paint state.
+        let cam_shared = self.scene_cam.clone();
+        let cam_paint = cam_shared.clone();
 
         let scene_canvas = canvas(
             move |bounds, _, _| {
@@ -257,8 +306,16 @@ impl Root {
                 if w < 60.0 || h < 60.0 {
                     return;
                 }
+                let cam_state = cam_paint
+                    .lock()
+                    .map(|c| (c.pitch, c.zoom, c.pan_x, c.pan_y))
+                    .unwrap_or((0.56, 1.0, 0.0, 0.0));
                 let sway = (t_paint * std::f32::consts::TAU / 26.0).sin() * 0.06 - 0.32;
-                let cam = Cam::new((bx, by, w, h), sway, 0.56);
+                let mut cam = Cam::new((bx, by, w, h), sway, cam_state.0);
+                cam.scale *= cam_state.1;
+                cam.cx += cam_state.2;
+                cam.cy += cam_state.3;
+                let cam = cam;
                 let pal = palette(dark_paint);
                 let mut faces: Vec<Face> = Vec::new();
                 let mut labels: Vec<SceneLabel> = Vec::new();
@@ -582,6 +639,16 @@ impl Root {
         );
 
         let shared_click = shared.clone();
+        // The camera handlers each take their own Arc clone; the paint pass
+        // holds cam_paint, so nothing here borrows Root.
+        let cam_drag = cam_shared.clone();
+        let cam_move = cam_shared.clone();
+        let cam_wheel = cam_shared.clone();
+        let cam_click = cam_shared.clone();
+        let cam_zoom_in = cam_shared.clone();
+        let cam_zoom_out = cam_shared.clone();
+        let cam_preset_wide = cam_shared.clone();
+        let cam_preset_close = cam_shared.clone();
         div()
             .id("valley-scene-root")
             .size_full()
@@ -607,7 +674,57 @@ impl Root {
                     .bg(theme.canvas)
                     .child(scene)
                     .children(overlay)
+                    .on_mouse_down(
+                        MouseButton::Left,
+                        move |ev: &gpui::MouseDownEvent, _, _| {
+                            if let Ok(mut c) = cam_drag.lock() {
+                                c.drag = Some((f32::from(ev.position.x), f32::from(ev.position.y), 0.0));
+                            }
+                        },
+                    )
+                    .on_mouse_move(move |ev: &gpui::MouseMoveEvent, _, _| {
+                        if !ev.dragging() {
+                            return;
+                        }
+                        if let Ok(mut c) = cam_move.lock() {
+                            if let Some((last_x, last_y, moved)) = c.drag {
+                                let x = f32::from(ev.position.x);
+                                let y = f32::from(ev.position.y);
+                                let (dx, dy) = (x - last_x, y - last_y);
+                                c.drag = Some((x, y, moved + dx.abs() + dy.abs()));
+                                // The scene follows the hand: the paint pass
+                                // adds the pan onto the projection centre.
+                                c.pan_by(dx, dy);
+                            }
+                        }
+                    })
+                    .on_scroll_wheel(move |ev: &gpui::ScrollWheelEvent, _, _| {
+                        if let Ok(mut c) = cam_wheel.lock() {
+                            let dy = match ev.delta {
+                                ScrollDelta::Lines(l) => -l.y * 24.0,
+                                ScrollDelta::Pixels(p) => f32::from(p.y),
+                            };
+                            // One notch at a time; clamp each wheel step so a
+                            // fast spin swings gently (Father, 13 Nov 2026).
+                            let factor = (1.0 - dy * 0.003).clamp(0.85, 1.18);
+                            c.zoom_by(factor);
+                        }
+                    })
                     .on_click(cx.listener(move |this: &mut Root, ev: &ClickEvent, window: &mut gpui::Window, cx: &mut Context<Root>| {
+                        // A drag that moved further than a tap is a pan, not a
+                        // pick - the click gate skips it (Father, 13 Nov 2026).
+                        let moved = cam_click
+                            .lock()
+                            .ok()
+                            .map(|mut c| {
+                                let m = c.drag.map(|d| d.2).unwrap_or(0.0);
+                                c.drag = None;
+                                m
+                            })
+                            .unwrap_or(0.0);
+                        if moved > 6.0 {
+                            return;
+                        }
                         let ClickEvent::Mouse(click) = ev else {
                             return;
                         };
@@ -629,7 +746,38 @@ impl Root {
                             this.campfire_torch = None;
                             this.navigate(Route::Campfires, window, cx);
                         }
-                    })),
+                    }))
+                    // The camera strip: zoom, and the two altitudes Father
+                    // asked for (Father, 13 Nov 2026: reset presets).
+                    .child(
+                        div()
+                            .absolute()
+                            .top(px(10.0))
+                            .right(px(12.0))
+                            .flex()
+                            .items_center()
+                            .gap(px(6.0))
+                            .child(Button::new("sc-zoom-in", "+").tooltip("Zoom in").on_click(move |_, _, _| {
+                                if let Ok(mut c) = cam_zoom_in.lock() {
+                                    c.zoom_by(1.25);
+                                }
+                            }))
+                            .child(Button::new("sc-zoom-out", "-").tooltip("Zoom out").on_click(move |_, _, _| {
+                                if let Ok(mut c) = cam_zoom_out.lock() {
+                                    c.zoom_by(1.0 / 1.25);
+                                }
+                            }))
+                            .child(Button::new("sc-preset-wide", "Wide").tooltip("Back to the wide field").on_click(move |_, _, _| {
+                                if let Ok(mut c) = cam_preset_wide.lock() {
+                                    *c = SceneCam::wide();
+                                }
+                            }))
+                            .child(Button::new("sc-preset-close", "At the fire").tooltip("Down at fire level").on_click(move |_, _, _| {
+                                if let Ok(mut c) = cam_preset_close.lock() {
+                                    *c = SceneCam::close();
+                                }
+                            })),
+                    ),
             )
             .into_any_element()
     }

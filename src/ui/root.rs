@@ -550,6 +550,9 @@ pub struct Root {
     /// targets) shared with the canvas closures, plus the scene clock.
     pub(super) scene: std::sync::Arc<std::sync::Mutex<super::valley_scene::SceneShared>>,
     pub(super) scene_start: Option<Instant>,
+    /// The 3d scene's camera: drag pan, wheel zoom, presets (Father, 13 Nov
+    /// 2026: zoom controls, panning, one or two default altitudes with reset).
+    pub(super) scene_cam: std::sync::Arc<std::sync::Mutex<super::valley_scene::SceneCam>>,
     /// Andrew on the machine page (Father 13 Nov 2026: run Andrew there
     /// like an IDE of his own): the list of his conversations, each
     /// conversation read, and the composer.
@@ -798,6 +801,7 @@ impl Root {
             valley_item_input: None,
             scene: Default::default(),
             scene_start: None,
+            scene_cam: Default::default(),
             andrew_sessions: None,
             andrew_sessions_at: None,
             andrew_talks: std::collections::HashMap::new(),
