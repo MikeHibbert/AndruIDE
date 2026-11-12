@@ -7,10 +7,12 @@ use gpui::{AnyElement, ClipboardItem, Context, FontWeight, SharedString, div, pr
 
 use super::detail::op_status_icon;
 use super::format;
-use super::kit::{self, Button, card, icon};
+use super::github::Load;
+use super::kit::{self, Button, ButtonStyle, card, icon};
 use super::root::{Root, Route};
 use super::theme::{ActiveTheme, Theme, mono_font};
 use crate::fleet::model::{Operation, Snapshot, WorkspaceCommand, WorkspaceInfo};
+use crate::valley::{self, RunSummary};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ActivityItem {
@@ -97,6 +99,9 @@ impl Root {
         let entries = feed(&s, self.activity_filter);
         let selected = self.selected_activity(&s);
         let running = s.operations.iter().filter(|o| o.status == "running").count();
+        // The valley's last hour rides the cached campfire runs (a lite
+        // read, 60s-guarded); Campfires and the Run page own the deeper reads.
+        self.maybe_load_runs(cx);
 
         let filters = [
             (ActivityFilter::All, "All"),
@@ -179,6 +184,7 @@ impl Root {
                             .on_click(cx.listener(|this, _, _, _| this.engine.clear_operations())),
                     ),
             )
+            .child(self.render_valley_activity(&theme, cx))
             .child(if empty {
                 filtered_empty(&theme, self.activity_filter)
             } else {
@@ -208,6 +214,83 @@ impl Root {
                     .into_any_element()
             })
             .into_any_element()
+    }
+
+    /// The valley's last hour, above the machine feed (Father, 12 Nov 2026:
+    /// "activity could be the like lists of calls that were made and whether
+    /// they completed or not... a summary of activity over the last hour for
+    /// Andrew"). Cached runs only — the deep reads live on Run and Campfires.
+    fn render_valley_activity(&self, theme: &Theme, cx: &mut Context<Self>) -> AnyElement {
+        let Some(Load::Ready(runs)) = self.valley_runs.as_ref() else {
+            // Not configured, still reading, or a failed read: the valley
+            // page owns the pitch; stay silent here.
+            return div().into_any_element();
+        };
+        let recently: Vec<&RunSummary> = runs
+            .iter()
+            .filter(|r| valley::age_seconds(&r.created_at).is_some_and(|s| s < 3600))
+            .collect();
+        let completed = recently.iter().filter(|r| r.status == "completed").count();
+        let live = recently.iter().filter(|r| r.status == "running").count();
+        let waiting = recently.iter().filter(|r| r.status == "waiting_checkpoint").count();
+        let failed = recently.iter().filter(|r| r.status == "failed").count();
+        let mut rows: Vec<RunSummary> = runs.clone();
+        valley::order_runs(&mut rows);
+        let mut strip = card(&theme).flex_none().mx(px(28.)).mt(px(4.)).mb(px(2.)).p(px(12.)).flex_col().gap(px(8.)).child(
+            div()
+                .flex()
+                .items_center()
+                .gap(px(10.))
+                .child(kit::section_title(theme, "The valley", (!runs.is_empty()).then_some(runs.len())))
+                .child(div().flex_1())
+                .child(
+                    div()
+                        .text_size(px(12.))
+                        .text_color(theme.text_muted)
+                        .child(format!("{n} in the last hour — {completed} completed · {live} running · {waiting} waiting on you · {failed} failed", n = recently.len())),
+                )
+                .child(
+                    Button::new("valley-activity-open", "Open Campfires")
+                        .style(ButtonStyle::Ghost)
+                        .on_click(cx.listener(|this, _, window, cx| this.navigate(Route::Campfires, window, cx))),
+                ),
+        );
+        let list: Vec<AnyElement> = rows
+            .iter()
+            .take(6)
+            .map(|r| {
+                let chip = match r.status.as_str() {
+                    "completed" => kit::icon("check", 11., theme.success).into_any_element(),
+                    "failed" => kit::icon("x", 11., theme.error).into_any_element(),
+                    "waiting_checkpoint" => kit::icon("flame", 11., theme.accent).into_any_element(),
+                    "running" => kit::spinner("act-vspin", 11., theme.text_muted).into_any_element(),
+                    _ => div().w(px(11.)).into_any_element(),
+                };
+                let camper = r.camper();
+                div()
+                    .flex()
+                    .items_center()
+                    .gap(px(8.))
+                    .text_size(px(12.5))
+                    .child(chip)
+                    .child(div().min_w(px(0.)).max_w(px(320.)).truncate().font_weight(FontWeight::MEDIUM).child(r.kumbaya.clone()))
+                    .child(div().text_size(px(11.)).text_color(theme.text_placeholder).child(if camper.is_empty() { "valley".to_string() } else { camper.to_string() }))
+                    .child(div().flex_1())
+                    .child(
+                        div()
+                            .flex_none()
+                            .font_family(mono_font())
+                            .text_size(px(11.))
+                            .text_color(theme.text_placeholder)
+                            .child(valley::age_text(&r.created_at).unwrap_or_default()),
+                    )
+                    .into_any_element()
+            })
+            .collect();
+        if !list.is_empty() {
+            strip = strip.child(div().flex().flex_col().gap(px(5.)).children(list));
+        }
+        strip.into_any_element()
     }
 
     /// First run: what shows up here, and three ways to make something happen.

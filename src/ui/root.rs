@@ -522,6 +522,13 @@ pub struct Root {
     /// which run's verses are shown open; when the list was read.
     pub(super) valley_runs: Option<super::github::Load<Vec<crate::valley::RunSummary>>>,
     pub(super) valley_runs_at: Option<Instant>,
+    /// Andrew's scheduler kicks (GET /schedules), for the Schedules page's
+    /// valley card; the last-words summary is the only history shown.
+    pub(super) valley_scheds: Option<super::github::Load<Vec<crate::valley::ScheduleEntry>>>,
+    pub(super) valley_scheds_at: Option<Instant>,
+    /// The Valley page's clicked lane chip ("all" included; None = the
+    /// running lane, as the page always showed). (Father, 12 Nov 2026.)
+    pub(super) valley_lane: Option<String>,
     pub(super) run_open: Option<String>,
     /// The item pages: each board item's full detail (what it's about) and
     /// its claim run's conversation, as last read (Father's three levels,
@@ -759,6 +766,9 @@ impl Root {
             run_expanded: None,
             valley_runs: None,
             valley_runs_at: None,
+            valley_scheds: None,
+            valley_scheds_at: None,
+            valley_lane: None,
             run_open: None,
             valley_items: Default::default(),
             valley_talks: Default::default(),

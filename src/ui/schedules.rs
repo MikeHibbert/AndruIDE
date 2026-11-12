@@ -3,6 +3,7 @@
 //! runs and their output.
 
 use gpui::{AnyElement, Context, FontWeight, SharedString, Window, div, prelude::*, px};
+use std::time::Instant;
 
 use super::github::Load;
 use super::kit::{self, Button, ButtonStyle, card, icon, section_title, spinner};
@@ -10,6 +11,7 @@ use super::overview::page;
 use super::root::Root;
 use super::theme::{ActiveTheme, Theme, mono_font};
 use crate::fleet::schedules::{MachineSchedules, Schedule, ScheduleLog};
+use crate::valley::{self, ScheduleEntry};
 
 /// The page's tile colors.
 pub const TILE: (u32, u32) = (0x7cc7ff, 0x3a7bea);
@@ -40,7 +42,144 @@ impl Root {
         cx.notify();
     }
 
-    /// Shows a schedule's runs (for `--view schedules:<machine>/<id>`).
+    /// Asks the valley for Andrew's scheduler kicks (again) — the
+    /// Schedules page's valley card. (Father, 13 Nov 2026: "schedules can
+    /// be jobs or can be actual scheduled things like cron jobs and the
+    /// eight hour kick and all that sort of thing".)
+    pub(super) fn load_valley_scheds(&mut self, cx: &mut Context<Root>) {
+        self.valley_scheds = Some(Load::Loading);
+        self.valley_scheds_at = Some(Instant::now());
+        let valley = valley::Valley::from_parts(self.engine.settings().valley.clone());
+        if !valley.configured() {
+            self.valley_scheds = Some(Load::Failed("not-configured".to_string()));
+            cx.notify();
+            return;
+        }
+        let job = self.engine.runtime().spawn(async move { valley.schedules().await });
+        let task = cx.spawn(async move |this, cx| {
+            let result = job.await;
+            let _ = this.update(cx, |this, cx| {
+                this.valley_scheds = Some(match result {
+                    Ok(Ok(list)) => Load::Ready(list),
+                    Ok(Err(e)) => Load::Failed(e),
+                    Err(e) => Load::Failed(e.to_string()),
+                });
+                cx.notify();
+            });
+        });
+        self.track(task);
+        cx.notify();
+    }
+
+    /// Loads the kicks when the card is empty or stale (a failed ask
+    /// retries sooner: the valley goes quiet under pool load).
+    pub(super) fn maybe_load_valley_scheds(&mut self, cx: &mut Context<Root>) {
+        let failed = matches!(self.valley_scheds, Some(Load::Failed(_)));
+        let window = if failed { 15 } else { 120 };
+        let stale = self.valley_scheds.is_none()
+            || self.valley_scheds_at.is_some_and(|t| t.elapsed().as_secs() > window);
+        if stale && !matches!(self.valley_scheds, Some(Load::Loading)) {
+            self.load_valley_scheds(cx);
+        }
+    }
+
+    /// The valley's kicks card: Andrew's scheduler, breathing on its own.
+    fn render_valley_scheds(&self, theme: &Theme, cx: &mut Context<Root>) -> AnyElement {
+        let (heading, state): (AnyElement, Option<Result<Vec<ScheduleEntry>, String>>) =
+            match &self.valley_scheds {
+                Some(Load::Ready(l)) => (
+                    div().flex().items_center().gap(px(8.))
+                        .child(section_title(theme, "The valley", Some(l.len())))
+                        .child(div().text_size(px(11.5)).text_color(theme.text_placeholder).child("kicks every worker, brief and patrol — all in Andrew's time"))
+                        .into_any_element(),
+                    Some(Ok(l.clone())),
+                ),
+                Some(Load::Failed(e)) if e == "not-configured" => (
+                    section_title(theme, "The valley", None).into_any_element(),
+                    Some(Err("The valley isn't configured in this app yet — Settings › Valley.".to_string())),
+                ),
+                Some(Load::Failed(e)) => (section_title(theme, "The valley", None).into_any_element(), Some(Err(e.clone()))),
+                _ => (section_title(theme, "The valley", None).into_any_element(), None),
+            };
+        let inner: AnyElement = match state {
+            None => div().flex().items_center().gap(px(8.)).text_size(px(12.)).text_color(theme.text_muted)
+                .child(spinner("vsc-load", 12., theme.text_muted)).child("Asking the valley for its kicks…").into_any_element(),
+            Some(Err(e)) => div().text_size(px(12.)).text_color(theme.text_muted).child(e).into_any_element(),
+            Some(Ok(list)) if list.is_empty() => div().text_size(px(12.)).text_color(theme.text_placeholder)
+                .child("The valley runs nothing on a clock.").into_any_element(),
+            Some(Ok(list)) => {
+                let shown = list.iter().take(8).map(|s| self.valley_sched_row(theme, s, false)).collect::<Vec<AnyElement>>();
+                let rest = list.len().saturating_sub(8);
+                let mut col = div().flex().flex_col().children(shown);
+                if rest > 0 {
+                    col = col.child(div().text_size(px(11.5)).text_color(theme.text_placeholder).px(px(14.)).py(px(8.))
+                        .child(format!("and {rest} more")));
+                }
+                // The jobs, as a pointer (loading the board is the heavy
+                // read; the Valley tab owns it — this page counts what it
+                // already read, else it sends you there).
+                if let Some(Load::Ready(v)) = &self.valley_data {
+                    let (mut running, mut waiting, mut blocked) = (0, 0, 0);
+                    for it in &v.items {
+                        match it.status.as_str() {
+                            "running" => running += 1,
+                            "pending" => waiting += 1,
+                            "blocked" => blocked += 1,
+                            _ => {}
+                        }
+                    }
+                    col = col.child(
+                        div().flex().items_center().gap(px(10.)).px(px(14.)).py(px(10.)).border_t_1().border_color(theme.border_variant)
+                            .child(div().text_size(px(12.5)).font_weight(FontWeight::MEDIUM).child("The jobs"))
+                            .child(div().text_size(px(12.)).text_color(theme.text_muted).child(format!("{running} running · {waiting} waiting · {blocked} blocked")))
+                            .child(div().flex_1())
+                            .child(Button::new("vsc-open-jobs", "Open the valley").style(ButtonStyle::Ghost)
+                                .on_click(cx.listener(|this, _, window, cx| this.navigate(super::root::Route::Valley, window, cx)))),
+                    );
+                }
+                col.into_any_element()
+            }
+        };
+        card(theme).overflow_hidden().child(div().pt(px(10.)).px(px(14.)).child(heading)).child(inner).into_any_element()
+    }
+
+    /// One kick: what fires it, when it next runs, and what the last kick
+    /// said (accepted / declined is the rhythm of the valley).
+    fn valley_sched_row(&self, theme: &Theme, s: &ScheduleEntry, _first: bool) -> AnyElement {
+        let cadence = s.cadence().unwrap_or_else(|| "on its own".to_string());
+        let next = s.next_run.clone().unwrap_or_else(|| "—".into());
+        let (words, word_color) = match s.last_words().map(|w| w.to_lowercase()) {
+            Some(w) if w.contains("declined") => (s.last_words().unwrap_or_default().to_string(), theme.warning),
+            Some(w) if w.contains("accepted") || w.contains("completed") || w.contains("ok") => (s.last_words().unwrap_or_default().to_string(), theme.success),
+            Some(w) => (w, theme.text_placeholder),
+            None if !s.enabled => ("off".to_string(), theme.text_placeholder),
+            None => ("hasn't kicked yet".to_string(), theme.text_placeholder),
+        };
+        div()
+            .flex()
+            .items_center()
+            .gap(px(12.))
+            .px(px(14.))
+            .py(px(9.))
+            .border_t_1()
+            .border_color(theme.border_variant)
+            .when(!s.enabled, |d| d.opacity(0.6))
+            .child(kit::tile("clock", crate::ui::valley::TILE.0, crate::ui::valley::TILE.1, 20.))
+            .child(
+                div().flex().flex_col().flex_1().min_w(px(0.)).gap(px(2.))
+                    .child(div().truncate().text_size(px(12.5)).font_weight(FontWeight::MEDIUM).child(s.name.clone()))
+                    .child(div().truncate().text_size(px(11.)).font_family(mono_font()).text_color(word_color).child(words)),
+            )
+            .child(
+                div().flex().flex_col().flex_none().items_end().gap(px(2.))
+                    .child(div().font_family(mono_font()).text_size(px(11.)).text_color(theme.text_muted).child(cadence))
+                    .child(div().text_size(px(11.)).text_color(theme.text_placeholder).child(format!("next {next}"))),
+            )
+            .when(!s.enabled, |d| d.child(kit::pill("off", theme.text_placeholder)))
+            .into_any_element()
+    }
+
+    /// Shows a schedule's runs (for `--view schedules:<machine>/<id>`)..
     pub(super) fn open_schedule_log(&mut self, machine: &str, id: &str, cx: &mut Context<Self>) {
         self.load_schedule_log(machine, id, None, cx);
     }
@@ -160,6 +299,10 @@ impl Root {
                     .child(Button::new("sch-new", "New schedule").style(ButtonStyle::Primary).icon("plus").on_click(cx.listener(|this, _, window, cx| this.show_schedule_dialog(None, window, cx)))),
             );
         let mut body = page("schedules-page", &self.page_scroll).child(header);
+        // The valley on this page (Father, 12 Nov 2026: schedules can be
+        // jobs — his scheduler's kicks with their cadence and last words).
+        self.maybe_load_valley_scheds(cx);
+        body = body.child(self.render_valley_scheds(&theme, cx));
         let list = match &self.schedules {
             Load::Ready(l) => l.clone(),
             Load::Loading => {

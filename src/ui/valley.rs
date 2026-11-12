@@ -1,5 +1,6 @@
 //! Valley: Andrew's work board, read live from his REST API (see
-//! src/valley.rs for the client). Lanes as chips, then what's running.
+//! src/valley.rs for the client). Lanes as chips — click one and the list
+//! below shows what's in it; "all" shows the whole board.
 
 use std::time::Instant;
 
@@ -232,9 +233,17 @@ impl Root {
             }
             None => return body.into_any_element(),
         };
-        // The lanes, as chips: count over label, the running lane lit.
+        // The lanes, as chips, count over label. Clicking a chip opens its
+        // lane below; "all" opens the whole board. (Father, 12 Nov 2026:
+        // "statistics at the top for running blocked. Pending complete
+        // stopped and failed. click those and the list below actually
+        // shows what's in there. And there should be a one for all.") The
+        // list defaults to the running lane, as it always has.
         let counts = crate::valley::counts(&data.items);
-        let mut lanes: Vec<(String, usize)> = LANES.iter().map(|l| (l.to_string(), counts.get(*l).copied().unwrap_or(0))).collect();
+        let selected = self.valley_lane.clone().unwrap_or_else(|| "running".to_string());
+        let show_status = selected == "all";
+        let mut lanes: Vec<(String, usize)> = vec![("all".to_string(), data.items.len())];
+        lanes.extend(LANES.iter().map(|l| (l.to_string(), counts.get(*l).copied().unwrap_or(0))));
         for (status, n) in &counts {
             if !LANES.contains(&status.as_str()) {
                 lanes.push((status.clone(), *n));
@@ -246,7 +255,8 @@ impl Root {
                 .flex_wrap()
                 .gap(px(8.))
                 .children(lanes.into_iter().map(|(status, n)| {
-                    let on = status == "running";
+                    let on = status == selected;
+                    let lane = status.clone();
                     div()
                         .id(SharedString::from(format!("valley-lane-{status}")))
                         .px(px(12.))
@@ -256,16 +266,34 @@ impl Root {
                         .flex_col()
                         .gap(px(2.))
                         .rounded(kit::corner(9.))
+                        .cursor_pointer()
                         .bg(if on { theme.element_selected } else { theme.element })
+                        .hover(|st| st.bg(theme.element_selected))
+                        .on_click(cx.listener(move |this, _, _, cx| {
+                            this.valley_lane = Some(lane.clone());
+                            cx.notify();
+                        }))
                         .child(div().text_size(px(18.)).font_weight(FontWeight::SEMIBOLD).child(n.to_string()))
                         .child(div().text_size(px(11.5)).text_color(theme.text_muted).child(status.clone()))
                 })),
         );
-        // What his workers hold right now.
-        let running: Vec<&crate::valley::WorkItem> = data.items.iter().filter(|i| i.status == "running").collect();
-        if running.is_empty() {
+        // The selected lane's items ("all" = the whole board), in the
+        // claim order the server already sent them.
+        let items: Vec<&crate::valley::WorkItem> = if selected == "all" {
+            data.items.iter().collect()
+        } else {
+            data.items.iter().filter(|i| i.status == selected).collect()
+        };
+        if items.is_empty() {
+            let note = if selected == "all" {
+                "The board is empty right now.".to_string()
+            } else if selected == "running" {
+                "Nothing is running on the board right now.".to_string()
+            } else {
+                format!("Nothing in the {selected} lane right now.")
+            };
             body = body.child(
-                card(&theme).p(px(18.)).flex_row().items_center().gap(px(10.)).text_size(px(13.)).text_color(theme.text_muted).child("Nothing is running on the board right now."),
+                card(&theme).p(px(18.)).flex_row().items_center().gap(px(10.)).text_size(px(13.)).text_color(theme.text_muted).child(note),
             );
         } else {
             body = body.child(
@@ -273,7 +301,7 @@ impl Root {
                     .flex()
                     .flex_col()
                     .gap(px(8.))
-                    .children(running.into_iter().map(|item| {
+                    .children(items.into_iter().map(|item| {
                         // Three levels, Father 12 Nov 2026: the card opens the
                         // item's own page (detail + the job's conversation).
                         let open_id = item.id.clone();
@@ -298,6 +326,7 @@ impl Root {
                                     .font_family(mono_font())
                                     .child(item.id.clone())
                                     .when(!item.project.is_empty(), |d| d.child(item.project.clone()))
+                                    .when(show_status, |d| d.child(item.status.clone()))
                                     .child(format!("p{}", item.priority)),
                             )
                     })),

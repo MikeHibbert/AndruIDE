@@ -436,6 +436,24 @@ impl Valley {
             .map(|_| ())
             .map_err(|e| format!("The valley answered {e}"))
     }
+
+    /// Andrew's scheduler: the kicks (cron and interval) that keep the
+    /// valley breathing (worker kicks, the eight-hour kick, briefs,
+    /// patrols). (Father, 13 Nov 2026: under Schedules, "schedules can be
+    /// jobs or can be actual scheduled things like cron jobs and the eight
+    /// hour kick and all that sort of thing.")
+    pub async fn schedules(&self) -> Result<Vec<ScheduleEntry>, String> {
+        if !self.configured() {
+            return Err("The valley isn't configured — set it in Settings › Valley.".into());
+        }
+        let resp = self
+            .get("/schedules")
+            .await
+            .map_err(|e| format!("The schedules: {e}"))?;
+        resp.json::<Vec<ScheduleEntry>>()
+            .await
+            .map_err(|e| format!("The schedules aren't the shape we expect: {e}"))
+    }
 }
 
 /// A checkpoint's ask: the question Andrew holds a run on, and the answers
@@ -465,6 +483,68 @@ pub struct ChatIn {
 /// How many runs want a person right now (a checkpoint holds them).
 pub fn need_you(runs: &[RunSummary]) -> usize {
     runs.iter().filter(|r| r.status == "waiting_checkpoint").count()
+}
+
+/// The age of a run in seconds, when its stamp parses — feeds the
+/// last-hour activity summary (Father, 13 Nov 2026: Activity as "a
+/// summary of activity over the last hour for Andrew").
+pub fn age_seconds(rfc3339: &str) -> Option<u64> {
+    let t = chrono::DateTime::parse_from_rfc3339(rfc3339).ok()?;
+    let secs = (chrono::Utc::now() - t.with_timezone(&chrono::Utc)).num_seconds();
+    Some(secs.max(0) as u64)
+}
+
+/// One entry of Andrew's scheduler (GET /schedules, read live 13 Nov
+/// 2026): the kicks that make the valley breathe. The kick history rides
+/// `result_history` — skipped at parse time, the Schedules page shows the
+/// last one's words only.
+#[derive(Debug, Clone, Deserialize, PartialEq)]
+pub struct ScheduleEntry {
+    pub name: String,
+    #[serde(default)]
+    pub cron: Option<String>,
+    #[serde(default)]
+    pub interval_seconds: Option<i64>,
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default)]
+    pub next_run: Option<String>,
+    #[serde(default)]
+    pub last_run_at: Option<String>,
+    #[serde(default)]
+    pub last_result: Option<ScheduleResult>,
+    #[serde(default)]
+    pub status: Option<String>,
+}
+
+/// `last_result` is an object carrying the kick's outcome in `summary`
+/// ("kick accepted: run started on the main loop", read live).
+#[derive(Debug, Clone, Deserialize, PartialEq)]
+pub struct ScheduleResult {
+    #[serde(default)]
+    pub summary: Option<String>,
+}
+
+impl ScheduleEntry {
+    /// The cadence, human-readable: the cron line, else the interval.
+    pub fn cadence(&self) -> Option<String> {
+        if let Some(c) = self.cron.as_deref().filter(|c| !c.trim().is_empty()) {
+            return Some(c.to_string());
+        }
+        self.interval_seconds.map(|s| match s {
+            n if n % 3600 == 0 => format!("every {}h", n / 3600),
+            n if n % 60 == 0 => format!("every {}m", n / 60),
+            n => format!("every {n}s"),
+        })
+    }
+
+    /// What the last kick said (accepted / declined / its own words).
+    pub fn last_words(&self) -> Option<&str> {
+        self.last_result
+            .as_ref()
+            .and_then(|r| r.summary.as_deref())
+            .filter(|s| !s.trim().is_empty())
+    }
 }
 
 /// One verse inside a run, trimmed to what the Run page shows. The heavy
@@ -922,5 +1002,46 @@ mod tests {
         )
         .expect("the detail run shape parses");
         assert_eq!(talk.waiting_ask().expect("the ask").question, "Accept the scorecard?");
+    }
+
+    /// A trimmed slice of the real `GET /schedules` answer, captured live
+    /// on 13 Nov 2026 (the history array rides through untouched: serde
+    /// must ignore it). A null `interval_seconds` and a missing
+    /// `last_result` both parse, and the kicker cadence renders.
+    #[test]
+    fn parses_the_scheduler_kicks() {
+        let scheds: Vec<ScheduleEntry> = serde_json::from_str(
+            r#"[
+                {"id":"4a53fd29","name":"work_board_worker_11",
+                 "prompt":"Process the next pending item.",
+                 "target_campfire":"Andrew","cron":"40-59/20 * * * *",
+                 "interval_seconds":null,"run_once":false,"run_at":null,
+                 "enabled":true,"skill_to_save":null,"kumbaya_name":"work_board_worker",
+                 "kumbaya_inputs":{},"kumbaya_autonomous":true,
+                 "created_at":"2026-10-19T14:22:17.964975Z",
+                 "last_run_at":"2026-11-12T17:40:44.608050Z",
+                 "last_result":{"at":"2026-11-12T17:40:44.607914+00:00",
+                                "summary":"(work_board_worker kick accepted: run started on the main loop)"},
+                 "result_history":[{"at":"x","summary":"older word that must be ignored"}],
+                 "next_run":"2026-11-12T18:40:00Z","status":"active"},
+                {"name":"m8_hourly_kick","interval_seconds":28800,"enabled":false,
+                 "cron":null}
+            ]"#,
+        )
+        .expect("the live schedules shape parses");
+        assert_eq!(scheds.len(), 2);
+        assert_eq!(scheds[0].cadence().as_deref(), Some("40-59/20 * * * *"));
+        assert_eq!(scheds[0].last_result.as_ref().and_then(|r| r.summary.as_deref()).map(|s| s.contains("kick accepted")), Some(true));
+        assert_eq!(scheds[0].last_words().map(|s| s.contains("accepted")), Some(true));
+        assert_eq!(scheds[0].next_run.as_deref(), Some("2026-11-12T18:40:00Z"));
+        assert_eq!(scheds[1].cadence().as_deref(), Some("every 8h"), "the eight-hour kick reads from its interval");
+        assert!(scheds[1].last_words().is_none());
+    }
+
+    #[test]
+    fn age_seconds_reads_the_stamp_or_admits_it_cannot() {
+        assert!(age_seconds("2026-01-01T00:00:00.000000Z").is_some(), "a past stamp parses");
+        assert!(age_seconds("").is_none());
+        assert!(age_seconds("not a stamp").is_none());
     }
 }
