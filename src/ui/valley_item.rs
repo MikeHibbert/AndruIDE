@@ -301,14 +301,14 @@ impl Root {
             );
         }
 
-        // The error, when the claim failed.
-        if !item.error.trim().is_empty() {
+        // The error, when the claim failed: null and "" both read as none.
+        if let Some(err) = item.failed_text() {
             stack.push(
                 card(&theme)
                     .p(px(14.))
                     .text_size(px(12.5))
                     .text_color(theme.error)
-                    .child(item.error.clone())
+                    .child(err.to_string())
                     .into_any_element(),
             );
         }
