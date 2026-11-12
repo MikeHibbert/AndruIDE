@@ -124,6 +124,70 @@ pub fn counts(items: &[WorkItem]) -> BTreeMap<String, usize> {
 /// appended after these.
 pub const LANES: [&str; 6] = ["running", "blocked", "pending", "completed", "stopped", "failed"];
 
+/// A valley invite, decoded from a paste or a QR (first run, Father 12 Nov
+/// 2026): `andruide://join?base=…&user=…&password=…`, percent-encoded. A bare
+/// http(s) URL joins with no credentials — the valley decides if it wants any.
+#[derive(Debug, PartialEq)]
+pub struct JoinParts {
+    pub base: String,
+    pub user: String,
+    pub password: String,
+}
+
+/// Percent-decodes a query value. `+` stays `+` deliberately: invites carry
+/// passwords, and only the generator's `%2B` form may produce one.
+fn percent_decode(s: &str) -> String {
+    let bytes = s.as_bytes();
+    let mut out: Vec<u8> = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'%' && i + 2 < bytes.len() {
+            let hi = (bytes[i + 1] as char).to_digit(16);
+            let lo = (bytes[i + 2] as char).to_digit(16);
+            if let (Some(hi), Some(lo)) = (hi, lo) {
+                out.push((hi * 16 + lo) as u8);
+                i += 3;
+                continue;
+            }
+        }
+        out.push(bytes[i]);
+        i += 1;
+    }
+    String::from_utf8_lossy(&out).into_owned()
+}
+
+/// Parses a pasted Valley invite; None says the text isn't one.
+pub fn parse_join(input: &str) -> Option<JoinParts> {
+    let s = input.trim();
+    if s.starts_with("http://") || s.starts_with("https://") {
+        // A plain base URL: a valley that needs no credentials.
+        return Some(JoinParts {
+            base: s.trim_end_matches('/').to_string(),
+            user: String::new(),
+            password: String::new(),
+        });
+    }
+    let query = s.strip_prefix("andruide://join?")?;
+    let mut base = None;
+    let mut user = String::new();
+    let mut password = String::new();
+    for pair in query.split('&') {
+        let (key, value) = pair.split_once('=')?;
+        match key.to_ascii_lowercase().as_str() {
+            "base" => base = Some(percent_decode(value).trim_end_matches('/').to_string()),
+            "user" => user = percent_decode(value),
+            "password" | "pass" => password = percent_decode(value),
+            // Unknown fields are ignored — the contract's tolerance rule.
+            _ => {}
+        }
+    }
+    let base = base?;
+    if base.is_empty() {
+        return None;
+    }
+    Some(JoinParts { base, user, password })
+}
+
 /// Read-only client for Andrew's valley API.
 pub struct Valley {
     http: reqwest::Client,
@@ -559,6 +623,30 @@ mod tests {
     fn age_text_formats_and_refuses_junk() {
         assert_eq!(age_text("not a date"), None);
         assert!(age_text("2020-01-01T00:00:00Z").is_some_and(|t| t.ends_with('m') || t.ends_with("now")));
+    }
+
+    #[test]
+    fn join_parses_the_scheme_form() {
+        let invite = "andruide://join?base=http%3A%2F%2F172.18.144.1%3A8001%2Fapi&user=mykibbert&password=op%20en%2Bz";
+        let join = parse_join(invite).expect("a well-formed invite parses");
+        assert_eq!(join.base, "http://172.18.144.1:8001/api");
+        assert_eq!(join.user, "mykibbert");
+        assert_eq!(join.password, "op en+z", "space and plus decode, trailing slash trimmed off base");
+    }
+
+    #[test]
+    fn join_takes_a_bare_base_url() {
+        let join = parse_join("http://192.168.1.50:8105/").expect("a bare base joins with no credentials");
+        assert_eq!(join.base, "http://192.168.1.50:8105");
+        assert!(join.user.is_empty() && join.password.is_empty());
+    }
+
+    #[test]
+    fn join_refuses_what_is_not_an_invite() {
+        assert!(parse_join("").is_none());
+        assert!(parse_join("junk").is_none());
+        assert!(parse_join("andruide://join").is_none(), "no query, no base");
+        assert!(parse_join("andruide://join?user=x").is_none(), "a base is required");
     }
 
     /// A trimmed slice of the real `GET /work/{id}` answer, captured live

@@ -529,6 +529,10 @@ pub struct Root {
     pub(super) valley_items: std::collections::HashMap<String, super::github::Load<crate::valley::ItemDetail>>,
     pub(super) valley_talks: std::collections::HashMap<String, super::github::Load<crate::valley::RunTalk>>,
     pub(super) valley_item_input: Option<Entity<TextInput>>,
+    /// The paste-in box for a Valley invite (Join-a-valley, Father 12 Nov
+    /// 2026) on the page's not-configured card; a bare base URL joins with
+    /// no credentials.
+    pub(super) valley_join_input: Option<Entity<TextInput>>,
     /// The Campfires page (Father's directive, 12 Nov 2026): which camper is
     /// opened, which of their runs is open, and the line that instructs a
     /// running camper (interrupt: true, feedback/training).
@@ -759,6 +763,7 @@ impl Root {
             valley_items: Default::default(),
             valley_talks: Default::default(),
             valley_item_input: None,
+            valley_join_input: None,
             campfire_open: None,
             campfire_torch: None,
             campfire_input: None,
