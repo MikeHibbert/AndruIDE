@@ -390,12 +390,17 @@ impl Root {
                         .into_any_element(),
                 );
                 for (i, verse) in talk.verses.iter().enumerate() {
+                    // The said text wraps under the name: an unconstrained
+                    // sibling used to lay out at its intrinsic width and
+                    // overlap the verse line (Father, 13 Nov 2026: "we should
+                    // be doing something about text drop as well as
+                    // positioning in the right places").
                     let mut row = div()
                         .flex()
                         .items_start()
                         .gap(px(8.))
                         .mx(px(16.))
-                        .my(px(4.));
+                        .my(px(6.));
                     match verse.status.as_str() {
                         "running" => {
                             row = row.child(spinner(
@@ -409,40 +414,46 @@ impl Root {
                         "failed" => row = row.child(kit::icon("x", 12., theme.error)),
                         _ => row = row.child(div().w(px(12.))),
                     }
-                    row = row.child(
-                        div()
-                            .flex()
-                            .flex_col()
-                            .gap(px(2.))
-                            .min_w(px(0.))
-                            .flex_1()
-                            .child(
-                                div()
-                                    .flex()
-                                    .items_center()
-                                    .gap(px(6.))
-                                    .text_size(px(12.5))
-                                    .font_family(mono_font())
-                                    .font_weight(FontWeight::MEDIUM)
-                                    .child(verse.verse.clone())
-                                    .child(
-                                        div()
-                                            .text_size(px(10.5))
-                                            .font_weight(FontWeight::NORMAL)
-                                            .text_color(theme.text_placeholder)
-                                            .child(verse.kind.clone()),
-                                    ),
-                            ),
-                    );
-                    if let Some(said) = verse.said() {
-                        row = row.child(
+                    let mut column = div()
+                        .flex()
+                        .flex_col()
+                        .gap(px(3.))
+                        .min_w(px(0.))
+                        .flex_1()
+                        .child(
                             div()
+                                .flex()
+                                .items_baseline()
+                                .gap(px(6.))
+                                .child(
+                                    div()
+                                        .min_w(px(0.))
+                                        .truncate()
+                                        .text_size(px(12.5))
+                                        .font_family(mono_font())
+                                        .font_weight(FontWeight::MEDIUM)
+                                        .child(verse.verse.clone()),
+                                )
+                                .child(
+                                    div()
+                                        .flex_none()
+                                        .text_size(px(10.5))
+                                        .font_weight(FontWeight::NORMAL)
+                                        .text_color(theme.text_placeholder)
+                                        .child(verse.kind.clone()),
+                                ),
+                        );
+                    if let Some(said) = verse.said() {
+                        column = column.child(
+                            div()
+                                .w_full()
                                 .text_size(px(12.5))
                                 .text_color(theme.text_muted)
                                 .whitespace_normal()
                                 .child(clipped(said, SAID_CAP)),
                         );
                     }
+                    row = row.child(column);
                     stack.push(row.into_any_element());
                 }
                 if talk.status == "running" && !talk.session_id.trim().is_empty() {
