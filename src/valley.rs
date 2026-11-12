@@ -35,6 +35,62 @@ pub struct WorkItem {
     #[allow(dead_code)]
     #[serde(default)]
     pub started_at: Option<String>,
+    /// The kumbaya run working this item when it's claimed — the drill
+    /// down to the job's conversation (Father, 12 Nov 2026: three levels,
+    /// listing detail conversation).
+    #[serde(default)]
+    pub claim_run_id: Option<String>,
+}
+
+impl WorkItem {
+    /// The claim run when the item carries a real one (an empty string
+    /// reads as none). Kept for the v2 running-since/claim views.
+    #[allow(dead_code)]
+    pub fn claim_run(&self) -> Option<&str> {
+        self.claim_run_id.as_deref().map(str::trim).filter(|s| !s.is_empty())
+    }
+}
+
+/// One work item in full, as `GET /work/{id}` reports it — what the item
+/// page shows. Andrew's answer carries far more fields; serde keeps only
+/// what the page reads.
+#[derive(Debug, Clone, Deserialize)]
+pub struct ItemDetail {
+    pub id: String,
+    pub title: String,
+    #[serde(default)]
+    pub description: String,
+    #[serde(default)]
+    pub project: String,
+    #[serde(default)]
+    pub status: String,
+    #[serde(default)]
+    pub priority: i64,
+    #[serde(default)]
+    pub created_at: String,
+    #[serde(default)]
+    #[allow(dead_code)]
+    pub started_at: Option<String>,
+    #[serde(default)]
+    pub claim_run_id: Option<String>,
+    /// Why a claim failed, when it did (the empty string reads as none).
+    #[serde(default)]
+    pub error: String,
+    /// The item's log as it was worked, oldest entries first.
+    #[serde(default)]
+    pub progress_log: Vec<String>,
+}
+
+impl ItemDetail {
+    /// The claim run when the item carries a real one.
+    pub fn claim_run(&self) -> Option<&str> {
+        self.claim_run_id.as_deref().map(str::trim).filter(|s| !s.is_empty())
+    }
+
+    /// The log's newest entries, last first, capped for the page.
+    pub fn recent_log(&self, n: usize) -> Vec<&str> {
+        self.progress_log.iter().rev().take(n).map(String::as_str).collect()
+    }
 }
 
 /// Andrew's `/ready` payload — service health at a glance.
@@ -171,6 +227,35 @@ impl Valley {
             .await
             .map_err(|e| format!("The runs aren't the shape we expect: {e}"))
     }
+
+    /// One work item in full (the item page's detail level).
+    pub async fn item(&self, id: &str) -> Result<ItemDetail, String> {
+        if !self.configured() {
+            return Err("The valley isn't configured — set it in Settings › Valley.".into());
+        }
+        let resp = self
+            .get(&format!("/work/{id}"))
+            .await
+            .map_err(|e| format!("The item: {e}"))?;
+        resp.json::<ItemDetail>()
+            .await
+            .map_err(|e| format!("The item isn't the shape we expect: {e}"))
+    }
+
+    /// One run's conversation: every verse with what the camper said and
+    /// did on the job (the item page's third level).
+    pub async fn talk(&self, run_id: &str) -> Result<RunTalk, String> {
+        if !self.configured() {
+            return Err("The valley isn't configured — set it in Settings › Valley.".into());
+        }
+        let resp = self
+            .get(&format!("/kumbayas/runs/{run_id}"))
+            .await
+            .map_err(|e| format!("The conversation: {e}"))?;
+        resp.json::<RunTalk>()
+            .await
+            .map_err(|e| format!("The conversation isn't the shape we expect: {e}"))
+    }
 }
 
 /// The body of a chat turn.
@@ -305,6 +390,52 @@ pub struct ChatOut {
     pub reply: String,
 }
 
+/// One verse of a run's conversation: its name and what the camper said
+/// and did on it (Andrew sends the full `result` per verse; the item
+/// page caps how much of it it draws).
+#[derive(Debug, Clone, Deserialize)]
+pub struct VerseTalk {
+    pub verse: String,
+    #[serde(default)]
+    pub kind: String,
+    #[serde(default)]
+    pub status: String,
+    #[serde(default)]
+    pub result: Option<String>,
+    #[serde(default)]
+    pub error: Option<String>,
+}
+
+impl VerseTalk {
+    /// What the camper said on this verse: its result, or its error, or
+    /// nothing (a pending verse hasn't spoken yet). Kept whole; the page
+    /// decides how much to draw.
+    pub fn said(&self) -> Option<&str> {
+        self.result.as_deref().filter(|s| !s.is_empty()).or(self.error.as_deref().filter(|s| !s.is_empty()))
+    }
+}
+
+/// One run's conversation in full, as `GET /kumbayas/runs/{id}` reports it.
+#[derive(Debug, Clone, Deserialize)]
+pub struct RunTalk {
+    // Parsed for completeness; the page shows status, kumbaya and verses
+    // (created_at joins the header when a running-since line is wanted).
+    #[serde(default)]
+    #[allow(dead_code)]
+    pub id: String,
+    #[serde(default)]
+    pub kumbaya: String,
+    #[serde(default)]
+    pub status: String,
+    #[serde(default)]
+    pub session_id: String,
+    #[serde(default)]
+    #[allow(dead_code)]
+    pub created_at: String,
+    #[serde(default)]
+    pub verses: Vec<VerseTalk>,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -428,5 +559,81 @@ mod tests {
     fn age_text_formats_and_refuses_junk() {
         assert_eq!(age_text("not a date"), None);
         assert!(age_text("2020-01-01T00:00:00Z").is_some_and(|t| t.ends_with('m') || t.ends_with("now")));
+    }
+
+    /// A trimmed slice of the real `GET /work/{id}` answer, captured live
+    /// on 12 Nov 2026 (extra fields included on purpose: serde must ignore
+    /// them, and the empty strings the board sends read as none).
+    const ITEM_FIXTURE: &str = r##"{
+        "id": "work_ab12cd34ef", "title": "One-list routine taxonomy",
+        "description": "Render schedules, todos and ceremonies through ONE presentation function.\n\nSecond paragraph of the spec.",
+        "project": "andrew", "item_class": "work", "status": "running",
+        "priority": 20, "run_now": false, "start_after": null,
+        "deliverable_paths": [],
+        "progress_log": ["[2026-11-11 21:00] claimed by worker", "[2026-11-11 21:02] plan landed"],
+        "created_at": "2026-11-11T20:41:00.000000Z",
+        "started_at": "2026-11-11T21:00:59.000000Z",
+        "completed_at": null, "work_seconds": 40, "work_started_at": "2026-11-11",
+        "error": "",
+        "claim_run_id": "f7f19b49-3878-47c9-a0f3-bf635c13c10d",
+        "fail_count": 0, "mint_count": 0, "research_findings": "",
+        "worktree_path": "", "estimate_steps": 0, "staged": [], "stages": [],
+        "stage_index": 0, "repair_passes": 0, "judge_stop": false,
+        "stop_requested": false, "guidance": [], "guidance_read_index": 0
+    }"##;
+
+    #[test]
+    fn parses_item_detail_and_ignores_the_rest() {
+        let item: ItemDetail = serde_json::from_str(ITEM_FIXTURE).expect("the live item shape parses");
+        assert_eq!(item.title, "One-list routine taxonomy");
+        assert_eq!(item.status, "running");
+        assert_eq!(item.priority, 20);
+        assert!(item.progress_log.len() == 2 && item.error.is_empty());
+        assert_eq!(item.claim_run(), Some("f7f19b49-3878-47c9-a0f3-bf635c13c10d"));
+        assert_eq!(item.recent_log(1), ["[2026-11-11 21:02] plan landed"]);
+    }
+
+    #[test]
+    fn empty_claim_and_error_read_as_none() {
+        let item: ItemDetail = serde_json::from_str("{\"id\":\"x\",\"title\":\"t\"}")
+            .expect("a bare item object parses");
+        assert_eq!(item.claim_run(), None);
+        assert!(item.error.is_empty());
+        assert!(item.progress_log.is_empty());
+    }
+
+    /// A trimmed slice of the real `GET /kumbayas/runs/{id}` answer, captured
+    /// live on 12 Nov 2026 (a verse may say nothing yet, and its result can
+    /// be long: the page caps the drawing, the client keeps it whole).
+    const TALK_FIXTURE: &str = r##"{
+        "id": "f7f19b49-3878-47c9-a0f3-bf635c13c10d",
+        "kumbaya": "work_board_worker", "version": 6,
+        "inputs": {"_claim_run_id": "f7f19b49"},
+        "status": "running",
+        "verses": [
+            {"verse": "pick_item", "kind": "mcp_tool", "status": "completed",
+             "result": "{\"id\": \"work_ab12cd34ef\", \"title\": \"One-list routine taxonomy\"}",
+             "error": "", "tool_name": "work_next"},
+            {"verse": "execute_build.implement", "kind": "agent", "status": "running",
+             "result": null, "error": ""},
+            {"verse": "checkpoint_review", "kind": "checkpoint", "status": "pending",
+             "result": null}
+        ],
+        "report": "", "autonomous": true, "session_id": "chat:worker_kick",
+        "created_at": "2026-11-11T21:00:59.000000Z",
+        "updated_at": "2026-11-11T21:04:00.000000Z", "finished_at": null,
+        "rating": null, "drift_streak": 0
+    }"##;
+
+    #[test]
+    fn parses_the_conversation_and_finds_what_was_said() {
+        let talk: RunTalk = serde_json::from_str(TALK_FIXTURE).expect("the live run shape parses");
+        assert_eq!(talk.id, "f7f19b49-3878-47c9-a0f3-bf635c13c10d");
+        assert_eq!(talk.kumbaya, "work_board_worker");
+        assert_eq!(talk.verses.len(), 3);
+        let said = talk.verses[0].said().expect("the pick verse said something");
+        assert!(said.contains("\"title\": \"One-list routine taxonomy\""));
+        assert!(talk.verses[1].said().is_none(), "a running verse hasn't spoken yet");
+        assert!(talk.verses[2].said().is_none(), "a pending verse hasn't spoken yet");
     }
 }

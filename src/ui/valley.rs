@@ -220,12 +220,19 @@ impl Root {
                     .flex_col()
                     .gap(px(8.))
                     .children(running.into_iter().map(|item| {
+                        // Three levels, Father 12 Nov 2026: the card opens the
+                        // item's own page (detail + the job's conversation).
+                        let open_id = item.id.clone();
                         card(&theme)
                             .id(SharedString::from(format!("valley-item-{}", item.id)))
                             .p(px(14.))
                             .flex_col()
                             .gap(px(4.))
                             .cursor_pointer()
+                            .hover(|st| st.bg(theme.element_selected))
+                            .on_click(cx.listener(move |this, _, window, cx| {
+                                this.navigate(Route::ValleyItem(open_id.clone()), window, cx)
+                            }))
                             .child(div().text_size(px(13.)).font_weight(FontWeight::MEDIUM).child(item.title.clone()))
                             .child(
                                 div()
