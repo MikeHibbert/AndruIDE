@@ -551,7 +551,9 @@ impl SettingsPage {
                             .style(ButtonStyle::Primary)
                             .on_click(cx.listener(|this, _, _, cx| this.save_valley(cx))),
                     )
-                    .when(self.saved_at.is_some(), |d| d.child(div().text_size(px(12.)).text_color(theme.success).child("Saved")))
+                    .when(self.saved_at.is_some(), |d| {
+                        d.child(kit::fading("sv-1", div().text_size(px(12.)).text_color(theme.success).child("Saved")))
+                    })
                     .children(self.save_error.clone().map(|e| div().text_size(px(12.)).text_color(theme.error).child(e))),
             )
     }
@@ -810,7 +812,9 @@ impl SettingsPage {
                             .style(ButtonStyle::Primary)
                             .on_click(cx.listener(|this, _, _, cx| this.save_intervals(cx))),
                     )
-                    .when(self.saved_at.is_some(), |d| d.child(div().text_size(px(12.)).text_color(theme.success).child("Saved")))
+                    .when(self.saved_at.is_some(), |d| {
+                        d.child(kit::fading("sv-2", div().text_size(px(12.)).text_color(theme.success).child("Saved")))
+                    })
                     .children(self.save_error.clone().map(|e| div().text_size(px(12.)).text_color(theme.error).child(e))),
             )
     }

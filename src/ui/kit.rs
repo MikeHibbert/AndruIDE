@@ -4,15 +4,37 @@
 use std::time::Duration;
 
 use gpui::{
-    Animation, AnimationExt, AnyView, App, ClickEvent, Div, ElementId, FontWeight, Hsla, IntoElement,
-    ParentElement, RenderOnce, SharedString, Styled, Svg, Transformation, Window, div, percentage, prelude::*, px,
-    svg,
+    Animation, AnimationElement, AnimationExt, AnyView, App, ClickEvent, Div, ElementId, FontWeight, Hsla,
+    IntoElement, ParentElement, RenderOnce, SharedString, Styled, Svg, Transformation, Window, div, percentage,
+    prelude::*, px, svg,
 };
 
 use super::theme::{ActiveTheme, mono_font, Theme};
 
 pub fn icon(name: &str, size: f32, color: Hsla) -> Svg {
     svg().path(SharedString::from(format!("icons/{name}.svg"))).size(px(size)).flex_none().text_color(color)
+}
+
+/// Tier-one motion (Father, 13 Nov 2026: "Okay, build tier one then."): the
+/// element breathes - a slow 1.8s sine loop, opacity 0.55 to 1.0 and back.
+/// Purely presentational; ids keep the animation state stable across frames,
+/// and ids take a second usize part like the app's spinner ids do.
+pub fn breathing<E: IntoElement + Styled + 'static>(id: impl Into<ElementId>, el: E) -> AnimationElement<E> {
+    el.with_animation(
+        id,
+        Animation::new(Duration::from_millis(1800)).repeat().with_easing(|d| {
+            (d * std::f32::consts::PI).sin() * 0.5 + 0.5
+        }),
+        |el, delta| el.opacity(0.55 + 0.45 * delta),
+    )
+}
+
+/// Tier-one motion: the element fades out once over 2.5s (down to 20%
+/// opacity) - for transient "Saved" confirmations and the like.
+pub fn fading<E: IntoElement + Styled + 'static>(id: impl Into<ElementId>, el: E) -> AnimationElement<E> {
+    el.with_animation(id, Animation::new(Duration::from_millis(2500)), |el, delta| {
+        el.opacity(1.0 - delta * 0.8)
+    })
 }
 
 /// How icons look across the app (Settings › Appearance › Icons). Each style

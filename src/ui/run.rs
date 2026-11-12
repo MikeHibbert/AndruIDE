@@ -469,7 +469,7 @@ impl Root {
                 .flex()
                 .items_center()
                 .gap(px(4.))
-                .child(kit::icon("flame", 12., theme.accent))
+                .child(kit::breathing(("vr-flame", run.id.len()), kit::icon("flame", 12., theme.accent)))
                 .child(
                     div()
                         .text_size(px(10.5))
