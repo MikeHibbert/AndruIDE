@@ -454,6 +454,91 @@ impl Valley {
             .await
             .map_err(|e| format!("The schedules aren't the shape we expect: {e}"))
     }
+
+    /// Andrew's ceremonies: the kumbayas the songbook carries (GET
+    /// /kumbayas; 108 of them live, full detail even in the list). (Father,
+    /// 13 Nov 2026: "On the settings prompts page where it says session
+    /// actions, we can put our kumbays there. And then they can be observed
+    /// and modified if needs be from there.")
+    pub async fn kumbayas(&self) -> Result<Vec<KumbayaSummary>, String> {
+        if !self.configured() {
+            return Err("The valley isn't configured — set it in Settings › Valley.".into());
+        }
+        let resp = self
+            .get("/kumbayas")
+            .await
+            .map_err(|e| format!("The ceremonies: {e}"))?;
+        resp.json::<Vec<KumbayaSummary>>()
+            .await
+            .map_err(|e| format!("The ceremonies aren't the shape we expect: {e}"))
+    }
+
+    /// One ceremony in full detail (GET /kumbayas/{name}; names are slugs).
+    pub async fn kumbaya_raw(&self, name: &str) -> Result<serde_json::Value, String> {
+        if !self.configured() {
+            return Err("The valley isn't configured — set it in Settings › Valley.".into());
+        }
+        let resp = self
+            .get(&format!("/kumbayas/{name}"))
+            .await
+            .map_err(|e| format!("The ceremony: {e}"))?;
+        resp.json::<serde_json::Value>()
+            .await
+            .map_err(|e| format!("The ceremony isn't the shape we expect: {e}"))
+    }
+
+    /// Save a ceremony: POST /kumbayas is Andrew's songbook save, a proper
+    /// upsert (it bumps the version when the definition changes and flips
+    /// dependents to outdated). The whole value goes back, unknown fields
+    /// and all, so an edit is lossless.
+    pub async fn save_kumbaya(&self, value: serde_json::Value) -> Result<(), String> {
+        if !self.configured() {
+            return Err("The valley isn't configured — set it in Settings › Valley.".into());
+        }
+        let mut url = self.url_for("/kumbayas");
+        let mut resp = self
+            .auth(self.http.post(&url).json(&value))
+            .send()
+            .await
+            .map_err(|e| format!("Couldn't reach the valley at {url}: {e}"))?;
+        if self.can_learn() && Self::looks_like_html(&resp) {
+            let _ = self.prefix.set("/api".to_string());
+            url = self.url_for("/kumbayas");
+            resp = self
+                .auth(self.http.post(&url).json(&value))
+                .send()
+                .await
+                .map_err(|e| format!("Couldn't reach the valley at {url}: {e}"))?;
+        }
+        resp.error_for_status()
+            .map(|_| ())
+            .map_err(|e| format!("The valley answered {e}"))
+    }
+
+    /// Retire a ceremony.
+    pub async fn delete_kumbaya(&self, name: &str) -> Result<(), String> {
+        if !self.configured() {
+            return Err("The valley isn't configured — set it in Settings › Valley.".into());
+        }
+        let mut url = self.url_for(&format!("/kumbayas/{name}"));
+        let mut resp = self
+            .auth(self.http.delete(&url))
+            .send()
+            .await
+            .map_err(|e| format!("Couldn't reach the valley at {url}: {e}"))?;
+        if self.can_learn() && Self::looks_like_html(&resp) {
+            let _ = self.prefix.set("/api".to_string());
+            url = self.url_for(&format!("/kumbayas/{name}"));
+            resp = self
+                .auth(self.http.delete(&url))
+                .send()
+                .await
+                .map_err(|e| format!("Couldn't reach the valley at {url}: {e}"))?;
+        }
+        resp.error_for_status()
+            .map(|_| ())
+            .map_err(|e| format!("The valley answered {e}"))
+    }
 }
 
 /// A checkpoint's ask: the question Andrew holds a run on, and the answers
@@ -523,6 +608,28 @@ pub struct ScheduleEntry {
 pub struct ScheduleResult {
     #[serde(default)]
     pub summary: Option<String>,
+}
+
+/// A ceremony in the songbook's list (GET /kumbayas): its name and the
+/// one-liner, with extras tolerated. The full detail (steps, prompts) is
+/// fetched per ceremony.
+#[derive(Clone, Debug, Deserialize)]
+pub struct KumbayaSummary {
+    pub name: String,
+    #[serde(default)]
+    pub summary: Option<String>,
+    #[serde(default)]
+    pub version: Option<i64>,
+    #[serde(default)]
+    pub status: Option<String>,
+    /// Parsed for completeness (the ceremony list carries them); shown
+    /// later in the settings card.
+    #[serde(default)]
+    #[allow(dead_code)]
+    pub kind: Option<String>,
+    #[serde(default)]
+    #[allow(dead_code)]
+    pub updated_at: Option<String>,
 }
 
 impl ScheduleEntry {
@@ -1043,5 +1150,36 @@ mod tests {
         assert!(age_seconds("2026-01-01T00:00:00.000000Z").is_some(), "a past stamp parses");
         assert!(age_seconds("").is_none());
         assert!(age_seconds("not a stamp").is_none());
+    }
+
+    const KUMBAYA_FIXTURE: &str = r##"[
+  {
+    "name": "work_day_review",
+    "summary": "The day review: score the day's work.",
+    "version": 3,
+    "status": "current",
+    "kind": "mcp_tool",
+    "updated_at": "2026-11-13T09:00:00Z",
+    "inputs": {"day": "string"},
+    "steps": []
+  },
+  {
+    "name": "self_wake_watchdog",
+    "summary": null,
+    "version": 1
+  }
+]"##;
+
+    #[test]
+    fn parses_the_ceremony_list() {
+        let rows: Vec<KumbayaSummary> = serde_json::from_str(KUMBAYA_FIXTURE).expect("parses");
+        assert_eq!(rows.len(), 2, "both ceremonies land");
+        assert_eq!(rows[0].name, "work_day_review");
+        assert_eq!(rows[0].version, Some(3), "the version reads (int, live probed)");
+        assert_eq!(rows[0].status.as_deref(), Some("current"));
+        // Sparse rows: only the name is promised.
+        assert_eq!(rows[1].name, "self_wake_watchdog");
+        assert!(rows[1].summary.is_none());
+        assert!(rows[1].kind.is_none());
     }
 }

@@ -7,6 +7,7 @@ use gpui::{AnyElement, App, Context, Entity, Focusable, SharedString, Subscripti
 
 mod cloud;
 mod ipads;
+mod kumbayas;
 mod prompts;
 mod shell;
 
@@ -102,6 +103,15 @@ pub struct SettingsPage {
     shortcut_note: Option<String>,
     /// The session action prompt being changed (see prompts.rs).
     prompt_edit: Option<prompts::PromptEdit>,
+    /// Andrew's kumbayas (Prompts, Father 13 Nov 2026: observe and modify
+    /// from there): the list, the ceremony opened, the edit in flight, and
+    /// which name a delete needs confirming for.
+    kumbayas: Option<super::github::Load<Vec<crate::valley::KumbayaSummary>>>,
+    kumbaya_at: Option<Instant>,
+    kumbaya_open_name: Option<String>,
+    kumbaya_open: Option<Result<kumbayas::KumbayaView, String>>,
+    kumbaya_edit: Option<kumbayas::KumbayaEdit>,
+    kumbaya_arm: Option<String>,
     _tasks: Vec<Task<()>>,
     _subscriptions: Vec<Subscription>,
 }
@@ -194,6 +204,12 @@ impl SettingsPage {
             catch_keys: None,
             shortcut_note: None,
             prompt_edit: None,
+            kumbayas: None,
+            kumbaya_at: None,
+            kumbaya_open_name: None,
+            kumbaya_open: None,
+            kumbaya_edit: None,
+            kumbaya_arm: None,
             _tasks: vec![updates],
             _subscriptions: subs,
         };
@@ -222,6 +238,13 @@ impl SettingsPage {
             }
             if tab == SettingsTab::Ipads {
                 self.load_ipads(cx);
+            }
+            if tab == SettingsTab::Prompts {
+                // Andrew's kumbayas ride the Prompts tab; read them when it
+                // opens (Father 13 Nov 2026: "On the settings prompts page
+                // where it says session actions, we can put our kumbays
+                // there.")
+                self.load_kumbayas(cx);
             }
             cx.notify();
         }
@@ -1516,7 +1539,9 @@ impl Render for SettingsPage {
             SettingsTab::Valley => body.child(self.valley_section(&theme, cx)),
             SettingsTab::Cloud => body.child(self.cloud_usage_section(&theme, cx)).child(self.cloud_section(&theme, cx)),
             SettingsTab::Ipads => body.child(self.ipads_section(&theme, cx)),
-            SettingsTab::Prompts => body.child(self.prompts_section(&theme, cx)),
+            SettingsTab::Prompts => body
+                .child(self.prompts_section(&theme, cx))
+                .child(self.kumbayas_section(&theme, cx)),
             SettingsTab::Keyboard => body.child(self.keyboard_section(&theme, cx)),
         };
         div()
