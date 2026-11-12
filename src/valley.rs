@@ -149,7 +149,18 @@ impl Valley {
         let base = pick(&cfg.base_url, "ANDRUIDE_VALLEY_URL").unwrap_or_else(|| "http://localhost:8001".into());
         let user = pick(&cfg.user, "ANDRUIDE_VALLEY_USER");
         let password = pick(&cfg.password, "ANDRUIDE_VALLEY_PASSWORD");
-        Self { http: reqwest::Client::new(), base, user, password }
+        // Gzip on: the valley's heavy reads arrive MB-sized and the wire time is
+        // most of the perceived slowness; the gzip transfer cuts them to a
+        // fraction (Father's 13 Nov reports: slow reads + decode errors).
+        // Timeout 120s: reads can legitimately take tens of seconds while campers
+        // run; beyond that the read is a hang and should surface as an error the
+        // page can retry, not block a render forever.
+        let http = reqwest::Client::builder()
+            .gzip(true)
+            .timeout(std::time::Duration::from_secs(120))
+            .build()
+            .unwrap_or_else(|_| reqwest::Client::new());
+        Self { http, base, user, password }
     }
 
     /// Whether credentials are configured; the page fetches only when true.
