@@ -34,6 +34,11 @@ pub(super) fn page(id: &'static str, scroll: &ScrollHandle) -> Stateful<Div> {
 
 impl Root {
     pub(super) fn render_overview(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        // The lite runs read feeds the Needs-you card below (Father, 13 Nov
+        // 2026: "Those needs need you could also be pop up on the overview
+        // page for the user attention"). It's the cheap read — lite=1 — and
+        // maybe_load_runs only fires it when the cache is empty or stale.
+        self.maybe_load_runs(cx);
         let theme = cx.theme();
         let s = self.snapshot.clone();
         let content_width = f32::from(window.viewport_size().width) - self.sidebar_width - PAGE_PADDING * 2.;
@@ -45,8 +50,7 @@ impl Root {
         if s.attention.iter().any(|a| !on_cards(a)) {
             body = body.child(self.heads_up(&theme, &s, content_width, cx));
         }
-        body = body.child(self.overview_valley(&theme, cx));
-        body.child(self.render_machine_grid(&theme, &s, content_width, cx)).child(self.render_agents(&theme, &s, cx))
+        body = body.child(self.overview_valley(&theme, cx));        body.child(self.render_machine_grid(&theme, &s, content_width, cx)).child(self.render_agents(&theme, &s, cx))
     }
 
     /// The valley strip: what Andrew's campfire holds, in one line, leading
@@ -93,38 +97,137 @@ impl Root {
         } else {
             parts.join(" · ")
         };
+        let attention = runs
+            .map(|r| self.overview_needs_you(theme, r, cx))
+            .unwrap_or_else(|| div().into_any_element());
+        div()
+            .flex()
+            .flex_col()
+            .gap(px(GAP))
+            .child(attention)
+            .child(
+                card(&theme)
+                    .p(px(14.))
+                    .flex()
+                    .items_center()
+                    .justify_between()
+                    .gap(px(12.))
+                    .child(
+                        div()
+                            .flex()
+                            .flex_col()
+                            .gap(px(2.))
+                            .min_w(px(0.))
+                            .child(div().text_size(px(12.5)).font_weight(FontWeight::MEDIUM).child("The valley"))
+                            .child(div().text_size(px(11.5)).text_color(theme.text_muted).child(summary)),
+                    )
+                    .child(
+                        div()
+                            .flex()
+                            .flex_none()
+                            .gap(px(8.))
+                            .child(
+                                Button::new("ov-valley", "Valley")
+                                    .tooltip("The work board")
+                                    .on_click(cx.listener(
+                                        |this: &mut Root, _: &gpui::ClickEvent, window: &mut Window, cx: &mut Context<Root>| {
+                                            this.navigate(Route::Valley, window, cx)
+                                        },
+                                    )),
+                            )
+                            .child(
+                                Button::new("ov-campfires", "Campfires")
+                                    .tooltip("What the campers are doing now")
+                                    .on_click(cx.listener(
+                                        |this: &mut Root, _: &gpui::ClickEvent, window: &mut Window, cx: &mut Context<Root>| {
+                                            this.navigate(Route::Campfires, window, cx)
+                                        },
+                                    )),
+                            ),
+                    ),
+            )
+            .into_any_element()
+    }
+
+    /// The Needs-you popup: runs held at a checkpoint, leading the Overview
+    /// (Father, 13 Nov 2026: "Those needs need you could also be pop up on
+    /// the overview page for the user attention"). Same cached-only rule as
+    /// the valley strip — it reads `valley_runs`, it never fires a read;
+    /// the lite runs read lives on the page above it.
+    fn overview_needs_you(&self, theme: &Theme, runs: &[crate::valley::RunSummary], cx: &mut Context<Self>) -> AnyElement {
+        let waiting: Vec<&crate::valley::RunSummary> =
+            runs.iter().filter(|r| r.status == "waiting_checkpoint").collect();
+        if waiting.is_empty() {
+            return div().into_any_element();
+        }
+        let rows = waiting.iter().take(3).map(|run| {
+            let ask = run
+                .waiting_ask()
+                .map(|a| a.question.trim().to_string())
+                .filter(|q| !q.is_empty())
+                .unwrap_or_else(|| "Waiting on your answer.".to_string());
+            let camper = run.camper().to_string();
+            let camper = if camper.is_empty() { "valley".into() } else { camper };
+            div()
+                .flex()
+                .items_center()
+                .gap(px(8.))
+                .min_w(px(0.))
+                .child(kit::icon("flame", 11., theme.accent))
+                .child(
+                    div()
+                        .flex_none()
+                        .max_w(px(140.))
+                        .truncate()
+                        .text_size(px(11.5))
+                        .font_weight(FontWeight::MEDIUM)
+                        .text_color(theme.accent)
+                        .child(run.kumbaya.clone()),
+                )
+                .child(div().flex_1().min_w(px(0.)).truncate().text_size(px(11.5)).text_color(theme.text_muted).child(ask))
+                .child(
+                    div()
+                        .flex_none()
+                        .text_size(px(10.5))
+                        .text_color(theme.text_placeholder)
+                        .child(camper),
+                )
+        });
         card(&theme)
             .p(px(14.))
             .flex()
-            .items_center()
-            .justify_between()
-            .gap(px(12.))
+            .flex_col()
+            .gap(px(8.))
+            .border_1()
+            .border_color(theme.accent)
             .child(
                 div()
                     .flex()
-                    .flex_col()
-                    .gap(px(2.))
-                    .min_w(px(0.))
-                    .child(div().text_size(px(12.5)).font_weight(FontWeight::MEDIUM).child("The valley"))
-                    .child(div().text_size(px(11.5)).text_color(theme.text_muted).child(summary)),
-            )
-            .child(
-                div()
-                    .flex()
-                    .flex_none()
-                    .gap(px(8.))
+                    .items_center()
+                    .gap(px(6.))
+                    .child(kit::icon("flame", 12., theme.accent))
                     .child(
-                        Button::new("ov-valley", "Valley")
-                            .tooltip("The work board")
-                            .on_click(cx.listener(
-                                |this: &mut Root, _: &gpui::ClickEvent, window: &mut Window, cx: &mut Context<Root>| {
-                                    this.navigate(Route::Valley, window, cx)
-                                },
+                        div()
+                            .text_size(px(12.5))
+                            .font_weight(FontWeight::MEDIUM)
+                            .text_color(theme.accent)
+                            .child(format!(
+                                "{} need{} you — open Campfires to answer",
+                                waiting.len(),
+                                if waiting.len() == 1 { "s" } else { "" }
                             )),
-                    )
+                    ),
+            )
+            .children(rows)
+            // Deep link on the title row: everything else is a click away already.
+            .child(
+                div()
+                    .flex()
+                    .justify_end()
                     .child(
-                        Button::new("ov-campfires", "Campfires")
-                            .tooltip("What the campers are doing now")
+                        Button::new("ov-needyou-open", "Open Campfires")
+                            .style(ButtonStyle::Primary)
+                            .tooltip("Answer the torches that wait")
                             .on_click(cx.listener(
                                 |this: &mut Root, _: &gpui::ClickEvent, window: &mut Window, cx: &mut Context<Root>| {
                                     this.navigate(Route::Campfires, window, cx)

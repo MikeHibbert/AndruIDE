@@ -448,6 +448,14 @@ impl Root {
                 if talk.status == "running" && !talk.session_id.trim().is_empty() {
                     stack.push(self.render_item_instruct(cx));
                 }
+                // A waiting checkpoint is also a conversation turn worth
+                // answering right here (Father, 13 Nov 2026: "what a shame
+                // I can't respond to that needs you work_day_review").
+                if talk.status == "waiting_checkpoint" {
+                    if let Some(ask) = talk.waiting_ask() {
+                        stack.push(self.render_checkpoint_card(&theme, run_id.clone(), ask.clone(), cx));
+                    }
+                }
             } else if matches!(self.valley_talks.get(&run_id), Some(Load::Failed(_))) {
                 let msg = match self.valley_talks.get(&run_id) {
                     Some(Load::Failed(e)) if e == "not-configured" => {
