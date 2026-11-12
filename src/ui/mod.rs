@@ -4,6 +4,7 @@ mod about;
 mod agent_list;
 mod box_dialog;
 mod boxes;
+mod campfires;
 mod activity;
 mod cloud_dialog;
 mod assets;

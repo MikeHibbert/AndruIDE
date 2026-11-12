@@ -368,7 +368,7 @@ impl Root {
     }
 
     /// Loads when the list is missing or stale (60s); never while loading.
-    fn maybe_load_runs(&mut self, cx: &mut Context<Self>) {
+    pub(super) fn maybe_load_runs(&mut self, cx: &mut Context<Self>) {
         let loading = matches!(self.valley_runs, Some(Load::Loading));
         let stale = self.valley_runs.is_none() || self.valley_runs_at.is_some_and(|t| t.elapsed().as_secs() > 60);
         if !loading && stale {
@@ -533,7 +533,8 @@ impl Root {
 
     /// The verses of one open run — each turn, its kind and where it got to
     /// (what was said and thought joins it when Torches reads the results).
-    fn render_valley_run_verses(&self, theme: &Theme, run: &RunSummary) -> AnyElement {
+    /// Shared with the Campfires page (its torch drill-down).
+    pub(super) fn render_valley_run_verses(&self, theme: &Theme, run: &RunSummary) -> AnyElement {
         card(theme)
             .mx(px(10.))
             .mb(px(4.))

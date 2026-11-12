@@ -128,7 +128,7 @@ impl Render for MoveDialog {
         )
         .child(field(&theme, "Agent", agent, None))
         .child(field(&theme, "What goes along", quiet(what), None))
-        .child(field(&theme, "Where it lands", quiet(lands), Some("It shows under Boxes › Agents' workspaces, to clean up when the work's done.")))
+        .child(field(&theme, "Where it lands", quiet(lands), Some("It shows under Torches › Agents' workspaces, to clean up when the work's done.")))
         .child(kit::checkbox(&theme, "mv-keep", keep, format!("Keep this session running on {here} too"), cx.listener(|this, value: &bool, _, cx| {
             this.keep = *value;
             cx.notify()

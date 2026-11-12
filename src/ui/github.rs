@@ -589,7 +589,7 @@ impl Root {
         }
         let valley = crate::valley::Valley::from_parts(self.engine.settings().valley);
         let session_id = session_id.to_string();
-        let job = self.engine.runtime().spawn(async move { valley.chat(&session_id, &text).await });
+        let job = self.engine.runtime().spawn(async move { valley.chat(&session_id, &text, false).await });
         let task = cx.spawn(async move |this, cx| {
             let result = job.await.unwrap_or_else(|e| Err(e.to_string()));
             let _ = this.update(cx, |this, cx| {

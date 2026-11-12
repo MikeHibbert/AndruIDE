@@ -132,13 +132,16 @@ impl Valley {
     }
 
     /// One conversational turn with Andrew: POST /chat with
-    /// `{session_id, message, mode}`. On an nginx-backed valley the base ends
-    /// in `/api`, so this reaches his core's chat route either way.
-    pub async fn chat(&self, session_id: &str, message: &str) -> Result<String, String> {
+    /// `{session_id, message, mode, interrupt}`. With `interrupt` set
+    /// (AndruIDE's Campfires instruct line) Andrew stops a running turn to
+    /// listen — feedback or training mid-run, at Father's direction.
+    /// On an nginx-backed valley the base ends in `/api`, so this reaches
+    /// his core's chat route either way.
+    pub async fn chat(&self, session_id: &str, message: &str, interrupt: bool) -> Result<String, String> {
         if !self.configured() {
             return Err("The valley isn't configured — set it in Settings › Valley.".into());
         }
-        let body = ChatIn { session_id: session_id.to_string(), message: message.to_string(), mode: "plan".into() };
+        let body = ChatIn { session_id: session_id.to_string(), message: message.to_string(), mode: "plan".into(), interrupt };
         let url = format!("{}{}", self.base.trim_end_matches('/'), "/chat");
         let mut req = self.http.post(&url).json(&body);
         if let (Some(user), Some(password)) = (&self.user, &self.password) {
@@ -176,6 +179,16 @@ pub struct ChatIn {
     pub session_id: String,
     pub message: String,
     pub mode: String,
+    /// Instructing a camper mid-run (Campfires, Father 12 Nov 2026): Andrew
+    /// stops the running turn and listens. False on ordinary chat, so the
+    /// field doesn't even go on the wire there.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub interrupt: bool,
+}
+
+/// How many runs want a person right now (a checkpoint holds them).
+pub fn need_you(runs: &[RunSummary]) -> usize {
+    runs.iter().filter(|r| r.status == "waiting_checkpoint").count()
 }
 
 /// One verse inside a run, trimmed to what the Run page shows. The heavy
@@ -403,6 +416,12 @@ mod tests {
         assert_eq!(names, ["worker_kick", "tell"]);
         assert_eq!(groups[0].1.len(), 2, "worker_kick owns its waiting and finished runs");
         assert_eq!(groups[0].1[0].id, "r-waiting", "a camper's own rows stay in urgency order");
+    }
+
+    #[test]
+    fn need_you_counts_the_checkpoints() {
+        assert_eq!(need_you(&parsed()), 1);
+        assert_eq!(need_you(&[]), 0);
     }
 
     #[test]
