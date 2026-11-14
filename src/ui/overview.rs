@@ -97,8 +97,16 @@ impl Root {
         } else {
             parts.join(" · ")
         };
+        // Blocked jobs ride the attention card too (Father, 14 Nov 2026:
+        // "Blocked jobs should also show up in the needs your attention thing
+        // on the overview page."). Same cached-only rule: the board slice the
+        // overview already holds, never a fired read.
+        let empty_board: Vec<crate::valley::WorkItem> = Vec::new();
+        let board: &[crate::valley::WorkItem] = items
+            .map(|v| v.as_slice())
+            .unwrap_or(&empty_board);
         let attention = runs
-            .map(|r| self.overview_needs_you(theme, r, cx))
+            .map(|r| self.overview_needs_you(theme, r, board, cx))
             .unwrap_or_else(|| div().into_any_element());
         div()
             .flex()
@@ -149,93 +157,175 @@ impl Root {
             .into_any_element()
     }
 
-    /// The Needs-you popup: runs held at a checkpoint, leading the Overview
-    /// (Father, 13 Nov 2026: "Those needs need you could also be pop up on
-    /// the overview page for the user attention"). Same cached-only rule as
-    /// the valley strip — it reads `valley_runs`, it never fires a read;
-    /// the lite runs read lives on the page above it.
-    fn overview_needs_you(&self, theme: &Theme, runs: &[crate::valley::RunSummary], cx: &mut Context<Self>) -> AnyElement {
+    /// The attention card: runs held at a checkpoint plus blocked jobs,
+    /// leading the Overview (Father, 13 Nov 2026: "Those needs need you could
+    /// also be pop up on the overview page for the user attention"; 14 Nov
+    /// 2026: "Blocked jobs should also show up in the needs your attention
+    /// thing on the overview page"). Same cached-only rule as the valley
+    /// strip - it reads `valley_runs` and the board the overview already
+    /// holds; it never fires a read; the lite reads live on the page above it.
+    fn overview_needs_you(
+        &self,
+        theme: &Theme,
+        runs: &[crate::valley::RunSummary],
+        items: &[crate::valley::WorkItem],
+        cx: &mut Context<Self>,
+    ) -> AnyElement {
         let waiting: Vec<&crate::valley::RunSummary> =
             runs.iter().filter(|r| r.status == "waiting_checkpoint").collect();
-        if waiting.is_empty() {
+        let blocked: Vec<&crate::valley::WorkItem> =
+            items.iter().filter(|i| i.status == "blocked").collect();
+        if waiting.is_empty() && blocked.is_empty() {
             return div().into_any_element();
         }
-        let rows = waiting.iter().take(3).map(|run| {
-            let ask = run
-                .waiting_ask()
-                .map(|a| a.question.trim().to_string())
-                .filter(|q| !q.is_empty())
-                .unwrap_or_else(|| "Waiting on your answer.".to_string());
-            let camper = run.camper().to_string();
-            let camper = if camper.is_empty() { "valley".into() } else { camper };
-            div()
-                .flex()
-                .items_center()
-                .gap(px(8.))
-                .min_w(px(0.))
-                .child(kit::breathing(("ov-ny-flame", run.id.len()), kit::icon("flame", 11., theme.accent)))
-                .child(
-                    div()
-                        .flex_none()
-                        .max_w(px(140.))
-                        .truncate()
-                        .text_size(px(11.5))
-                        .font_weight(FontWeight::MEDIUM)
-                        .text_color(theme.accent)
-                        .child(run.kumbaya.clone()),
-                )
-                .child(div().flex_1().min_w(px(0.)).truncate().text_size(px(11.5)).text_color(theme.text_muted).child(ask))
-                .child(
-                    div()
-                        .flex_none()
-                        .text_size(px(10.5))
-                        .text_color(theme.text_placeholder)
-                        .child(camper),
-                )
-        });
-        card(&theme)
+        let mut card = card(&theme)
             .p(px(14.))
             .flex()
             .flex_col()
             .gap(px(8.))
             .border_1()
-            .border_color(theme.accent)
-            .child(
+            .border_color(theme.accent);
+        if !waiting.is_empty() {
+            let rows = waiting.iter().take(3).map(|run| {
+                let ask = run
+                    .waiting_ask()
+                    .map(|a| a.question.trim().to_string())
+                    .filter(|q| !q.is_empty())
+                    .unwrap_or_else(|| "Waiting on your answer.".to_string());
+                let camper = run.camper().to_string();
+                let camper = if camper.is_empty() { "valley".into() } else { camper };
                 div()
                     .flex()
                     .items_center()
-                    .gap(px(6.))
-                    .child(kit::breathing("ov-ny-head", kit::icon("flame", 12., theme.accent)))
+                    .gap(px(8.))
+                    .min_w(px(0.))
+                    .child(kit::breathing(("ov-ny-flame", run.id.len()), kit::icon("flame", 11., theme.accent)))
                     .child(
                         div()
-                            .text_size(px(12.5))
+                            .flex_none()
+                            .max_w(px(140.))
+                            .truncate()
+                            .text_size(px(11.5))
                             .font_weight(FontWeight::MEDIUM)
                             .text_color(theme.accent)
-                            .child(format!(
-                                "{} need{} you — open Campfires to answer",
-                                waiting.len(),
-                                if waiting.len() == 1 { "s" } else { "" }
-                            )),
-                    ),
-            )
-            .children(rows)
-            // Deep link on the title row: everything else is a click away already.
-            .child(
-                div()
-                    .flex()
-                    .justify_end()
+                            .child(run.kumbaya.clone()),
+                    )
+                    .child(div().flex_1().min_w(px(0.)).truncate().text_size(px(11.5)).text_color(theme.text_muted).child(ask))
                     .child(
-                        Button::new("ov-needyou-open", "Open Campfires")
-                            .style(ButtonStyle::Primary)
-                            .tooltip("Answer the torches that wait")
-                            .on_click(cx.listener(
-                                |this: &mut Root, _: &gpui::ClickEvent, window: &mut Window, cx: &mut Context<Root>| {
-                                    this.navigate(Route::Campfires, window, cx)
-                                },
-                            )),
-                    ),
-            )
-            .into_any_element()
+                        div()
+                            .flex_none()
+                            .text_size(px(10.5))
+                            .text_color(theme.text_placeholder)
+                            .child(camper),
+                    )
+            });
+            card = card
+                .child(
+                    div()
+                        .flex()
+                        .items_center()
+                        .gap(px(6.))
+                        .child(kit::breathing("ov-ny-head", kit::icon("flame", 12., theme.accent)))
+                        .child(
+                            div()
+                                .text_size(px(12.5))
+                                .font_weight(FontWeight::MEDIUM)
+                                .text_color(theme.accent)
+                                .child(format!(
+                                    "{} need{} you — open Campfires to answer",
+                                    waiting.len(),
+                                    if waiting.len() == 1 { "s" } else { "" }
+                                )),
+                        ),
+                )
+                .children(rows);
+        }
+        if !blocked.is_empty() {
+            // Each blocked row deep-links to the item's own page, like the
+            // board cards do; the board stays the place to see the lane.
+            let rows = blocked.iter().take(3).map(|item| {
+                let open_id = item.id.clone();
+                div()
+                    .id(SharedString::from(format!("ov-bl-{}", item.id)))
+                    .flex()
+                    .items_center()
+                    .gap(px(8.))
+                    .min_w(px(0.))
+                    .cursor_pointer()
+                    .hover(|st| st.bg(theme.element_selected))
+                    .on_click(cx.listener(move |this, _, window, cx| {
+                        this.navigate(Route::ValleyItem(open_id.clone()), window, cx)
+                    }))
+                    .child(kit::icon("circle-alert", 11., theme.warning))
+                    .child(
+                        div()
+                            .flex_none()
+                            .max_w(px(140.))
+                            .truncate()
+                            .text_size(px(11.5))
+                            .font_weight(FontWeight::MEDIUM)
+                            .text_color(theme.text)
+                            .child(item.title.clone()),
+                    )
+                    .child(
+                        div()
+                            .flex_1()
+                            .min_w(px(0.))
+                            .truncate()
+                            .text_size(px(11.5))
+                            .text_color(theme.text_muted)
+                            .child(item.id.clone()),
+                    )
+                    .child(
+                        div()
+                            .flex_none()
+                            .text_size(px(10.5))
+                            .text_color(theme.text_placeholder)
+                            .child(format!("p{}", item.priority)),
+                    )
+            });
+            card = card
+                .child(
+                    div()
+                        .flex()
+                        .items_center()
+                        .gap(px(6.))
+                        .child(kit::icon("circle-alert", 12., theme.warning))
+                        .child(
+                            div()
+                                .text_size(px(12.5))
+                                .font_weight(FontWeight::MEDIUM)
+                                .text_color(theme.warning)
+                                .child(format!("{} blocked on the work board", blocked.len())),
+                        ),
+                )
+                .children(rows);
+        }
+        let mut footer = div().flex().justify_end().gap(px(8.));
+        if !waiting.is_empty() {
+            footer = footer.child(
+                Button::new("ov-needyou-open", "Open Campfires")
+                    .style(ButtonStyle::Primary)
+                    .tooltip("Answer the torches that wait")
+                    .on_click(cx.listener(
+                        |this: &mut Root, _: &gpui::ClickEvent, window: &mut Window, cx: &mut Context<Root>| {
+                            this.navigate(Route::Campfires, window, cx)
+                        },
+                    )),
+            );
+        }
+        if !blocked.is_empty() {
+            footer = footer.child(
+                Button::new("ov-blocked-open", "Open board")
+                    .tooltip("The work board, blocked lane included")
+                    .on_click(cx.listener(
+                        |this: &mut Root, _: &gpui::ClickEvent, window: &mut Window, cx: &mut Context<Root>| {
+                            this.navigate(Route::Valley, window, cx)
+                        },
+                    )),
+            );
+        }
+        card.child(footer).into_any_element()
     }
 
     /// A greeting, then the day in one line: machines, agents, runners.
