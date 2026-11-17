@@ -561,6 +561,14 @@ pub struct Root {
     pub(super) andrew_talks: std::collections::HashMap<String, super::github::Load<crate::valley::SessionRead>>,
     pub(super) andrew_read: Option<String>,
     pub(super) andrew_text: Option<Entity<TextInput>>,
+    // The composer's lane (plan = conversational, execute = specialist
+    // team) and the last execute turn's task graph for the session it ran
+    // on (Father, 17 Nov 2026: "1st class control panel and chat agent").
+    pub(super) andrew_chat_exec: bool,
+    pub(super) andrew_graph: Option<(String, Vec<crate::valley::ChatNode>)>,
+    /// A turn is in flight on this session key: the composer shows Stop
+    /// (interrupt) and the transcript polls live until it lands.
+    pub(super) andrew_flight: Option<String>,
     /// The paste-in box for a Valley invite (Join-a-valley, Father 12 Nov
     /// 2026) on the page's not-configured card; a bare base URL joins with
     /// no credentials.
@@ -807,6 +815,9 @@ impl Root {
             andrew_talks: std::collections::HashMap::new(),
             andrew_read: None,
             andrew_text: None,
+            andrew_chat_exec: false,
+            andrew_graph: None,
+            andrew_flight: None,
             valley_join_input: None,
             campfire_open: None,
             campfire_torch: None,

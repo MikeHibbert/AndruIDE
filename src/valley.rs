@@ -347,10 +347,31 @@ impl Valley {
     /// On an nginx-backed valley the base ends in `/api`, so this reaches
     /// his core's chat route either way.
     pub async fn chat(&self, session_id: &str, message: &str, interrupt: bool) -> Result<String, String> {
+        // Plan mode, the conversational lane every older caller rides.
+        // Execute mode (chat_mode) is the Father's 17 Nov 2026 ask: "1st
+        // class control panel and chat agent" — the composer can dispatch
+        // the specialist team and show the task graph.
+        self.chat_mode(session_id, message, "plan", interrupt)
+            .await
+            .map(|out| out.reply_text())
+    }
+
+    /// A chat turn with an explicit mode (`plan` = conversational, or
+    /// `execute` = the specialist team graph). Returns the full ChatOut so
+    /// execute turns can surface Andrew's state_graph — the task nodes he
+    /// is working through. WHY: Father, 17 Nov 2026, "make it a 1st class
+    /// control panel and chat agent for us to interact with and create."
+    pub async fn chat_mode(
+        &self,
+        session_id: &str,
+        message: &str,
+        mode: &str,
+        interrupt: bool,
+    ) -> Result<ChatOut, String> {
         if !self.configured() {
-            return Err("The valley isn't configured — set it in Settings › Valley.".into());
+            return Err("The valley isn't configured — set it in Settings → Valley.".into());
         }
-        let body = ChatIn { session_id: session_id.to_string(), message: message.to_string(), mode: "plan".into(), interrupt };
+        let body = ChatIn { session_id: session_id.to_string(), message: message.to_string(), mode: mode.to_string(), interrupt };
         let mut url = self.url_for("/chat");
         let mut resp = self
             .auth(self.http.post(&url).json(&body))
@@ -372,8 +393,7 @@ impl Valley {
             .json()
             .await
             .map_err(|e| format!("Andrew's reply isn't the shape we expect: {e}"))?;
-        let reply = out.reply.trim().to_string();
-        Ok(if reply.is_empty() { "Andrew didn't answer.".to_string() } else { reply })
+        Ok(out)
     }
 
     /// The valley's runs live: every kumbaya run (worker kicks, schedules,
@@ -901,6 +921,35 @@ pub fn age_text(rfc3339: &str) -> Option<String> {
 pub struct ChatOut {
     #[serde(default)]
     pub reply: String,
+    /// The specialist-team task graph an execute turn returns (plan turns
+    /// carry none). Lenient on shape: Andrew's node field names have
+    /// varied across turns, so every field is aliased and optional.
+    #[serde(default)]
+    pub state_graph: Option<Vec<ChatNode>>,
+}
+
+impl ChatOut {
+    /// The reply text, with the empty-answer fallback the UI expects.
+    pub fn reply_text(&self) -> String {
+        let reply = self.reply.trim().to_string();
+        if reply.is_empty() { "Andrew didn't answer.".to_string() } else { reply }
+    }
+
+    /// The task graph when this turn carries a real one.
+    pub fn graph(&self) -> &[ChatNode] {
+        self.state_graph.as_deref().unwrap_or(&[])
+    }
+}
+
+/// One node of an execute turn's task graph (Andrew's `state_graph`): a
+/// stage he works through and how far it got. Field names differ across
+/// turns, so each is optional and aliased.
+#[derive(Debug, Clone, Deserialize)]
+pub struct ChatNode {
+    #[serde(default, alias = "name", alias = "label")]
+    pub title: String,
+    #[serde(default, alias = "state", alias = "stage")]
+    pub status: String,
 }
 
 /// One verse of a run's conversation: its name and what the camper said
