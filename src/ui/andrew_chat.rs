@@ -104,13 +104,18 @@ impl Root {
             .is_none_or(|current| current != &key);
         self.andrew_read = Some(key.clone());
         if fresh {
+            // The graph card belongs to the session it ran on.
+            self.andrew_graph = None;
             self.load_andrew_transcript(&key, cx);
         }
         cx.notify();
     }
 
-    /// Sends what Dad wrote: a plain chat turn (not an interrupt) on the
-    /// thread this page was opened with.
+    /// Sends what Dad wrote on the composer's lane (plan = conversational,
+    /// execute = specialist team with a task graph — Father, 17 Nov 2026:
+    /// "1st class control panel and chat agent"). While the turn runs the
+    /// transcript polls live (every 3 s) so Andrew's work streams in; the
+    /// cached transcript is dropped at completion so the fresh turn shows.
     fn andrew_chat_send(&mut self, key: String, cx: &mut Context<Root>) {
         let text = self
             .andrew_text
@@ -124,17 +129,59 @@ impl Root {
         if let Some(input) = self.andrew_text.as_ref() {
             input.update(cx, |i, cx| i.set_text("", cx));
         }
+        let mode = if self.andrew_chat_exec { "execute" } else { "plan" };
+        self.andrew_flight = Some(key.clone());
         let valley = valley::Valley::from_parts(self.engine.settings().valley.clone());
+        let valley_poll = valley::Valley::from_parts(self.engine.settings().valley.clone());
+        let mode_owned = mode.to_string();
+        let send_key = key.clone();
         let job = self
             .engine
             .runtime()
-            .spawn(async move { valley.chat(&key, &text, false).await });
+            .spawn(async move { valley.chat_mode(&send_key, &text, &mode_owned, false).await });
+
+        // The live poller: rides beside the turn, re-reading the session
+        // every 3 s and swapping the cached transcript for the fresh one
+        // until the turn's own task clears the flight flag.
+        let poll_key = key.clone();
+        let poller = cx.spawn(async move |this, cx| loop {
+            tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+            let still = this.update(cx, |this, _cx| {
+                this.andrew_flight.as_deref() == Some(poll_key.as_str())
+            });
+            match still {
+                Ok(true) => {}
+                _ => break,
+            }
+            if let Ok(read) = valley_poll.read_session(&poll_key).await {
+                let _ = this.update(cx, |this, cx| {
+                    this.andrew_talks.insert(poll_key.clone(), Load::Ready(read));
+                    cx.notify();
+                });
+            }
+        });
+        self.track(poller);
+
+        let done_key = key.clone();
         let task = cx.spawn(async move |this, cx| {
             let result = job.await;
             let _ = this.update(cx, |this, cx| {
+                // The cached transcript predates the new turn: drop it so
+                // the page reads the fresh one (andrew_send_open's way).
+                this.andrew_talks.remove(&done_key);
+                if this.andrew_flight.as_deref() == Some(done_key.as_str()) {
+                    this.andrew_flight = None;
+                }
                 match result {
-                    Ok(Ok(_)) => {
-                        this.notify_user("Sent — Andrew is thinking.", false, cx);
+                    Ok(Ok(out)) => {
+                        if !out.graph().is_empty() {
+                            this.andrew_graph = Some((done_key.clone(), out.graph().to_vec()));
+                        }
+                        this.notify_user(
+                            if this.andrew_chat_exec { "Execute turn finished." } else { "Andrew answered." },
+                            false,
+                            cx,
+                        );
                     }
                     Ok(Err(e)) => this.notify_user(e, true, cx),
                     Err(e) => this.notify_user(e.to_string(), true, cx),
@@ -143,6 +190,41 @@ impl Root {
             });
         });
         self.track(task);
+    }
+
+    /// Stops a turn in flight: interrupts Andrew mid-run (the Campfires
+    /// instruct line's mechanism) and clears the flight flag — the poller
+    /// unwinds on its next tick.
+    fn andrew_chat_stop(&mut self, key: String, cx: &mut Context<Root>) {
+        self.andrew_flight = None;
+        let valley = valley::Valley::from_parts(self.engine.settings().valley.clone());
+        let stop_key = key.clone();
+        let job = self
+            .engine
+            .runtime()
+            .spawn(async move { valley.chat_mode(&stop_key, "Stop there.", "plan", true).await });
+        let task = cx.spawn(async move |this, cx| {
+            let result = job.await;
+            let _ = this.update(cx, |this, cx| {
+                this.andrew_talks.remove(&key);
+                match result {
+                    Ok(Ok(_)) => this.notify_user("Interrupt sent — Andrew holds.", false, cx),
+                    Ok(Err(e)) => this.notify_user(e, true, cx),
+                    Err(e) => this.notify_user(e.to_string(), true, cx),
+                }
+                cx.notify();
+            });
+        });
+        self.track(task);
+    }
+
+    /// Flips the composer's lane (plan = conversational, execute = the
+    /// specialist team with a task graph). State only: the mode rides
+    /// with the next send, never touching a turn in flight. (Father,
+    /// 17 Nov 2026: "1st class control panel and chat agent".)
+    fn andrew_toggle_lane(&mut self, exec: bool, cx: &mut Context<Root>) {
+        self.andrew_chat_exec = exec;
+        cx.notify();
     }
 
     /// Opens the thread with a message handed in (the New-session dialog's
@@ -332,6 +414,92 @@ impl Root {
             }
         };
         let transcript_key = picked.clone();
+
+        // The task graph from this conversation's last execute turn (Father,
+        // 17 Nov 2026: "1st class control panel and chat agent" — his
+        // specialist-team work should be visible, not only its final words).
+        let graph_card = match self.andrew_graph.clone() {
+            Some((graph_key, nodes)) if graph_key == picked => {
+                let mut node_rows: Vec<AnyElement> = Vec::new();
+                for node in &nodes {
+                    let title = super::valley_item::clipped(
+                        &if node.title.is_empty() {
+                            "task".to_string()
+                        } else {
+                            node.title.clone()
+                        },
+                        120,
+                    )
+                    .to_string();
+                    let status = if node.status.is_empty() {
+                        "pending".to_string()
+                    } else {
+                        node.status.clone()
+                    };
+                    node_rows.push(
+                        div()
+                            .flex()
+                            .items_center()
+                            .gap(px(6.))
+                            .child(
+                                div()
+                                    .font_family(mono_font())
+                                    .text_size(px(12.5))
+                                    .text_color(theme.text)
+                                    .child(title),
+                            )
+                            .child(
+                                div()
+                                    .font_family(mono_font())
+                                    .text_size(px(11.))
+                                    .text_color(theme.text_placeholder)
+                                    .child(status),
+                            )
+                            .into_any_element(),
+                    );
+                }
+                Some(
+                    card(&theme)
+                        .mx(px(4.))
+                        .p(px(12.))
+                        .gap(px(6.))
+                        .child(section_title(&theme, "Task graph", None))
+                        .children(node_rows),
+                )
+            }
+            _ => None,
+        };
+
+        // The lane picker: Plan talks with him, Execute puts his specialist
+        // team on the task. While a turn runs, Stop interrupts it (the
+        // Campfires instruct line's mechanism).
+        let in_flight = self.andrew_flight.as_deref() == Some(picked.as_str());
+        let lane = div()
+            .flex()
+            .flex_none()
+            .gap(px(4.))
+            .child(
+                Button::new("mc-lane-plan", "Plan")
+                    .style(if self.andrew_chat_exec {
+                        ButtonStyle::Ghost
+                    } else {
+                        ButtonStyle::Primary
+                    })
+                    .on_click(cx.listener(|this, _ev: &ClickEvent, _win: &mut Window, cx: &mut Context<Root>| {
+                        this.andrew_toggle_lane(false, cx);
+                    })),
+            )
+            .child(
+                Button::new("mc-lane-exec", "Execute")
+                    .style(if self.andrew_chat_exec {
+                        ButtonStyle::Primary
+                    } else {
+                        ButtonStyle::Ghost
+                    })
+                    .on_click(cx.listener(|this, _ev: &ClickEvent, _win: &mut Window, cx: &mut Context<Root>| {
+                        this.andrew_toggle_lane(true, cx);
+                    })),
+            );
         let composer = div()
             .flex()
             .items_center()
@@ -347,13 +515,24 @@ impl Root {
                     .min_w(px(0.))
                     .child(input),
             )
+            .child(lane)
             .child(
                 Button::new("mc-send", "Send")
                     .style(ButtonStyle::Primary)
                     .on_click(cx.listener(move |this, _ev: &ClickEvent, _win: &mut Window, cx: &mut Context<Root>| {
                         this.andrew_chat_send(transcript_key.clone(), cx);
                     })),
-            );
+            )
+            .when(in_flight, |d| {
+                let flight_key = picked.clone();
+                d.child(
+                    Button::new("mc-chat-stop", "Stop")
+                        .style(ButtonStyle::Danger)
+                        .on_click(cx.listener(move |this, _ev: &ClickEvent, _win: &mut Window, cx: &mut Context<Root>| {
+                            this.andrew_chat_stop(flight_key.clone(), cx);
+                        })),
+                )
+            });
 
         let body = div()
             .flex()
@@ -369,6 +548,10 @@ impl Root {
                     .flex_col()
                     .gap(px(10.))
                     .child(transcript)
+                    // The task graph rides above the composer: it belongs
+                    // to the turn that produced it (Father, 17 Nov 2026:
+                    // "1st class control panel and chat agent").
+                    .children(graph_card)
                     .child(div().flex().flex_col().gap(px(10.)).child(composer)),
             )
             .child(list);
