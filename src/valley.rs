@@ -654,6 +654,101 @@ impl Valley {
             .await
             .map_err(|e| format!("The transcript isn't the shape we expect: {e}"))
     }
+
+    /// Andrew's one-place settings (GET /api/settings; Andrew redacts the
+    /// credential keys, so nothing secret rides here). (Father, 18 Nov 2026:
+    /// AndruIDE gets the same config page as the webui -- one control place
+    /// for the provider and the tier models.)
+    pub async fn settings(&self) -> Result<ValleySettings, String> {
+        if !self.configured() {
+            return Err("The valley isn't configured — set it in Settings › Valley.".into());
+        }
+        let resp = self
+            .get("/settings")
+            .await
+            .map_err(|e| format!("Andrew's settings: {e}"))?;
+        resp.json::<ValleySettings>()
+            .await
+            .map_err(|e| format!("Andrew's settings aren't the shape we expect: {e}"))
+    }
+
+    /// Saves a patch into Andrew's one place (PUT /api/settings; Andrew keeps
+    /// only the keys the patch carries). The answer carries the live model
+    /// validation report when the provider or a tier model changed
+    /// (Andrew PRs #1528/#1530).
+    pub async fn save_settings(
+        &self,
+        patch: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        if !self.configured() {
+            return Err("The valley isn't configured — set it in Settings › Valley.".into());
+        }
+        let mut url = self.url_for("/settings");
+        let mut resp = self
+            .auth(self.http.put(&url))
+            .json(&patch)
+            .send()
+            .await
+            .map_err(|e| format!("Couldn't reach the valley at {url}: {e}"))?;
+        if self.can_learn() && Self::looks_like_html(&resp) {
+            let _ = self.prefix.set("/api".to_string());
+            url = self.url_for("/settings");
+            resp = self
+                .auth(self.http.put(&url))
+                .json(&patch)
+                .send()
+                .await
+                .map_err(|e| format!("Couldn't reach the valley at {url}: {e}"))?;
+        }
+        let resp = resp
+            .error_for_status()
+            .map_err(|e| format!("The valley answered {e}"))?;
+        resp.json::<serde_json::Value>()
+            .await
+            .map_err(|e| format!("The save answer isn't the shape we expect: {e}"))
+    }
+}
+
+/// Andrew's one-place settings, as `GET /api/settings` reports it. Every
+/// field lenient (Andrew ships them all, but the page must render against
+/// any honest shape he answers with).
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct ValleySettings {
+    #[serde(default)]
+    pub provider: Option<String>,
+    #[serde(default)]
+    pub reasoning_model: Option<String>,
+    #[serde(default)]
+    pub simple_model: Option<String>,
+    #[serde(default)]
+    pub intent_model: Option<String>,
+    #[serde(default)]
+    pub work_model: Option<String>,
+}
+
+impl ValleySettings {
+    /// Turns the save answer (which may carry `live_model_validation`) into
+    /// the one line the settings page shows under the Save button.
+    pub fn save_note(answer: &serde_json::Value) -> String {
+        let cleared: Vec<String> = answer
+            .get("live_model_validation")
+            .and_then(|v| v.get("cleared"))
+            .and_then(|c| c.as_array())
+            .map(|a| {
+                a.iter()
+                    .filter_map(|x| x.as_str().map(|s| format!("\"{s}\"")))
+                    .collect()
+            })
+            .unwrap_or_default();
+        if cleared.is_empty() {
+            "Saved — every tier model checks out against the live catalog.".into()
+        } else {
+            format!(
+                "Saved — Andrew cleared model ids the provider doesn't serve: {}.",
+                cleared.join(", ")
+            )
+        }
+    }
 }
 
 /// A checkpoint's ask: the question Andrew holds a run on, and the answers
