@@ -418,6 +418,23 @@ impl Valley {
             .map_err(|e| format!("The runs aren't the shape we expect: {e}"))
     }
 
+    /// The cheap one: /work/stats precomputed counters, made for at-a-glance
+    /// surfaces (Father 18 Nov 2026: "the valley section on the overview page
+    /// could do with showing some 'at a glance' stats too"). One tiny read;
+    /// never the heavy board read - that stays on the Valley page.
+    pub async fn work_stats(&self) -> Result<WorkStats, String> {
+        if !self.configured() {
+            return Err("The valley isn't configured - set it in Settings > Valley.".into());
+        }
+        let resp = self
+            .get("/work/stats")
+            .await
+            .map_err(|e| format!("The valley's counters: {e}"))?;
+        resp.json::<WorkStats>()
+            .await
+            .map_err(|e| format!("The counters aren't the shape we expect: {e}"))
+    }
+
     /// One work item in full (the item page's detail level).
     pub async fn item(&self, id: &str) -> Result<ItemDetail, String> {
         if !self.configured() {
@@ -818,6 +835,59 @@ pub struct VerseLite {
 }
 
 /// One kumbaya run as `GET /kumbayas/runs` reports it, trimmed like its
+/// At-a-glance counters from /work/stats (Father 18 Nov 2026: the overview
+/// strip should read the valley without the heavy read). Every field
+/// defaults so an older valley without the route degrades to zeros instead
+/// of failing the surface.
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct WorkStats {
+    #[serde(default)]
+    pub work: StatCounts,
+    #[serde(default)]
+    pub runs: RunCounts,
+}
+
+/// Work-board counts by status, as the valley itself computes them.
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct StatCounts {
+    // total/completed ship in the payload (the valley computes the full
+    // shape); no surface glances them yet - the strip reads the live subset.
+    #[serde(default)]
+    #[allow(dead_code)]
+    pub total: usize,
+    #[serde(default)]
+    pub pending: usize,
+    #[serde(default)]
+    pub running: usize,
+    #[serde(default)]
+    pub blocked: usize,
+    #[serde(default)]
+    pub failed: usize,
+    #[serde(default)]
+    #[allow(dead_code)]
+    pub completed: usize,
+    #[serde(default)]
+    pub done_today: usize,
+}
+
+/// Campfire-run counts by status (waiting_checkpoint reads as needs_you on
+/// the valley side).
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct RunCounts {
+    #[serde(default)]
+    pub needs_you: usize,
+    #[serde(default)]
+    pub running: usize,
+    // Completed/failed campfire tallies ship in the payload; the attention
+    // card already owns those stories on the Overview.
+    #[serde(default)]
+    #[allow(dead_code)]
+    pub completed: usize,
+    #[serde(default)]
+    #[allow(dead_code)]
+    pub failed: usize,
+}
+
 /// verses. `session_id` names the camper driving it ("chat:worker_kick"),
 /// the verses say where the run has got to.
 #[derive(Debug, Clone, Deserialize)]

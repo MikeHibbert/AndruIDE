@@ -1,9 +1,12 @@
 //! The overview (your machines first: what's running on each, then the agent
 //! sessions across them) and the jobs page (with how busy the runners are).
 
+use std::time::Instant;
+
 use gpui::{AnyElement, Context, Div, FontWeight, Hsla, ScrollHandle, SharedString, Stateful, Window, div, prelude::*, px, relative};
 
 use super::format;
+use super::github::Load;
 use super::kit::{self, Button, ButtonStyle, card, chip, icon, meter, section_title};
 use super::theme::{ActiveTheme, mono_font, Theme};
 use super::root::{Route, Root};
@@ -36,9 +39,12 @@ impl Root {
     pub(super) fn render_overview(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         // The lite runs read feeds the Needs-you card below (Father, 13 Nov
         // 2026: "Those needs need you could also be pop up on the overview
-        // page for the user attention"). It's the cheap read — lite=1 — and
+        // page for the user attention"). It's the cheap read - lite=1 - and
         // maybe_load_runs only fires it when the cache is empty or stale.
+        // The /work/stats aggregate rides beside it (Father, 18 Nov 2026:
+        // at-a-glance stats on the overview strip).
         self.maybe_load_runs(cx);
+        self.maybe_load_work_stats(cx);
         let theme = cx.theme();
         let s = self.snapshot.clone();
         let content_width = f32::from(window.viewport_size().width) - self.sidebar_width - PAGE_PADDING * 2.;
@@ -51,6 +57,45 @@ impl Root {
             body = body.child(self.heads_up(&theme, &s, content_width, cx));
         }
         body = body.child(self.overview_valley(&theme, cx));        body.child(self.render_machine_grid(&theme, &s, content_width, cx)).child(self.render_agents(&theme, &s, cx))
+    }
+
+    /// (Re)reads the valley's /work/stats aggregate (Father 18 Nov 2026:
+    /// "the valley section on the overview page could do with showing some
+    /// 'at a glance' stats too"). The cheap counter read - the heavy board
+    /// read stays on the Valley page.
+    fn load_work_stats(&mut self, cx: &mut Context<Self>) {
+        self.valley_stats = Some(Load::Loading);
+        self.valley_stats_at = Some(Instant::now());
+        let valley = crate::valley::Valley::from_parts(self.engine.settings().valley.clone());
+        if !valley.configured() {
+            self.valley_stats = Some(Load::Failed("not-configured".into()));
+            cx.notify();
+            return;
+        }
+        let job = self.engine.runtime().spawn(async move { valley.work_stats().await });
+        let task = cx.spawn(async move |this, cx| {
+            let result = job.await.map_err(|e| e.to_string()).and_then(|r| r);
+            let _ = this.update(cx, |this, cx| {
+                this.valley_stats = Some(match result {
+                    Ok(stats) => Load::Ready(stats),
+                    Err(e) => Load::Failed(e),
+                });
+                cx.notify();
+            });
+        });
+        self.track(task);
+    }
+
+    /// Stats when missing or stale (60s; a Failed read retries after 15s -
+    /// same windows as the runs read); never while loading.
+    fn maybe_load_work_stats(&mut self, cx: &mut Context<Self>) {
+        let loading = matches!(self.valley_stats, Some(Load::Loading));
+        let failed = matches!(self.valley_stats, Some(Load::Failed(_)));
+        let window = if failed { 15 } else { 60 };
+        let stale = self.valley_stats.is_none() || self.valley_stats_at.is_some_and(|t| t.elapsed().as_secs() > window);
+        if !loading && stale {
+            self.load_work_stats(cx);
+        }
     }
 
     /// The valley strip: what Andrew's campfire holds, in one line, leading
@@ -67,33 +112,73 @@ impl Root {
             Some(super::github::Load::Ready(r)) => Some(r),
             _ => None,
         };
+        // At-a-glance line (Father 18 Nov 2026): the cheap /work/stats read
+        // leads when it is ready; the cached deep reads fill the gap before
+        // it lands, so the strip is never empty while it loads.
+        let stats_note: Option<String> = match &self.valley_stats {
+            None | Some(Load::Loading) => Some("Reading the valley's counters.".into()),
+            Some(Load::Failed(e)) => Some(format!("The valley's counters: {e}")),
+            Some(Load::Ready(_)) => None,
+        };
         let mut parts: Vec<String> = Vec::new();
-        if let Some(items) = items {
-            let running = items.iter().filter(|i| i.status == "running").count();
-            let blocked = items.iter().filter(|i| i.status == "blocked").count();
-            let pending = items.iter().filter(|i| i.status == "pending").count();
-            if running > 0 {
-                parts.push(format!("{running} running"));
+        if let Some(Load::Ready(s)) = &self.valley_stats {
+            if s.work.running > 0 {
+                parts.push(format!("{} running", s.work.running));
             }
-            if blocked > 0 {
-                parts.push(format!("{blocked} blocked"));
+            if s.work.blocked > 0 {
+                parts.push(format!("{} blocked", s.work.blocked));
             }
-            if pending > 0 {
-                parts.push(format!("{pending} waiting"));
+            if s.work.pending > 0 {
+                parts.push(format!("{} waiting", s.work.pending));
+            }
+            if s.work.failed > 0 {
+                parts.push(format!("{} failed", s.work.failed));
+            }
+            if s.work.done_today > 0 {
+                parts.push(format!("{} done today", s.work.done_today));
+            }
+            if s.runs.needs_you > 0 {
+                parts.push(format!(
+                    "{} need{} you",
+                    s.runs.needs_you,
+                    if s.runs.needs_you == 1 { "s" } else { "" }
+                ));
+            }
+            if s.runs.running > 0 {
+                parts.push(format!("{} campfires lit", s.runs.running));
             }
         }
-        if let Some(runs) = runs {
-            let need = crate::valley::need_you(runs);
-            let lit = runs.iter().filter(|r| r.status == "running").count();
-            if need > 0 {
-                parts.push(format!("{need} need{} you", if need == 1 { "s" } else { "" }));
+        if parts.is_empty() {
+            // Pre-stats cached fallback: the deep reads the Overview already
+            // holds - never fired here (the cached-only rule, Father 12 Nov
+            // 2026); the stats read above is the only Overview-fired call.
+            if let Some(items) = items {
+                let running = items.iter().filter(|i| i.status == "running").count();
+                let blocked = items.iter().filter(|i| i.status == "blocked").count();
+                let pending = items.iter().filter(|i| i.status == "pending").count();
+                if running > 0 {
+                    parts.push(format!("{running} running"));
+                }
+                if blocked > 0 {
+                    parts.push(format!("{blocked} blocked"));
+                }
+                if pending > 0 {
+                    parts.push(format!("{pending} waiting"));
+                }
             }
-            if lit > 0 {
-                parts.push(format!("{lit} campfires lit"));
+            if let Some(runs) = runs {
+                let need = crate::valley::need_you(runs);
+                let lit = runs.iter().filter(|r| r.status == "running").count();
+                if need > 0 {
+                    parts.push(format!("{need} need{} you", if need == 1 { "s" } else { "" }));
+                }
+                if lit > 0 {
+                    parts.push(format!("{lit} campfires lit"));
+                }
             }
         }
         let summary = if parts.is_empty() {
-            "Nothing read from the valley yet — its work board is a heavy read; open Campfires or Valley.".to_string()
+            stats_note.clone().unwrap_or_else(|| "The valley reports an empty board.".into())
         } else {
             parts.join(" · ")
         };
@@ -135,7 +220,9 @@ impl Root {
                             .flex_none()
                             .gap(px(8.))
                             .child(
-                                Button::new("ov-valley", "Valley")
+                                // Named for what it opens (Father 18 Nov
+                                // 2026: the nav calls it the Work Board).
+                                Button::new("ov-valley", "Work Board")
                                     .tooltip("The work board")
                                     .on_click(cx.listener(
                                         |this: &mut Root, _: &gpui::ClickEvent, window: &mut Window, cx: &mut Context<Root>| {
