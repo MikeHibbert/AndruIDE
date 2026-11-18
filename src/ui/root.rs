@@ -514,6 +514,12 @@ pub struct Root {
     /// Valleys on the local network, as last heard over mDNS.
     pub(super) valleys: Vec<crate::fleet::discover::ValleyHost>,
     pub(super) valleys_scanning: bool,
+    /// The Shadow Rescue receipts feed (Father, 18 Nov 2026: "It won't be
+    /// headless if we have reports on the UI") - what the bundled rescue
+    /// agent has triaged lately, driven only when the Work Board page is on
+    /// screen.
+    pub(super) rescue_reports: Option<super::github::Load<crate::valley::RescueReceipts>>,
+    pub(super) rescue_reports_at: Option<Instant>,
     pub(super) valleys_at: Option<Instant>,
     /// A valley picked from the network, shown while it's open in the Valley
     /// page (Settings › Valley is still the for-keeps place: it holds the URL).
@@ -793,6 +799,8 @@ impl Root {
             valley_at: None,
             valleys: Vec::new(),
             valleys_scanning: false,
+            rescue_reports: None,
+            rescue_reports_at: None,
             valleys_at: None,
             valley_view: None,
             ports_more: Default::default(),

@@ -290,7 +290,7 @@ impl Root {
             .as_ref()
             .map(|i| i.clone())
             .unwrap_or_else(|| cx.new(|cx| TextInput::new(cx, "Instruct the camper").mono()));
-        let session = run.session_id.clone();
+        let session = run.session_id.clone().unwrap_or_default();
         div()
             .flex()
             .items_center()
@@ -309,7 +309,7 @@ impl Root {
                 Button::new("campfire-instruct", "Instruct")
                     .style(ButtonStyle::Primary)
                     .tooltip("Send, interrupting the camper mid-run")
-                    .disabled(run.session_id.is_empty())
+                    .disabled(run.session_id.as_deref().map_or(true, str::is_empty))
                     .on_click(cx.listener(move |this: &mut Root, _: &gpui::ClickEvent, _: &mut Window, cx: &mut Context<Root>| {
                         this.campfire_instruct(session.clone(), cx);
                     })),
