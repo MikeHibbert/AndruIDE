@@ -8,10 +8,10 @@ use gpui::{AnyElement, Context, FontWeight, SharedString, Window, div, prelude::
 
 use super::github::Load;
 use super::input::TextInput;
-use super::kit::{self, Button, ButtonStyle, card, spinner};
+use super::kit::{self, Button, ButtonStyle, card, section_title, spinner};
 use super::overview::page;
 use super::root::{Root, Route};
-use super::theme::{ActiveTheme, mono_font};
+use super::theme::{ActiveTheme, Theme, mono_font};
 use crate::valley::{LANES, Valley};
 
 /// The page's sidebar tile colour: campfire orange.
@@ -144,6 +144,139 @@ impl Root {
         }
     }
 
+    /// Drives the Shadow Rescue receipts feed while the page is on screen
+    /// (Father, 18 Nov 2026: "It won't be headless if we have reports on
+    /// the UI"). Same windows as the overview strip: 60s fresh, a Failed
+    /// read retries after 15s; never two at once.
+    fn maybe_load_rescue_reports(&mut self, cx: &mut Context<Self>) {
+        let loading = matches!(self.rescue_reports, Some(Load::Loading));
+        let failed = matches!(self.rescue_reports, Some(Load::Failed(_)));
+        let window = if failed { 15 } else { 60 };
+        let stale =
+            self.rescue_reports.is_none() || self.rescue_reports_at.is_some_and(|t| t.elapsed().as_secs() > window);
+        if !loading && stale {
+            self.load_rescue_reports(cx);
+        }
+    }
+
+    fn load_rescue_reports(&mut self, cx: &mut Context<Self>) {
+        self.rescue_reports = Some(Load::Loading);
+        self.rescue_reports_at = Some(Instant::now());
+        let mut cfg = self.engine.settings().valley.clone();
+        if let Some(base) = self.valley_view.clone() {
+            cfg.base_url = base;
+        }
+        let valley = Valley::from_parts(cfg);
+        if !valley.configured() {
+            self.rescue_reports = Some(Load::Failed("not-configured".into()));
+            cx.notify();
+            return;
+        }
+        let job = self.engine.runtime().spawn(async move { valley.rescue_receipts().await });
+        let task = cx.spawn(async move |this, cx| {
+            let result = job.await.map_err(|e| e.to_string()).and_then(|r| r);
+            let _ = this.update(cx, |this, cx| {
+                this.rescue_reports = Some(match result {
+                    Ok(v) => Load::Ready(v),
+                    Err(e) => Load::Failed(e),
+                });
+                cx.notify();
+            });
+        });
+        self.track(task);
+    }
+
+    /// The rescue reports card (Father, 18 Nov 2026: "It won't be headless
+    /// if we have reports on the UI"): the latest Shadow Rescue verdicts,
+    /// newest first, so the bundled agent's work stays visible on the board
+    /// page. Nothing renders while loading or when the feed is empty - an
+    /// older valley without the endpoint stays clean instead of erroring.
+    fn rescue_reports_card(&self, theme: &Theme) -> Option<AnyElement> {
+        let Some(Load::Ready(feed)) = self.rescue_reports.as_ref() else {
+            return None;
+        };
+        if feed.receipts.is_empty() {
+            return None;
+        }
+        let rows: Vec<AnyElement> = feed
+            .receipts
+            .iter()
+            .map(|r| {
+                let color = match r.proposal.as_str() {
+                    "escalate_human" => theme.warning,
+                    "requeue" => theme.success,
+                    "restart" => theme.text,
+                    "none" => theme.text_muted,
+                    // A blank slot or a judgment error is a break in the
+                    // agent's judgment - show it as one, not as silence.
+                    _ => theme.error,
+                };
+                let mut head = div()
+                    .flex()
+                    .flex_wrap()
+                    .items_center()
+                    .gap(px(8.))
+                    .child(
+                        div()
+                            .px(px(6.))
+                            .h(px(20.))
+                            .flex()
+                            .items_center()
+                            .rounded(kit::corner(6.))
+                            .text_size(px(11.))
+                            .font_family(mono_font())
+                            .text_color(color)
+                            .bg(theme.element)
+                            .child(super::valley_item::clipped(&r.proposal, 40)),
+                    )
+                    .child(
+                        // The verdict in the agent's own voice, already
+                        // capped by the valley.
+                        div()
+                            .text_size(px(12.))
+                            .text_color(theme.text_muted)
+                            .child(super::valley_item::clipped(&r.speak_to_andrew, 160)),
+                    );
+                if !r.item_id.is_empty() {
+                    head = head.child(
+                        div()
+                            .text_size(px(11.))
+                            .font_family(mono_font())
+                            .text_color(theme.text_placeholder)
+                            .child(super::valley_item::clipped(&r.item_id, 22)),
+                    );
+                }
+                if let Some(confidence) = r.confidence {
+                    head = head.child(
+                        div()
+                            .text_size(px(11.))
+                            .font_family(mono_font())
+                            .text_color(theme.text_muted)
+                            .child(format!("{confidence:.2}")),
+                    );
+                }
+                div().flex().flex_col().gap(px(2.)).child(head)
+                    .child(
+                        div()
+                            .text_size(px(11.))
+                            .font_family(mono_font())
+                            .text_color(theme.text_placeholder)
+                            .child(super::valley_item::clipped(&r.ts, 19)),
+                    )
+                    .into_any_element()
+            })
+            .collect();
+        Some(
+            card(theme)
+                .p(px(14.))
+                .flex_col()
+                .gap(px(8.))
+                .child(section_title(theme, "Rescue reports", Some(feed.receipts.len())))
+                .children(rows)
+                .into_any_element(),
+        )
+    }
+
     pub(super) fn render_valley(&mut self, cx: &mut Context<Self>) -> AnyElement {
         let theme = cx.theme();
         // First visit, or stale after five minutes: look again. The work
@@ -154,6 +287,9 @@ impl Root {
         if self.valley_data.is_none() || self.valley_at.is_some_and(|t| t.elapsed().as_secs() > 300) {
             self.load_valley(cx);
         }
+        // The rescue reports card lives above the lanes; its feed is cheap
+        // and driven only while this page is visible.
+        self.maybe_load_rescue_reports(cx);
         let header = div()
             .flex()
             .flex_wrap()
@@ -210,7 +346,9 @@ impl Root {
                     })
                     .child(Button::icon_only("valley-refresh", "refresh-cw").tooltip("Read the board again").on_click(cx.listener(|this, _, _, cx| this.load_valley(cx)))),
             );
-        let mut body = page("valley-page", &self.page_scroll).child(header);
+        let mut body = page("valley-page", &self.page_scroll)
+            .child(header)
+            .children(self.rescue_reports_card(&theme));
         // Join-a-valley (Father, 12 Nov 2026: "Join a valley" first run):
         // the paste box is created once, before the state match borrows it.
         let need_join = matches!(self.valley_data.as_ref(), Some(Load::Failed(e)) if e == "not-configured");

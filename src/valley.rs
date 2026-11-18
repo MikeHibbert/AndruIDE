@@ -435,6 +435,23 @@ impl Valley {
             .map_err(|e| format!("The counters aren't the shape we expect: {e}"))
     }
 
+    /// Shadow Rescue receipts (Father, 18 Nov 2026: "It won't be headless if
+    /// we have reports on the UI"): what the bundled rescue agent has
+    /// triaged lately, already stripped to the lite shape - the valley
+    /// drops the heavy telemetry server-side.
+    pub async fn rescue_receipts(&self) -> Result<RescueReceipts, String> {
+        if !self.configured() {
+            return Err("The valley isn't configured - set it in Settings > Valley.".into());
+        }
+        let resp = self
+            .get("/api/rescue/receipts?limit=12")
+            .await
+            .map_err(|e| format!("The rescue receipts: {e}"))?;
+        resp.json::<RescueReceipts>()
+            .await
+            .map_err(|e| format!("The receipts aren't the shape we expect: {e}"))
+    }
+
     /// One work item in full (the item page's detail level).
     pub async fn item(&self, id: &str) -> Result<ItemDetail, String> {
         if !self.configured() {
@@ -983,6 +1000,66 @@ pub struct RunCounts {
     pub failed: usize,
 }
 
+/// Shadow Rescue receipts, as `/api/rescue/receipts` reports them (Father,
+/// 18 Nov 2026: "It won't be headless if we have reports on the UI").
+/// Everything defaults so an older valley without the endpoint degrades to
+/// an empty list instead of failing the card.
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct RescueReceipts {
+    // The valley's ok flag ships in the payload; an empty card already
+    // covers the "nothing to show" story.
+    #[serde(default)]
+    #[allow(dead_code)]
+    pub ok: bool,
+    #[serde(default)]
+    pub receipts: Vec<RescueReceipt>,
+}
+
+/// One rescue receipt, lite: the valley truncates the judgment text and
+/// strips the telemetry before this ever reaches the app (PR #1535).
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct RescueReceipt {
+    #[serde(default)]
+    #[allow(dead_code)]
+    pub ts: String,
+    #[serde(default)]
+    #[allow(dead_code)]
+    pub wake_id: String,
+    #[serde(default)]
+    pub item_id: String,
+    #[serde(default)]
+    #[allow(dead_code)]
+    pub mode: String,
+    // Claimed/acted ship now; the drill-down will read them when a receipt
+    // can be opened in full.
+    #[serde(default)]
+    #[allow(dead_code)]
+    pub claimed: bool,
+    #[serde(default)]
+    #[allow(dead_code)]
+    pub acted: bool,
+    // The agent's proposal - or, on a blind run, its judgment error rides
+    // through this slot so failures show as their own kind of report.
+    #[serde(default)]
+    pub proposal: String,
+    #[serde(default)]
+    #[allow(dead_code)]
+    pub cause_belief: String,
+    #[serde(default)]
+    pub speak_to_andrew: String,
+    #[serde(default)]
+    pub confidence: Option<f64>,
+}
+
+/// Deserialize a `null` string field as `None` (serde(default) alone treats
+/// null as an error for String targets - Father 18 Nov 2026 runs decode).
+fn null_to_none<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    Ok(Option::<String>::deserialize(deserializer)?)
+}
+
 /// verses. `session_id` names the camper driving it ("chat:worker_kick"),
 /// the verses say where the run has got to.
 #[derive(Debug, Clone, Deserialize)]
@@ -992,8 +1069,11 @@ pub struct RunSummary {
     pub kumbaya: String,
     #[serde(default)]
     pub status: String,
-    #[serde(default)]
-    pub session_id: String,
+    // Father 18 Nov 2026: the live valley sends `session_id: null` on some
+    // runs; serde(default) covers a missing key but not a null one, and the
+    // null blew the whole runs decode. Option rides either shape.
+    #[serde(default, deserialize_with = "null_to_none")]
+    pub session_id: Option<String>,
     #[serde(default)]
     pub created_at: String,
     // Kept for the drill-down once Torches reads verses' results too; until
@@ -1010,7 +1090,7 @@ impl RunSummary {
     /// ("chat:worker_kick" → "worker_kick"); the page reads a blank one as
     /// "valley".
     pub fn camper(&self) -> &str {
-        let id = self.session_id.trim();
+        let id = self.session_id.as_deref().unwrap_or("").trim();
         let after = id.split_once(':').map(|(_, tail)| tail.trim()).unwrap_or("");
         if after.is_empty() { id } else { after }
     }
@@ -1213,7 +1293,9 @@ mod tests {
              {"verse": "act", "kind": "mcp_tool", "status": "running", "tool_name": "work_next"},
              {"verse": "tell", "kind": "report", "status": "pending", "tool_name": ""}
          ],
-         "session_id": "scheduler:tell", "created_at": "2026-11-11T23:04:00.000000Z"}
+         "session_id": "scheduler:tell", "created_at": "2026-11-11T23:04:00.000000Z"},
+        {"id": "r-nonull", "kumbaya": "work_board_worker", "status": "completed",
+         "session_id": null, "created_at": "2026-11-11T23:06:00.000000Z"}
     ]"##;
 
     fn parsed() -> Vec<RunSummary> {
@@ -1223,13 +1305,23 @@ mod tests {
     #[test]
     fn parses_live_list_and_skips_heavy_fields() {
         let runs = parsed();
-        assert_eq!(runs.len(), 3);
+        assert_eq!(runs.len(), 4);
         assert_eq!(runs[0].id, "r-empty");
         assert_eq!(runs[0].kumbaya, "work_board_worker");
-        assert_eq!(runs[0].session_id, "chat:worker_kick");
+        assert_eq!(runs[0].session_id.as_deref(), Some("chat:worker_kick"));
         assert_eq!(runs[0].status, "completed");
         assert_eq!(runs[0].verses.len(), 3);
         assert_eq!(runs[0].verses[1].tool_name, "work_next");
+    }
+
+    // Father 18 Nov 2026: two live runs ship `session_id: null`; a plain
+    // String with serde(default) rejects null and the whole list blew up.
+    #[test]
+    fn a_null_session_id_decodes() {
+        let runs = parsed();
+        assert_eq!(runs[3].id, "r-nonull");
+        assert_eq!(runs[3].session_id, None);
+        assert_eq!(runs[3].camper(), "");
     }
 
     #[test]
@@ -1259,7 +1351,7 @@ mod tests {
             id: "x".into(),
             kumbaya: "k".into(),
             status: "running".into(),
-            session_id: session_id.into(),
+            session_id: Some(session_id.into()),
             created_at: String::new(),
             finished_at: None,
             verses: Vec::new(),
@@ -1273,7 +1365,7 @@ mod tests {
         runs.reverse();
         order_runs(&mut runs);
         let ids: Vec<&str> = runs.iter().map(|r| r.id.as_str()).collect();
-        assert_eq!(ids, ["r-waiting", "r-running", "r-empty"]);
+        assert_eq!(ids, ["r-waiting", "r-running", "r-nonull", "r-empty"]);
     }
 
     #[test]
@@ -1282,7 +1374,7 @@ mod tests {
         order_runs(&mut runs);
         let groups = group_by_camper(&runs);
         let names: Vec<&str> = groups.iter().map(|(name, _)| name.as_str()).collect();
-        assert_eq!(names, ["worker_kick", "tell"]);
+        assert_eq!(names, ["worker_kick", "tell", "valley"]);
         assert_eq!(groups[0].1.len(), 2, "worker_kick owns its waiting and finished runs");
         assert_eq!(groups[0].1[0].id, "r-waiting", "a camper's own rows stay in urgency order");
     }
