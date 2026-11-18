@@ -1,15 +1,17 @@
 //! The About page: version, where to find us, licenses, and who built it.
 
-use gpui::{AnyElement, App, Context, EventEmitter, FocusHandle, Focusable, FontWeight, Window, div, prelude::*, px, svg};
+use gpui::{AnyElement, App, Context, EventEmitter, FocusHandle, Focusable, FontWeight, Window, div, prelude::*, px};
 
 use super::dialogs::DialogEvent;
 use super::kit::{Button, ButtonStyle, card};
 use super::root::{Modal, Root};
 use super::theme::{ActiveTheme, Theme};
 
-const WEBSITE: &str = "https://muxin.dev";
-const COMPANY: &str = "https://lumarylabs.com";
-const EMAIL: &str = "contact@lumarylabs.com";
+// The company of record is Hibbert IT Solutions (Father, 18 Nov 2026: website
+// https://www.hibbertitsolutions.co.uk, feedback mike@hibbertitsolutions.co.uk,
+// Lumary Labs removed from the About page).
+const WEBSITE: &str = "https://www.hibbertitsolutions.co.uk";
+const EMAIL: &str = "mike@hibbertitsolutions.co.uk";
 
 /// The version, and the build (set `ANDRUIDE_BUILD` when building releases).
 fn version() -> String {
@@ -124,16 +126,15 @@ impl Root {
                 .child(action)
         };
         let links = card(&theme)
-            .child(row(0, "Website", "muxin.dev", Button::new("about-web", "Open").on_click(|_, _, cx| cx.open_url(WEBSITE)).into_any_element()))
-            .child(row(1, "Lumary Labs", "lumarylabs.com", Button::new("about-company", "Open").on_click(|_, _, cx| cx.open_url(COMPANY)).into_any_element()))
+            .child(row(0, "Website", "hibbertitsolutions.co.uk", Button::new("about-web", "Open").on_click(|_, _, cx| cx.open_url(WEBSITE)).into_any_element()))
             .child(row(
-                2,
+                1,
                 "Feedback",
                 EMAIL,
                 Button::new("about-mail", "Send Email").on_click(|_, _, cx| cx.open_url(&format!("mailto:{EMAIL}?subject=AndruIDE%20feedback"))).into_any_element(),
             ))
             .child(row(
-                3,
+                2,
                 "Licenses",
                 "Open-source software AndruIDE includes",
                 Button::new("about-licenses", "View")
@@ -150,7 +151,17 @@ impl Root {
             .gap(px(26.))
             .py(px(52.))
             .child(div().text_size(px(12.)).font_weight(FontWeight::SEMIBOLD).text_color(theme.text_placeholder).child("B U I L T    B Y"))
-            .child(lumary_logo(&theme));
+            // Same composition the Lumary wordmark had: the name, then the
+            // descriptor in spaced light caps below (Father, 18 Nov 2026).
+            .child(
+                div()
+                    .flex()
+                    .flex_col()
+                    .items_center()
+                    .gap(px(4.))
+                    .child(div().text_size(px(30.)).font_weight(FontWeight::SEMIBOLD).text_color(theme.text).child("Hibbert"))
+                    .child(div().text_size(px(14.)).line_height(px(18.)).font_weight(FontWeight::LIGHT).text_color(theme.text_muted).child("I T   S O L U T I O N S")),
+            );
 
         div()
             .id("about-page")
@@ -165,41 +176,6 @@ impl Root {
             .child(div().w_full().max_w(px(620.)).flex().flex_col().gap(px(16.)).child(header).children(update).child(links).child(built_by))
             .into_any_element()
     }
-}
-
-/// The Lumary Labs logo, laid out as in branding/logos/logo-large.svg: the
-/// wordmark, then "LABS LLC" in light gray caps with 0.6em letter spacing
-/// (drawn here, since SVG text doesn't render), sized to the wordmark.
-fn lumary_logo(theme: &Theme) -> impl IntoElement {
-    const WIDTH: f32 = 180.;
-    const ASPECT: f32 = 3.909; // the wordmark's width / height
-    let size = (WIDTH * 0.0719).round(); // 18px text on the logo's 250px wordmark
-    let spacing = size * 0.6;
-    let letters = "LABS LLC".chars().map(|c| {
-        if c == ' ' {
-            div().w(px(size * 0.28)).into_any_element()
-        } else {
-            div().child(c.to_string()).into_any_element()
-        }
-    });
-    div()
-        .flex()
-        .flex_col()
-        .items_center()
-        .gap(px(4.))
-        .child(svg().path("brand/lumary-wordmark.svg").w(px(WIDTH)).h(px(WIDTH / ASPECT)).text_color(theme.text))
-        .child(
-            div()
-                .flex()
-                .gap(px(spacing))
-                // Letter spacing trails the last letter too; keep the word centered.
-                .ml(px(spacing))
-                .text_size(px(size))
-                .line_height(px(18.))
-                .font_weight(FontWeight::LIGHT)
-                .text_color(theme.text_muted)
-                .children(letters),
-        )
 }
 
 /// The components list, in a dialog.
@@ -234,7 +210,7 @@ impl Render for LicensesDialog {
             .text_color(theme.text)
             .child(div().text_size(px(16.)).font_weight(FontWeight::SEMIBOLD).child("Licenses"))
             .child(div().text_size(px(12.5)).text_color(theme.text_muted).child(
-                "AndruIDE is open source under the Apache License 2.0, by Lumary Labs LLC. It includes these components under their own licenses; the full texts ship with the app.",
+                "AndruIDE is open source under the Apache License 2.0, by Hibbert IT Solutions. It includes these components under their own licenses; the full texts ship with the app.",
             ))
             .child(card(&theme).children(rows))
             .child(

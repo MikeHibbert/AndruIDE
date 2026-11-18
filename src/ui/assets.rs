@@ -92,8 +92,6 @@ pub const NERD_SYMBOLS_NAMES: [&str; 2] = ["SymbolsNFM", "Symbols Nerd Font Mono
 pub const APP_ICON_PNG: &[u8] = include_bytes!("../../assets/brand/icon-512.png");
 /// Small copy of the icon for the sidebar.
 const BRAND_PNG: &[u8] = include_bytes!("../../assets/brand/icon-128.png");
-/// The Lumary Labs wordmark, for the About page.
-const LUMARY_SVG: &[u8] = include_bytes!("../../assets/brand/lumary-wordmark.svg");
 
 pub struct Assets;
 
@@ -102,7 +100,6 @@ impl AssetSource for Assets {
         match path {
             "brand/icon.png" => return Ok(Some(Cow::Borrowed(BRAND_PNG))),
             "brand/icon-512.png" => return Ok(Some(Cow::Borrowed(APP_ICON_PNG))),
-            "brand/lumary-wordmark.svg" => return Ok(Some(Cow::Borrowed(LUMARY_SVG))),
             _ => {}
         }
         let name = path.strip_prefix("icons/").and_then(|p| p.strip_suffix(".svg"));
