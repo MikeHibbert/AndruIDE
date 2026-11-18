@@ -5,6 +5,7 @@ use std::time::{Duration, Instant};
 
 use gpui::{AnyElement, App, Context, Entity, Focusable, SharedString, Subscription, Task, Window, div, prelude::*, px};
 
+mod andrew;
 mod cloud;
 mod ipads;
 mod kumbayas;
@@ -112,6 +113,17 @@ pub struct SettingsPage {
     kumbaya_open: Option<Result<kumbayas::KumbayaView, String>>,
     kumbaya_edit: Option<kumbayas::KumbayaEdit>,
     kumbaya_arm: Option<String>,
+    // Andrew's one-place config (Father, 18 Nov 2026: AndruIDE carries the
+    // same config page as the webui -- provider + tier models, one place).
+    andrew_provider: Entity<TextInput>,
+    andrew_reasoning: Entity<TextInput>,
+    andrew_simple: Entity<TextInput>,
+    andrew_intent: Entity<TextInput>,
+    andrew_work: Entity<TextInput>,
+    andrew_loading: bool,
+    andrew_loaded: bool,
+    andrew_saving: bool,
+    andrew_note: Option<(bool, String)>,
     _tasks: Vec<Task<()>>,
     _subscriptions: Vec<Subscription>,
 }
@@ -131,6 +143,14 @@ impl SettingsPage {
         let valley_url = cx.new(|cx| TextInput::new(cx, "http://localhost:8001").mono().with_text(s.valley.base_url.clone()));
         let valley_user = cx.new(|cx| TextInput::new(cx, "user").mono().with_text(s.valley.user.clone()));
         let valley_password = cx.new(|cx| TextInput::new(cx, "password").secret().with_text(s.valley.password.clone()));
+        // Andrew's own config rides the Valley tab; it starts empty and is
+        // filled from Andrew's API when the tab opens (load_andrew_cfg), so
+        // nothing here is invented behind the valley's back.
+        let andrew_provider = cx.new(|cx| TextInput::new(cx, "ollama-cloud").mono());
+        let andrew_reasoning = cx.new(|cx| TextInput::new(cx, "deepseek-v4.1-flash:1017").mono());
+        let andrew_simple = cx.new(|cx| TextInput::new(cx, "(same as simple model)").mono());
+        let andrew_intent = cx.new(|cx| TextInput::new(cx, "(tier off)").mono());
+        let andrew_work = cx.new(|cx| TextInput::new(cx, "(tier off)").mono());
 
         let mut subs = vec![cx.subscribe_in(&add, window, |this, _, e: &InputEvent, _, cx| match e {
             InputEvent::Submit => this.add_scope(None, cx),
@@ -210,6 +230,15 @@ impl SettingsPage {
             kumbaya_open: None,
             kumbaya_edit: None,
             kumbaya_arm: None,
+            andrew_provider,
+            andrew_reasoning,
+            andrew_simple,
+            andrew_intent,
+            andrew_work,
+            andrew_loading: false,
+            andrew_loaded: false,
+            andrew_saving: false,
+            andrew_note: None,
             _tasks: vec![updates],
             _subscriptions: subs,
         };
@@ -245,6 +274,11 @@ impl SettingsPage {
                 // where it says session actions, we can put our kumbays
                 // there.")
                 self.load_kumbayas(cx);
+            }
+            if tab == SettingsTab::Valley {
+                // Andrew's one-place config: fill the page from his API each
+                // visit (Father 18 Nov 2026: same config page as the webui).
+                self.load_andrew_cfg(cx);
             }
             cx.notify();
         }
@@ -1540,7 +1574,9 @@ impl Render for SettingsPage {
             SettingsTab::Appearance => body.child(self.appearance_section(&theme, cx)),
             SettingsTab::Terminal => body.child(self.terminal_section(&theme, super::terminal::font_family(window), super::terminal::monospace_families(window), cx)),
             SettingsTab::GitHub => body.child(self.github_section(&theme, cx)).child(self.checks_section(&theme, true, cx)),
-            SettingsTab::Valley => body.child(self.valley_section(&theme, cx)),
+            SettingsTab::Valley => body
+                .child(self.valley_section(&theme, cx))
+                .child(self.andrew_section(&theme, cx)),
             SettingsTab::Cloud => body.child(self.cloud_usage_section(&theme, cx)).child(self.cloud_section(&theme, cx)),
             SettingsTab::Ipads => body.child(self.ipads_section(&theme, cx)),
             SettingsTab::Prompts => body
