@@ -505,6 +505,11 @@ pub struct Root {
     pub(super) usage_at: Option<Instant>,
     /// The Valley page: Andrew's board as last read.
     pub(super) valley_data: Option<super::github::Load<crate::valley::ValleyStatus>>,
+    // The cheap /work/stats read for at-a-glance surfaces (Father 18 Nov
+    // 2026: the overview strip needs stats). Fired only when empty/stale -
+    // never per frame.
+    pub(super) valley_stats: Option<super::github::Load<crate::valley::WorkStats>>,
+    pub(super) valley_stats_at: Option<Instant>,
     pub(super) valley_at: Option<Instant>,
     /// Valleys on the local network, as last heard over mDNS.
     pub(super) valleys: Vec<crate::fleet::discover::ValleyHost>,
@@ -783,6 +788,8 @@ impl Root {
             usage_data: None,
             usage_at: None,
             valley_data: None,
+            valley_stats: None,
+            valley_stats_at: None,
             valley_at: None,
             valleys: Vec::new(),
             valleys_scanning: false,
@@ -2755,8 +2762,13 @@ impl Root {
                     // work hands to Andrew through the chat, so the page is
                     // redundant; Route::Boxes stays for deep links).                    .child(self.nav_item("nav-github", "agent-github", super::github::TILE, "GitHub", self.gh.waiting(), Route::Github, "github", cx))
                     .child(self.nav_item("nav-usage", "gauge", kit::tiles::USAGE, "Usage", None, Route::Usage, "usage", cx))
-                    .child(self.nav_item("nav-valley", "flame", super::valley::TILE, "Valley", self.valley_badge(), Route::Valley, "valley", cx))
-                    .child(self.nav_item("nav-scene", "layers", super::valley_scene::TILE, "The Valley", None, Route::ValleyScene, "valley-scene", cx))
+                    // The work board is the work board - no bare "Valley"
+                    // label, and 'flame' isn't in the bundled icon set so
+                    // the row rendered bare (Father 18 Nov 2026 screenshot
+                    // review). 'list' is bundled. The visual valley scene
+                    // takes the "Valley" name.
+                    .child(self.nav_item("nav-valley", "list", super::valley::TILE, "Work Board", self.valley_badge(), Route::Valley, "valley", cx))
+                    .child(self.nav_item("nav-scene", "layers", super::valley_scene::TILE, "Valley", None, Route::ValleyScene, "valley-scene", cx))
                     .child(self.nav_item("nav-campfires", "eye", super::campfires::TILE, "Campfires", self.campfires_badge(), Route::Campfires, "campfires", cx))
                     .child(self.nav_item("nav-run", "zap", kit::tiles::RUN, "Run", None, Route::Run, "run", cx))
                     .child(self.nav_item("nav-schedules", "clock", super::schedules::TILE, "Schedules", None, Route::Schedules, "schedules", cx))
@@ -4239,8 +4251,10 @@ fn route_title(s: &Snapshot, route: &Route) -> (Option<&'static str>, String) {
         Route::Campfires => (None, "Campfires".into()),
         Route::Activity => (None, "Activity".into()),
         Route::Usage => (None, "Usage".into()),
-        Route::Valley => (None, "Valley".into()),
-        Route::ValleyScene => (None, "The Valley".into()),
+        // Titles track the nav rename (Father 18 Nov 2026 screenshot review):
+        // the work board says what it is; the scene is "the Valley".
+        Route::Valley => (None, "Work Board".into()),
+        Route::ValleyScene => (None, "Valley".into()),
         Route::ValleyItem(id) => (Some("Valley"), format!("Item {id}")),
         Route::AndrewChat(_) => (Some("Andrew"), "Chat with Andrew".into()),
         Route::Run => (None, "Run".into()),
