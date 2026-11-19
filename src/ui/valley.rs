@@ -186,12 +186,45 @@ impl Root {
         self.track(task);
     }
 
+    /// Acknowledges one rescue report (Father, 19 Nov 2026: "escalate_human
+    /// clearly should allow the user to react to the needs of that") and
+    /// reloads the feed so the row shows as seen.
+    fn rescue_ack_report(&mut self, wake_id: String, cx: &mut Context<Self>) {
+        let mut cfg = self.engine.settings().valley.clone();
+        if let Some(base) = self.valley_view.clone() {
+            cfg.base_url = base;
+        }
+        let valley = Valley::from_parts(cfg);
+        if !valley.configured() {
+            self.notify_user("The valley isn't configured.", true, cx);
+            return;
+        }
+        let job = self
+            .engine
+            .runtime()
+            .spawn(async move { valley.ack_rescue(&wake_id).await });
+        let task = cx.spawn(async move |this, cx| {
+            let result = job.await.unwrap_or_else(|e| Err(e.to_string()));
+            let _ = this.update(cx, |this, cx| {
+                match result {
+                    Ok(()) => {
+                        this.notify_user("Report acknowledged.", false, cx);
+                        this.load_rescue_reports(cx);
+                    }
+                    Err(e) => this.notify_user(e, true, cx),
+                }
+                cx.notify();
+            });
+        });
+        self.track(task);
+    }
+
     /// The rescue reports card (Father, 18 Nov 2026: "It won't be headless
     /// if we have reports on the UI"): the latest Shadow Rescue verdicts,
     /// newest first, so the bundled agent's work stays visible on the board
     /// page. Nothing renders while loading or when the feed is empty - an
     /// older valley without the endpoint stays clean instead of erroring.
-    fn rescue_reports_card(&self, theme: &Theme) -> Option<AnyElement> {
+    fn rescue_reports_card(&self, theme: &Theme, cx: &mut Context<Root>) -> Option<AnyElement> {
         let Some(Load::Ready(feed)) = self.rescue_reports.as_ref() else {
             return None;
         };
@@ -255,6 +288,51 @@ impl Root {
                             .child(format!("{confidence:.2}")),
                     );
                 }
+                // Actions (Father, 19 Nov 2026: the reports need clickable
+                // actions - open the item, acknowledge it, or hand it to
+                // Andrew's composer).
+                let item_id = r.item_id.clone();
+                let wake_id = r.wake_id.clone();
+                let prefill = format!(
+                    "Rescue report on {}: {}. Walk me through it and help me respond.",
+                    r.item_id,
+                    super::valley_item::clipped(&r.speak_to_andrew, 220)
+                );
+                let mut actions = div().flex().flex_wrap().items_center().gap(px(6.));
+                if !item_id.is_empty() {
+                    let open_id = item_id.clone();
+                    actions = actions.child(
+                        Button::new(SharedString::from(format!("rescue-open-{wake_id}")), "Open item")
+                            .style(ButtonStyle::Ghost)
+                            .on_click(cx.listener(move |this, _ev, _win, cx| {
+                                this.navigate(crate::ui::root::Route::ValleyItem(open_id.clone()), _win, cx);
+                            })),
+                    );
+                }
+                if r.acked == Some(true) {
+                    actions = actions.child(
+                        div()
+                            .text_size(px(11.))
+                            .text_color(theme.text_placeholder)
+                            .child("Acknowledged"),
+                    );
+                } else {
+                    let ack_id = wake_id.clone();
+                    actions = actions.child(
+                        Button::new(SharedString::from(format!("rescue-ack-{wake_id}")), "Acknowledge")
+                            .style(ButtonStyle::Ghost)
+                            .on_click(cx.listener(move |this, _ev, _win, cx| {
+                                this.rescue_ack_report(ack_id.clone(), cx);
+                            })),
+                    );
+                }
+                actions = actions.child(
+                    Button::new(SharedString::from(format!("rescue-ask-{wake_id}")), "Ask Andrew")
+                        .style(ButtonStyle::Ghost)
+                        .on_click(cx.listener(move |this, _ev, win, cx| {
+                            this.ask_andrew(prefill.clone(), win, cx);
+                        })),
+                );
                 div().flex().flex_col().gap(px(2.)).child(head)
                     .child(
                         div()
@@ -263,6 +341,7 @@ impl Root {
                             .text_color(theme.text_placeholder)
                             .child(super::valley_item::clipped(&r.ts, 19)),
                     )
+                    .child(actions)
                     .into_any_element()
             })
             .collect();
@@ -348,7 +427,7 @@ impl Root {
             );
         let mut body = page("valley-page", &self.page_scroll)
             .child(header)
-            .children(self.rescue_reports_card(&theme));
+            .children(self.rescue_reports_card(&theme, cx));
         // Join-a-valley (Father, 12 Nov 2026: "Join a valley" first run):
         // the paste box is created once, before the state match borrows it.
         let need_join = matches!(self.valley_data.as_ref(), Some(Load::Failed(e)) if e == "not-configured");

@@ -15,7 +15,7 @@
 
 use std::collections::BTreeMap;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 /// One item on Andrew's work board, as `GET /work` reports it.
 #[derive(Debug, Clone, Deserialize)]
@@ -450,6 +450,35 @@ impl Valley {
         resp.json::<RescueReceipts>()
             .await
             .map_err(|e| format!("The receipts aren't the shape we expect: {e}"))
+    }
+
+    /// Acknowledges one rescue report: the user has seen it and answered to
+    /// its need (Father 19 Nov 2026: "escalate_human clearly should allow
+    /// the user to react to the needs of that").
+    pub async fn ack_rescue(&self, wake_id: &str) -> Result<(), String> {
+        if !self.configured() {
+            return Err("The valley isn't configured - set it in Settings > Valley.".into());
+        }
+        let body = RescueAckIn::default();
+        let path = format!("/api/rescue/receipts/{}/ack", wake_id);
+        let mut url = self.url_for(&path);
+        let mut resp = self
+            .auth(self.http.post(&url).json(&body))
+            .send()
+            .await
+            .map_err(|e| format!("Couldn't reach the valley at {url}: {e}"))?;
+        if self.can_learn() && Self::looks_like_html(&resp) {
+            let _ = self.prefix.set("/api".to_string());
+            url = self.url_for(&path);
+            resp = self
+                .auth(self.http.post(&url).json(&body))
+                .send()
+                .await
+                .map_err(|e| format!("Couldn't reach the valley at {url}: {e}"))?;
+        }
+        resp.error_for_status()
+            .map_err(|e| format!("The acknowledge failed: {e}"))?;
+        Ok(())
     }
 
     /// One work item in full (the item page's detail level).
@@ -1049,6 +1078,17 @@ pub struct RescueReceipt {
     pub speak_to_andrew: String,
     #[serde(default)]
     pub confidence: Option<f64>,
+    // Father 19 Nov 2026: "those rescue reports have no clickable actions" -
+    // the acknowledge stamp rides back so the card can mark what he's seen.
+    #[serde(default)]
+    pub acked: Option<bool>,
+}
+
+/// Body of the acknowledge call - the note is optional on the valley, so
+/// a bare note ships.
+#[derive(Debug, Clone, Serialize, Default)]
+pub struct RescueAckIn {
+    pub note: String,
 }
 
 /// Deserialize a `null` string field as `None` (serde(default) alone treats

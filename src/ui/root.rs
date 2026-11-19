@@ -580,6 +580,9 @@ pub struct Root {
     /// A turn is in flight on this session key: the composer shows Stop
     /// (interrupt) and the transcript polls live until it lands.
     pub(super) andrew_flight: Option<String>,
+    /// Text handed in from elsewhere (a rescue report's "Ask Andrew",
+    /// Father 19 Nov 2026) that the composer fills on its next render.
+    pub(super) andrew_prefill: Option<String>,
     /// The paste-in box for a Valley invite (Join-a-valley, Father 12 Nov
     /// 2026) on the page's not-configured card; a bare base URL joins with
     /// no credentials.
@@ -833,6 +836,7 @@ impl Root {
             andrew_chat_exec: false,
             andrew_graph: None,
             andrew_flight: None,
+            andrew_prefill: None,
             valley_join_input: None,
             campfire_open: None,
             campfire_torch: None,
