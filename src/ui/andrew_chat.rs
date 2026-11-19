@@ -218,6 +218,21 @@ impl Root {
         self.track(task);
     }
 
+    /// Opens Andrew's chat with text waiting in the composer - handed over
+    /// from a rescue report's "Ask Andrew" action (Father 19 Nov 2026:
+    /// "escalate_human clearly should allow the user to react to the
+    /// needs of that"). No send until he presses Send.
+    pub(super) fn ask_andrew(
+        &mut self,
+        text: String,
+        window: &mut Window,
+        cx: &mut Context<Root>,
+    ) {
+        self.andrew_prefill = Some(text);
+        self.andrew_read = Some("andrew".to_string());
+        self.navigate(super::root::Route::AndrewChat("andrew".to_string()), window, cx);
+    }
+
     /// Flips the composer's lane (plan = conversational, execute = the
     /// specialist team with a task graph). State only: the mode rides
     /// with the next send, never touching a turn in flight. (Father,
@@ -274,7 +289,12 @@ impl Root {
             .andrew_text
             .as_ref()
             .map(|i| i.clone())
-            .unwrap_or_else(|| cx.new(|cx| TextInput::new(cx, "Say something to Andrew…").mono()));
+            .unwrap_or_else(|| cx.new(|cx| TextInput::new(cx, "Say something to Andrew.").mono()));
+        // A text handed in from another page (ask_andrew) waits in the
+        // composer; the user sends it himself.
+        if let Some(text) = self.andrew_prefill.take() {
+            input.update(cx, |i, cx| i.set_text(text, cx));
+        }
 
         let header = div()
             .flex()
