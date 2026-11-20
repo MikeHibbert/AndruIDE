@@ -428,6 +428,22 @@ impl Root {
         let mut body = page("valley-page", &self.page_scroll)
             .child(header)
             .children(self.rescue_reports_card(&theme, cx));
+        // The mission-control strip (Father, 20 Nov 2026 - step 3): the
+        // valley's own counts, today's burn and the active run's health, above
+        // the lanes. It reads on its own 30s clock and derives nothing: a run
+        // that is over answers `finished` here even while the board still
+        // carries its claim, which is how a stale claim shows itself.
+        // The id is taken before the board's borrow so the strip can load.
+        let active_run = match self.valley_data.as_ref() {
+            Some(Load::Ready(data)) => data
+                .items
+                .iter()
+                .find(|i| i.status == "running")
+                .and_then(|i| i.claim_run())
+                .map(str::to_string),
+            _ => None,
+        };
+        body = body.child(self.mission_strip(&theme, active_run, cx));
         // Join-a-valley (Father, 12 Nov 2026: "Join a valley" first run):
         // the paste box is created once, before the state match borrows it.
         let need_join = matches!(self.valley_data.as_ref(), Some(Load::Failed(e)) if e == "not-configured");

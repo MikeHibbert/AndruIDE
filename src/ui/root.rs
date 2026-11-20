@@ -511,6 +511,13 @@ pub struct Root {
     pub(super) valley_stats: Option<super::github::Load<crate::valley::WorkStats>>,
     pub(super) valley_stats_at: Option<Instant>,
     pub(super) valley_at: Option<Instant>,
+    /// The Valley page's mission-control strip (Father, 20 Nov 2026): the
+    /// cheap server reads (/work/stats, /work/live-capacity), the active
+    /// run's health, and when each was read.
+    pub(super) mission: Option<super::github::Load<super::mission::Mission>>,
+    pub(super) mission_at: Option<Instant>,
+    pub(super) mission_health: Option<(String, super::github::Load<crate::valley::RunHealth>)>,
+    pub(super) mission_health_at: Option<Instant>,
     /// Valleys on the local network, as last heard over mDNS.
     pub(super) valleys: Vec<crate::fleet::discover::ValleyHost>,
     pub(super) valleys_scanning: bool,
@@ -800,6 +807,10 @@ impl Root {
             valley_stats: None,
             valley_stats_at: None,
             valley_at: None,
+            mission: None,
+            mission_at: None,
+            mission_health: None,
+            mission_health_at: None,
             valleys: Vec::new(),
             valleys_scanning: false,
             rescue_reports: None,

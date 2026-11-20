@@ -474,6 +474,45 @@ impl Valley {
             .map_err(|e| format!("The counters aren't the shape we expect: {e}"))
     }
 
+    // --- Mission control (Father, 20 Nov 2026, AndruIDE step 3) ---
+    //
+    // WHY these reads and not one fat endpoint: the strip above the Valley
+    // board must not pull the 5.5MB board or the 3.98MB run list, and it must
+    // never derive a number the valley already knows. /work/stats is
+    // 0.2KB/17ms, live-capacity a few KB, and the health read is one run's
+    // verses. The day's lesson: a client-side rate priced a $2.92 day at
+    // $10.69, so cost, verdict and basis all come from here.
+
+    /// Live capacity: the pool, the slots, and today's burn with its basis.
+    pub async fn live_capacity(&self) -> Result<LiveCapacity, String> {
+        if !self.configured() {
+            return Err("The valley isn't configured - set it in Settings > Valley.".into());
+        }
+        let resp = self
+            .get("/work/live-capacity")
+            .await
+            .map_err(|e| format!("The capacity: {e}"))?;
+        resp.json::<LiveCapacity>()
+            .await
+            .map_err(|e| format!("The capacity isn't the shape we expect: {e}"))
+    }
+
+    /// One run's health: working, stalled or finished, decided by the valley
+    /// from the run's own verse timestamps and kinds (never an LLM judging
+    /// itself, and never this app guessing).
+    pub async fn run_health(&self, run_id: &str) -> Result<RunHealth, String> {
+        if !self.configured() {
+            return Err("The valley isn't configured - set it in Settings > Valley.".into());
+        }
+        let resp = self
+            .get(&format!("/kumbayas/runs/{run_id}/health"))
+            .await
+            .map_err(|e| format!("The health: {e}"))?;
+        resp.json::<RunHealth>()
+            .await
+            .map_err(|e| format!("The health isn't the shape we expect: {e}"))
+    }
+
     /// Shadow Rescue receipts (Father, 18 Nov 2026: "It won't be headless if
     /// we have reports on the UI"): what the bundled rescue agent has
     /// triaged lately, already stripped to the lite shape - the valley
@@ -1053,6 +1092,12 @@ pub struct VerseLite {
 /// of failing the surface.
 #[derive(Debug, Clone, Deserialize, Default)]
 pub struct WorkStats {
+    // The revision these counts were read from: the same fingerprint the
+    // list gate uses, so "the board changed" has one authority. (Mission
+    // control step 3, Father 20 Nov 2026: the strip says which board it
+    // is describing rather than implying "now".)
+    #[serde(default)]
+    pub fingerprint: String,
     #[serde(default)]
     pub work: StatCounts,
     #[serde(default)]
@@ -1098,6 +1143,113 @@ pub struct RunCounts {
     #[serde(default)]
     #[allow(dead_code)]
     pub failed: usize,
+}
+
+// --- Mission control's shapes (GET /work/live-capacity and
+// /kumbayas/runs/{id}/health). Every field is defaulted: a valley older or
+// newer than this app still parses, and a block the valley could not read
+// shows as absent rather than failing the strip.
+
+/// `GET /work/live-capacity`: the live worker picture and the burn block.
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct LiveCapacity {
+    #[serde(default)]
+    pub pool_size: usize,
+    #[serde(default)]
+    pub slots: Vec<CapacitySlot>,
+    /// A valley whose burn readback failed sends `{}`; this stays empty.
+    #[serde(default)]
+    pub burn: Burn,
+}
+
+impl LiveCapacity {
+    /// The slots holding work right now (the strip's "2/3 busy").
+    pub fn busy_slots(&self) -> usize {
+        self.slots.iter().filter(|s| s.running.as_deref().is_some_and(|r| !r.is_empty())).count()
+    }
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct CapacitySlot {
+    /// The item the slot holds; null when idle.
+    #[serde(default)]
+    pub running: Option<String>,
+}
+
+/// Today's burn, exactly as the valley reports it. `cost_basis` is never
+/// inferred here: `provider_usage_api` is the provider's own bill,
+/// `rate_table` an estimate from published rates (Father, 20 Nov 2026).
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct Burn {
+    #[serde(default)]
+    pub total_calls: Option<i64>,
+    #[serde(default)]
+    pub cost_usd: f64,
+    #[serde(default)]
+    pub cost_basis: Option<String>,
+    #[serde(default)]
+    pub cash_usd: Option<f64>,
+    #[serde(default)]
+    pub allowance: Option<Allowance>,
+    #[serde(default)]
+    pub provider_tokens: Option<ProviderTokens>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct Allowance {
+    #[serde(default)]
+    pub included_balance_usd: Option<f64>,
+    #[serde(default)]
+    pub included_allowance_usd: Option<f64>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct ProviderTokens {
+    #[serde(default)]
+    pub total: i64,
+}
+
+/// `GET /kumbayas/runs/{id}/health`: the valley's deterministic verdict.
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct RunHealth {
+    #[serde(default)]
+    pub run_id: String,
+    #[serde(default)]
+    pub kumbaya: String,
+    /// `working` | `stalled` | `finished` - the server's word, shown as given.
+    #[serde(default)]
+    pub verdict: String,
+    #[serde(default)]
+    pub flags: Vec<String>,
+    #[serde(default)]
+    pub verses_total: i64,
+    #[serde(default)]
+    pub verses_done: i64,
+    #[serde(default)]
+    pub current_verse: String,
+    #[serde(default)]
+    pub tool_verses: i64,
+    #[serde(default)]
+    pub verses_since_tool: i64,
+    #[serde(default)]
+    pub llm_calls: i64,
+    #[serde(default)]
+    pub since_last_verse_seconds: Option<f64>,
+    #[serde(default)]
+    pub steps_done_of_estimate: Option<String>,
+    #[serde(default)]
+    pub usage: RunHealthUsage,
+}
+
+/// The run's own priced usage (provider counts, credited at the router).
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct RunHealthUsage {
+    #[serde(default)]
+    pub total_tokens: i64,
+    #[serde(default)]
+    pub cost_usd: f64,
+    #[serde(default)]
+    pub cost_basis: String,
 }
 
 /// Shadow Rescue receipts, as `/api/rescue/receipts` reports them (Father,
