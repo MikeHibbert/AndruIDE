@@ -497,6 +497,22 @@ impl Valley {
             .map_err(|e| format!("The capacity isn't the shape we expect: {e}"))
     }
 
+    /// Would a kick work right now, and why not? `GET /work/{id}/run-preflight`
+    /// changes nothing (the kick itself writes status=PENDING before it checks
+    /// drain and pause, so the command bar asks this first and acts second).
+    pub async fn run_preflight(&self, item_id: &str) -> Result<RunPreflight, String> {
+        if !self.configured() {
+            return Err("The valley isn't configured - set it in Settings > Valley.".into());
+        }
+        let resp = self
+            .get(&format!("/work/{item_id}/run-preflight"))
+            .await
+            .map_err(|e| format!("The preflight: {e}"))?;
+        resp.json::<RunPreflight>()
+            .await
+            .map_err(|e| format!("The preflight isn't the shape we expect: {e}"))
+    }
+
     /// One run's health: working, stalled or finished, decided by the valley
     /// from the run's own verse timestamps and kinds (never an LLM judging
     /// itself, and never this app guessing).
@@ -1207,6 +1223,25 @@ pub struct Allowance {
 pub struct ProviderTokens {
     #[serde(default)]
     pub total: i64,
+}
+
+/// `GET /work/{id}/run-preflight`: what a kick would do, and why not.
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct RunPreflight {
+    #[serde(default)]
+    pub item_id: String,
+    /// `claimable` | `running` | `draining` | `paused` | `completed` | `retired`.
+    #[serde(default)]
+    pub state: String,
+    #[serde(default)]
+    pub claimable: bool,
+    #[serde(default)]
+    pub reason: String,
+    /// The item carries a claim from a run that is already over.
+    #[serde(default)]
+    pub stale_claim: bool,
+    #[serde(default)]
+    pub warning: Option<String>,
 }
 
 /// `GET /kumbayas/runs/{id}/health`: the valley's deterministic verdict.
