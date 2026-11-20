@@ -94,6 +94,45 @@ impl Root {
         self.track(task);
     }
 
+    /// Kicks one item now from its page: `POST /work/{id}/run`, then re-reads
+    /// the item so the header and log are the valley's own next word. A
+    /// drain/pause decline is reported with its reason, never softened
+    /// (work_6eaa46ff19). Father, 20 Nov 2026: "on the Item work_* page
+    /// there no way to kick a job now, can you build that now".
+    fn kick_valley_item(&mut self, id: String, cx: &mut Context<Self>) {
+        let mut cfg = self.engine.settings().valley.clone();
+        if let Some(base) = self.valley_view.clone() {
+            cfg.base_url = base;
+        }
+        let valley = Valley::from_parts(cfg);
+        if !valley.configured() {
+            self.notify_user("The valley isn't configured - set it in Settings > Valley.", true, cx);
+            return;
+        }
+        let key = id.clone();
+        let job = self.engine.runtime().spawn(async move { valley.kick(&id).await });
+        let task = cx.spawn(async move |this, cx| {
+            let result = job.await.unwrap_or_else(|e| Err(e.to_string()));
+            let _ = this.update(cx, |this, cx| {
+                match result {
+                    Ok(out) => {
+                        // Only a decline (drain/pause) reads red: "queued" is
+                        // a healthy answer and must not look like a failure.
+                        let declined = !out.kicked && out.state != "queued";
+                        this.notify_user(SharedString::from(out.message()), declined, cx);
+                        // The kick changed the status server-side; drop the
+                        // cache so the page re-reads what the valley now says.
+                        this.valley_items.remove(&key);
+                        this.load_valley_item(&key, cx);
+                    }
+                    Err(e) => this.notify_user(SharedString::from(e), true, cx),
+                }
+                cx.notify();
+            });
+        });
+        self.track(task);
+    }
+
     /// Sends one instruction, interrupting the running camper.
     fn send_item_instruct(&mut self, session_id: String, text: String, cx: &mut Context<Self>) {
         let valley = crate::valley::Valley::from_parts(self.engine.settings().valley.clone());
@@ -264,6 +303,33 @@ impl Root {
                     .child(format!("p{}", item.priority))
                     .child(div().text_color(pill_color).child(pill.to_string()))
                     .when_some(crate::valley::age_text(&item.created_at), |d, age| d.child(age)),
+            )
+            // Kick now (Father, 20 Nov 2026: "on the Item work_* page there
+            // no way to kick a job now"): run-now moves the item to the
+            // front and starts a worker. Hidden while it is already running,
+            // waiting on a checkpoint, or done - the kick would only requeue
+            // live or finished work.
+            .when(
+                !matches!(item.status.as_str(), "running" | "waiting_checkpoint" | "completed"),
+                |d| {
+                    let kick_id = item.id.clone();
+                    d.child(
+                        div().flex().items_center().gap(px(8.)).mt(px(8.)).child(
+                            Button::new("vi-kick", "Kick now")
+                                .icon("play")
+                                .style(ButtonStyle::Primary)
+                                .tooltip("Move this to the front and start a worker now (POST /work/{id}/run)")
+                                .on_click(cx.listener(
+                                    move |this: &mut Root,
+                                          _: &ClickEvent,
+                                          _: &mut Window,
+                                          cx: &mut Context<Root>| {
+                                        this.kick_valley_item(kick_id.clone(), cx);
+                                    },
+                                )),
+                        ),
+                    )
+                },
             );
 
         let mut stack: Vec<AnyElement> = Vec::new();

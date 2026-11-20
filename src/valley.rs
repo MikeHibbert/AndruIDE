@@ -102,6 +102,45 @@ impl ItemDetail {
     }
 }
 
+/// The answer to a run-now kick (`POST /work/{id}/run`): the valley reports
+/// an honest state rather than a blanket success (work_6eaa46ff19 - drain
+/// mode and a paused project both decline). Father, 20 Nov 2026: "on the
+/// Item work_* page there no way to kick a job now, can you build that now".
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct KickOutcome {
+    #[serde(default)]
+    pub kicked: bool,
+    #[serde(default)]
+    pub state: String,
+    #[serde(default)]
+    pub reason: String,
+}
+
+impl KickOutcome {
+    /// The line the item page shows: the valley's own words when it
+    /// declined, a plain sentence on the two successes.
+    pub fn message(&self) -> String {
+        let reason = self.reason.trim();
+        match self.state.as_str() {
+            "kicked" => "Kicked - a worker picked this up now.".into(),
+            "queued" => {
+                if reason.is_empty() {
+                    "Queued - a worker is already active; it will pick this up next round.".into()
+                } else {
+                    format!("Queued - {reason}")
+                }
+            }
+            _ => {
+                if reason.is_empty() {
+                    format!("The kick was declined ({}).", self.state)
+                } else {
+                    format!("The kick was declined: {reason}")
+                }
+            }
+        }
+    }
+}
+
 /// Andrew's `/ready` payload — service health at a glance.
 #[derive(Debug, Clone, Deserialize)]
 pub struct ReadyOut {
@@ -493,6 +532,38 @@ impl Valley {
         resp.json::<ItemDetail>()
             .await
             .map_err(|e| format!("The item isn't the shape we expect: {e}"))
+    }
+
+    /// Kicks one item now: `POST /work/{id}/run` moves it to the front and
+    /// starts a worker instead of waiting for the tick (Father, 20 Nov 2026:
+    /// "on the Item work_* page there no way to kick a job now"). The
+    /// valley's answer is read whole so the page can say why a kick could
+    /// not run (draining / paused), never a blanket success.
+    pub async fn kick(&self, id: &str) -> Result<KickOutcome, String> {
+        if !self.configured() {
+            return Err("The valley isn't configured - set it in Settings > Valley.".into());
+        }
+        let path = format!("/work/{id}/run");
+        let mut url = self.url_for(&path);
+        let mut resp = self
+            .auth(self.http.post(&url))
+            .send()
+            .await
+            .map_err(|e| format!("Couldn't reach the valley at {url}: {e}"))?;
+        if self.can_learn() && Self::looks_like_html(&resp) {
+            let _ = self.prefix.set("/api".to_string());
+            url = self.url_for(&path);
+            resp = self
+                .auth(self.http.post(&url))
+                .send()
+                .await
+                .map_err(|e| format!("Couldn't reach the valley at {url}: {e}"))?;
+        }
+        resp.error_for_status()
+            .map_err(|e| format!("The valley answered {e}"))?
+            .json::<KickOutcome>()
+            .await
+            .map_err(|e| format!("The kick answer isn't the shape we expect: {e}"))
     }
 
     /// One run's conversation: every verse with what the camper said and
@@ -1507,6 +1578,29 @@ mod tests {
         assert_eq!(item.claim_run(), None);
         assert!(item.failed_text().is_none());
         assert!(item.progress_log.is_empty());
+    }
+
+    /// The run-now answers, as `POST /work/{id}/run` sends them: a kick, a
+    /// queued defer, and a drain decline (the only form with a reason).
+    #[test]
+    fn parses_the_kick_answers() {
+        let kicked: KickOutcome =
+            serde_json::from_str(r#"{"kicked": true, "state": "kicked"}"#).expect("a kick parses");
+        assert!(kicked.kicked);
+        assert!(kicked.message().starts_with("Kicked"));
+
+        let queued: KickOutcome = serde_json::from_str(
+            r#"{"kicked": false, "state": "queued", "reason": "worker already active; item queued"}"#,
+        )
+        .expect("a queued answer parses");
+        assert!(!queued.kicked);
+        assert!(queued.message().contains("Queued"));
+
+        let draining: KickOutcome = serde_json::from_str(
+            r#"{"kicked": false, "state": "draining", "reason": "drain mode active - no new work claims until drain is cancelled"}"#,
+        )
+        .expect("a drain decline parses");
+        assert!(draining.message().contains("drain mode active"));
     }
 
     /// A trimmed slice of the real `GET /kumbayas/runs/{id}` answer, captured
