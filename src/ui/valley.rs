@@ -444,6 +444,11 @@ impl Root {
             _ => None,
         };
         body = body.child(self.mission_strip(&theme, active_run, cx));
+        // The command bar (Father, 20 Nov 2026 - step 4): read verbs answer
+        // from the valley, and the writes ask the preflight first, then ask
+        // the operator, then act. No shortcut: it takes the keyboard when
+        // clicked (Father's Ctrl+Space is speech to text).
+        body = body.child(self.render_command_bar(&theme, cx));
         // Join-a-valley (Father, 12 Nov 2026: "Join a valley" first run):
         // the paste box is created once, before the state match borrows it.
         let need_join = matches!(self.valley_data.as_ref(), Some(Load::Failed(e)) if e == "not-configured");

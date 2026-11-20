@@ -518,6 +518,11 @@ pub struct Root {
     pub(super) mission_at: Option<Instant>,
     pub(super) mission_health: Option<(String, super::github::Load<crate::valley::RunHealth>)>,
     pub(super) mission_health_at: Option<Instant>,
+    /// The Valley page's command bar (Father, 20 Nov 2026 - step 4): the typed
+    /// line, what it last said, and which write waits on a second word.
+    pub(super) command_input: Entity<TextInput>,
+    pub(super) command_reply: Option<super::command::CommandReply>,
+    pub(super) command_armed: Option<(String, Instant)>,
     /// Valleys on the local network, as last heard over mDNS.
     pub(super) valleys: Vec<crate::fleet::discover::ValleyHost>,
     pub(super) valleys_scanning: bool,
@@ -748,6 +753,14 @@ impl Root {
                 this.start_run(cx);
             }
         }));
+        // The Valley page's command bar: Return runs the line. Deliberately no
+        // global shortcut - Father's Ctrl+Space is speech to text (20 Nov 2026).
+        let command_input = cx.new(|cx| TextInput::new(cx, "kick work_x · why <run> · cost · help").mono());
+        subscriptions.push(cx.subscribe_in(&command_input, window, |this, _, e: &InputEvent, _, cx| {
+            if *e == InputEvent::Submit {
+                this.submit_command(cx);
+            }
+        }));
         let mut ws = Root {
             engine,
             snapshot,
@@ -822,6 +835,9 @@ impl Root {
             forward_seen: Default::default(),
             port_input,
             run_input,
+            command_input,
+            command_reply: None,
+            command_armed: None,
             run_picked: None,
             run_last: None,
             run_history: Vec::new(),
