@@ -19,6 +19,7 @@ mod input;
 mod kit;
 mod logs;
 mod menu;
+mod mission;
 mod notify;
 mod move_dialog;
 mod overview;
