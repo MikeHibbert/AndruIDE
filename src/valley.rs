@@ -1813,6 +1813,12 @@ pub struct VerseTalk {
     pub error: Option<String>,
     #[serde(default)]
     pub checkpoint: Option<CheckpointAsk>,
+    /// His own stated intent for this verse — the run detail's `intent`, which
+    /// `?lite=1` strips. This is the "when I did this, what was I thinking"
+    /// trace the Teach lane shows and hands back to the ceremony: recorded at
+    /// the time, never reconstructed after the fact. (Father, 21 Nov 2026.)
+    #[serde(default)]
+    pub intent: String,
 }
 
 impl VerseTalk {
@@ -1841,6 +1847,14 @@ pub struct RunTalk {
     #[serde(default)]
     #[allow(dead_code)]
     pub created_at: String,
+    /// The ceremony version this run sang, and the run's own review/report.
+    /// Both are stripped from `?lite=1`; only the detail read carries them.
+    /// The Teach lane compares the run's version against the saved ceremony so
+    /// a stale definition is named instead of passed off as what he read.
+    #[serde(default)]
+    pub version: u64,
+    #[serde(default)]
+    pub report: String,
     #[serde(default)]
     pub verses: Vec<VerseTalk>,
 }

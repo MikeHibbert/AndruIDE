@@ -554,6 +554,10 @@ pub struct Root {
     /// as last read, the spend arming, and the page's last note.
     pub(super) teach_pick: Option<super::teach::Failure>,
     pub(super) teach_evidence: Option<(super::github::Load<crate::valley::RunTalk>, Instant)>,
+    /// The failing ceremony's own saved definition — the instructions he was
+    /// following when he did it. Read once per pick; cleared when the pick
+    /// changes so a stale definition never describes a different ceremony.
+    pub(super) teach_ceremony: Option<(super::github::Load<serde_json::Value>, Instant)>,
     pub(super) teach_expected: Option<Entity<TextInput>>,
     pub(super) teach_belief: Option<Entity<TextInput>>,
     pub(super) teach_run: Option<(super::github::Load<crate::valley::RunTalk>, Instant)>,
@@ -888,6 +892,7 @@ impl Root {
             triage_receipts: None,
             teach_pick: None,
             teach_evidence: None,
+            teach_ceremony: None,
             teach_expected: None,
             teach_belief: None,
             teach_run: None,

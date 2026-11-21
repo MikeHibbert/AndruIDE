@@ -429,6 +429,26 @@ impl Root {
                     }
                 }
                 let mut card = card.child(self.item_actions(item_id, claim.as_deref(), cx));
+                // Alert -> review -> steering in one press (Father, 21 Nov 2026:
+                // "job fails -> user surface alerts the user -> user looks it
+                // over and offers steering to help fix the issue"). Offered only
+                // when a claim run exists: without it there is no conversation
+                // to read, and a review button would promise evidence that is
+                // not there.
+                if let Some(claim_run) = claim.clone() {
+                    let item = item_id.clone();
+                    let title_for = title.clone();
+                    card = card.child(
+                        Button::new(
+                            SharedString::from(format!("triage-teach-{item}")),
+                            "Review with Andrew",
+                        )
+                        .style(ButtonStyle::Outlined)
+                        .on_click(cx.listener(move |this, _, _, cx| {
+                            this.teach_failed_job(&item, &title_for, &claim_run, cx)
+                        })),
+                    );
+                }
                 for panel in self.triage_panels(item_id, theme) {
                     card = card.child(panel);
                 }

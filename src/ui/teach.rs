@@ -32,7 +32,7 @@ use super::github::Load;
 use super::input::TextInput;
 use super::kit::{self, Button, ButtonStyle, card, section_title, spinner};
 use super::overview::page;
-use super::root::Root;
+use super::root::{Root, Route};
 use super::theme::{ActiveTheme, Theme, mono_font};
 use crate::valley::{RunSummary, RunTalk};
 
@@ -48,6 +48,10 @@ const NOTE_SECS: u64 = 45;
 const EVIDENCE_STALE_SECS: u64 = 60;
 /// How often the beliefs card re-reads while the page is open.
 const LESSONS_STALE_SECS: u64 = 30;
+/// A saved ceremony definition barely moves; a pick reads it once.
+const CEREMONY_STALE_SECS: u64 = 300;
+/// The board read that carries failed jobs, on the Valley page's clock.
+const JOBS_STALE_SECS: u64 = 300;
 
 /// One failure worth teaching, carrying the little the run list knows: the
 /// verse that is flagged and its kind. The verse's words live in the detail
@@ -56,6 +60,13 @@ const LESSONS_STALE_SECS: u64 = 30;
 pub(super) struct Failure {
     pub run_id: String,
     pub kumbaya: String,
+    /// What the row is about when that is not the ceremony's name — a failed
+    /// job's title, so the operator reads the work item, not a run id.
+    pub label: String,
+    /// The work item's id when this failure is a job rather than a ceremony
+    /// run. Its claim run is the evidence; the item is the subject. Empty for
+    /// a plain ceremony run.
+    pub job_id: String,
     pub verse: String,
     pub kind: String,
     pub created_at: String,
@@ -76,10 +87,44 @@ pub(super) fn failure_rows(runs: &[RunSummary]) -> Vec<Failure> {
         out.push(Failure {
             run_id: run.id.clone(),
             kumbaya: run.kumbaya.clone(),
+            label: String::new(),
+            job_id: String::new(),
             verse: failed_verse.map(|v| v.verse.clone()).unwrap_or_default(),
             kind: failed_verse.map(|v| v.kind.clone()).unwrap_or_default(),
             created_at: run.created_at.clone(),
             run_failed,
+        });
+    }
+    out
+}
+
+/// The same rows for failed jobs (Father, 21 Nov 2026: "this should also be
+/// the workflow for failed jobs when we go to review them"). A work item that
+/// died while claimed is reviewed down the identical path as a failed run —
+/// the item is the subject, its claim run is the evidence. Items with no claim
+/// run are left out: there is no conversation to read, so offering the row
+/// would promise evidence that does not exist.
+pub(super) fn failure_rows_from_items(items: &[crate::valley::WorkItem]) -> Vec<Failure> {
+    let mut out = Vec::new();
+    for item in items {
+        if item.status != "failed" {
+            continue;
+        }
+        let run_id = item
+            .claim_run_id
+            .as_deref()
+            .map(str::trim)
+            .filter(|s| !s.is_empty());
+        let Some(run_id) = run_id else { continue };
+        out.push(Failure {
+            run_id: run_id.to_string(),
+            kumbaya: String::new(),
+            label: item.title.clone(),
+            job_id: item.id.clone(),
+            verse: String::new(),
+            kind: String::new(),
+            created_at: String::new(),
+            run_failed: true,
         });
     }
     out
@@ -96,11 +141,22 @@ pub(super) fn failure_rows(runs: &[RunSummary]) -> Vec<Failure> {
 /// operator wanted, stated as such - and Andrew's origin probe still has to
 /// find the belief that produced the actual one.
 pub(super) fn compose_behaviour(failure: &Failure, evidence: Option<&RunTalk>, expected: &str) -> String {
-    let said = evidence
-        .and_then(|talk| talk.verses.iter().find(|v| v.verse == failure.verse))
-        .and_then(|v| v.said())
-        .map(|s| clipped(s, 400));
-    let mut out = if failure.verse.trim().is_empty() {
+    let verse = evidence.and_then(|talk| talk.verses.iter().find(|v| v.verse == failure.verse));
+    let said = verse.and_then(|v| v.said()).map(|s| clipped(s, 400));
+    let intent = verse
+        .map(|v| v.intent.trim())
+        .filter(|s| !s.is_empty())
+        .map(|s| clipped(s, 300));
+    let review = evidence
+        .map(|talk| talk.report.trim())
+        .filter(|s| !s.is_empty())
+        .map(|s| clipped(s, 300));
+    let mut out = if !failure.job_id.trim().is_empty() {
+        format!(
+            "Work item '{}' failed while being worked (run {}). ",
+            failure.job_id, failure.run_id
+        )
+    } else if failure.verse.trim().is_empty() {
         format!(
             "The ceremony '{}' failed as a run (run {}); no single verse is flagged. ",
             failure.kumbaya, failure.run_id
@@ -111,20 +167,90 @@ pub(super) fn compose_behaviour(failure: &Failure, evidence: Option<&RunTalk>, e
             failure.kumbaya, failure.verse, failure.kind, failure.run_id
         )
     };
+    // WHY his own words ride in first (Father, 21 Nov 2026: "we need to get him
+    // to look at his telemetry at the time and also look at his system prompt
+    // and work out 'when I did this what was I thinking?'"): his recorded
+    // intent and his own review ARE that telemetry - they are his words from
+    // the time, not a reconstruction after the fact - so the origin probe has
+    // something to explain instead of a bare failure.
+    if let Some(intent) = intent {
+        out.push_str(&format!("His own stated intent on that verse was: \"{intent}\". "));
+    }
     if let Some(said) = said {
         out.push_str(&format!("The verse's own last word was: \"{said}\". "));
+    }
+    if let Some(review) = review {
+        out.push_str(&format!("The run's own review of itself said: \"{review}\". "));
     }
     out.push_str("This is how the operator believes it should have gone instead:\n");
     out.push_str(expected.trim());
     out
 }
 
+/// The saved ceremony condensed to what a person reads before deciding: the
+/// name, its version, its input names and its verse names. Prompts and verify
+/// criteria stay out — the page is for acting quickly, not for re-reading the
+/// whole definition.
+pub(super) struct CeremonyDigest {
+    pub name: String,
+    pub version: u64,
+    pub inputs: Vec<String>,
+    pub steps: Vec<String>,
+}
+
+/// Read a `GET /kumbayas/{name}` answer into the digest. Tolerant of both
+/// shapes the songbook has used (inputs as a list of defs, or a map of
+/// name → def), because a reader that works on one shape only fails on the
+/// day the shape moves.
+pub(super) fn ceremony_digest(raw: &serde_json::Value) -> CeremonyDigest {
+    let name = raw.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
+    let version = raw.get("version").and_then(|v| v.as_u64()).unwrap_or(0);
+    let mut inputs = Vec::new();
+    match raw.get("inputs") {
+        Some(serde_json::Value::Array(rows)) => {
+            for row in rows {
+                let Some(n) = row.get("name").and_then(|v| v.as_str()) else { continue };
+                let required = row.get("required").and_then(|v| v.as_bool()).unwrap_or(true);
+                inputs.push(if required { format!("{n}*") } else { n.to_string() });
+            }
+        }
+        Some(serde_json::Value::Object(map)) => {
+            for (n, def) in map {
+                let required = def.get("required").and_then(|v| v.as_bool()).unwrap_or(true);
+                inputs.push(if required { format!("{n}*") } else { n.clone() });
+            }
+        }
+        _ => {}
+    }
+    let mut steps = Vec::new();
+    if let Some(rows) = raw.get("steps").and_then(|v| v.as_array()) {
+        for row in rows {
+            let n = row.get("name").and_then(|v| v.as_str()).unwrap_or("");
+            if n.is_empty() {
+                continue;
+            }
+            let kind = row.get("kind").and_then(|v| v.as_str()).unwrap_or("");
+            steps.push(if kind.is_empty() { n.to_string() } else { format!("{n} ({kind})") });
+        }
+    }
+    CeremonyDigest { name, version, inputs, steps }
+}
+
 impl Root {
     pub(super) fn render_teach(&mut self, cx: &mut Context<Self>) -> AnyElement {
         self.maybe_load_runs(cx);
+        // Failed jobs are the other half of this page (Father, 21 Nov 2026: "job
+        // fails -> user surface alerts the user -> user looks it over and offers
+        // steering to help fix the issue"). The board read is the same one the
+        // triage console uses, so the alert and the review share one truth.
+        if self.valley_data.is_none() || self.valley_at.is_some_and(|t| t.elapsed().as_secs() > JOBS_STALE_SECS)
+        {
+            self.load_valley(cx);
+        }
         self.maybe_load_teach_lessons(cx);
         if let Some(pick) = self.teach_pick.clone() {
             self.maybe_load_teach_evidence(&pick.run_id, cx);
+            self.maybe_load_teach_ceremony(&pick, cx);
         }
         self.teach_expected
             .get_or_insert_with(|| cx.new(|cx| TextInput::new(cx, "What Andrew should have done here — in your words").mono()));
@@ -136,7 +262,25 @@ impl Root {
             Some(Load::Ready(runs)) => runs.clone(),
             _ => Vec::new(),
         };
-        let failures = failure_rows(&runs);
+        let items: Vec<crate::valley::WorkItem> = match &self.valley_data {
+            Some(Load::Ready(data)) => data.items.clone(),
+            _ => Vec::new(),
+        };
+        // Failed jobs first, then failed runs, one row per claim run: a job and
+        // its run are the same failure seen from two sides, and showing both
+        // would ask the operator to teach the same thing twice.
+        let mut failures: Vec<Failure> = Vec::new();
+        let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
+        for job in failure_rows_from_items(&items) {
+            if seen.insert(job.run_id.clone()) {
+                failures.push(job);
+            }
+        }
+        for run_failure in failure_rows(&runs) {
+            if seen.insert(run_failure.run_id.clone()) {
+                failures.push(run_failure);
+            }
+        }
         let runs_problem: Option<String> = match &self.valley_runs {
             Some(Load::Failed(e)) => Some(e.clone()),
             Some(Load::Loading) | Some(Load::Ready(_)) => None,
@@ -156,8 +300,7 @@ impl Root {
             .child(
                 div()
                     .text_size(px(12.5))
-                    .text_color(theme.text_muted)
-                    .child("Pick a failure, say how it should have gone. Andrew examines the belief that produced the behaviour, tells you where it came from, and proposes a revision — the belief changes only if you press Apply."),
+                    .text_color(theme.text_muted)                        .child("Pick a failed job or ceremony run, read what he was thinking and what he was told to do, then say how it should have gone. Andrew examines the belief that produced it and proposes a revision — the belief changes only if you press Apply."),
             )
             .child(
                 div()
@@ -185,20 +328,37 @@ impl Root {
             let empty = if runs_problem.is_some() {
                 kit::empty_state(&theme, "book-open", "The campfire's runs are out of reach, so there is nothing to point at yet.")
             } else {
-                kit::empty_state(&theme, "book-open", "No failed runs or failed verses in the last fifty. Pick something older from the Run page when one appears.")
+                kit::empty_state(&theme, "book-open", "No failed jobs on the board and no failed runs or verses in the last fifty. When one fails, it appears here ready to review.")
             };
             failures_card = failures_card.child(card(&theme).child(empty));
         }
         for failure in &failures {
             let picked = self.teach_pick.as_ref().is_some_and(|p| p.run_id == failure.run_id);
-            let badge = if failure.run_failed { "failed run" } else { "failed verse" };
-            let label = if failure.kumbaya.trim().is_empty() { "a run".to_string() } else { failure.kumbaya.clone() };
+            let badge = if !failure.job_id.trim().is_empty() {
+                "failed job"
+            } else if failure.run_failed {
+                "failed run"
+            } else {
+                "failed verse"
+            };
+            let label = if !failure.label.trim().is_empty() {
+                failure.label.clone()
+            } else if !failure.job_id.trim().is_empty() {
+                failure.job_id.clone()
+            } else if failure.kumbaya.trim().is_empty() {
+                "a run".to_string()
+            } else {
+                failure.kumbaya.clone()
+            };
             let mut row = card(&theme)
                 .p(px(14.))
                 .flex_col()
                 .gap(px(5.))
                 .child(row_head(&theme, theme.error, badge, &label, &failure.run_id));
             let mut detail_line = Vec::new();
+            if !failure.job_id.trim().is_empty() {
+                detail_line.push(failure.job_id.clone());
+            }
             if !failure.verse.trim().is_empty() {
                 detail_line.push(format!("verse {}", failure.verse));
             }
@@ -245,15 +405,34 @@ impl Root {
         let mut evidence_card = card(theme).p(px(14.)).flex_col().gap(px(6.)).child(section_title(theme, "What happened", None));
         match self.teach_evidence.as_ref() {
             Some((Load::Ready(talk), _)) if talk_matches(talk, pick) => {
-                let mut trail = div().flex().flex_col().gap(px(4.));
+                let flagged = pick.verse.trim();
+                let where_line = if flagged.is_empty() {
+                    "the run itself failed".to_string()
+                } else {
+                    format!("failed at {flagged}")
+                };
+                evidence_card = evidence_card.child(
+                    div()
+                        .text_size(px(11.))
+                        .font_family(mono_font())
+                        .text_color(theme.text_muted)
+                        .child(format!("{} · {} verses · {where_line}", talk.status, talk.verses.len())),
+                );
+                let mut trail = div().flex().flex_col().gap(px(5.));
                 for verse in &talk.verses {
+                    let is_flagged = !flagged.is_empty() && verse.verse == flagged;
+                    let name = if is_flagged {
+                        format!("▶ {}", verse.verse)
+                    } else {
+                        verse.verse.clone()
+                    };
                     let mut line = div()
-                        .flex()
                         .flex_col()
-                        .gap(px(2.))
+                        .gap(px(1.))
                         .child(
                             div()
                                 .flex()
+                                .flex_wrap()
                                 .items_baseline()
                                 .gap(px(6.))
                                 .child(
@@ -261,7 +440,8 @@ impl Root {
                                         .text_size(px(12.))
                                         .font_family(mono_font())
                                         .font_weight(FontWeight::MEDIUM)
-                                        .child(verse.verse.clone()),
+                                        .text_color(if is_flagged { theme.error } else { theme.text })
+                                        .child(name),
                                 )
                                 .child(
                                     div()
@@ -270,18 +450,46 @@ impl Root {
                                         .child(format!("{} · {}", verse.kind, verse.status)),
                                 ),
                         );
-                    if let Some(said) = verse.said() {
+                    // His intent is the "what was I thinking" line, so it sits
+                    // directly under the verse name, in his own words, clipped to
+                    // one screen row — never buried in the prose of the result.
+                    let intent = verse.intent.trim();
+                    if !intent.is_empty() {
                         line = line.child(
                             div()
                                 .text_size(px(11.5))
+                                .text_color(theme.text)
+                                .whitespace_normal()
+                                .child(format!("thinking: {}", clipped(intent, 220))),
+                        );
+                    }
+                    if let Some(said) = verse.said() {
+                        line = line.child(
+                            div()
+                                .text_size(px(11.))
                                 .text_color(theme.text_muted)
                                 .whitespace_normal()
-                                .child(clipped(said, 240)),
+                                .child(format!("said: {}", clipped(said, 200))),
                         );
                     }
                     trail = trail.child(line);
                 }
                 evidence_card = evidence_card.child(trail);
+                let review = talk.report.trim();
+                if !review.is_empty() {
+                    evidence_card = evidence_card.child(
+                        div()
+                            .mt(px(2.))
+                            .p(px(8.))
+                            .rounded(kit::corner(8.))
+                            .bg(theme.element)
+                            .text_size(px(11.5))
+                            .text_color(theme.text_muted)
+                            .whitespace_normal()
+                            .child(format!("His own review of the run: {}", clipped(review, 360))),
+                    );
+                }
+                evidence_card = evidence_card.child(self.teach_instructions(pick, theme));
             }
             Some((Load::Loading, _)) => {
                 evidence_card = evidence_card.child(
@@ -524,6 +732,93 @@ impl Root {
             .into_any_element()
     }
 
+    /// The instructions he was following, condensed to version, inputs and the
+    /// verse order. The version check is the honesty bit: a run carries the
+    /// version it sang, and the saved ceremony may have moved on since, so a
+    /// mismatch says "as saved now", never "what he read".
+    fn teach_instructions(&self, pick: &Failure, theme: &Theme) -> Div {
+        let mut block = div()
+            .mt(px(4.))
+            .flex_col()
+            .gap(px(3.))
+            .child(
+                div()
+                    .text_size(px(11.5))
+                    .font_weight(FontWeight::MEDIUM)
+                    .text_color(theme.text)
+                    .child("The instructions he was following"),
+            );
+        match self.teach_ceremony.as_ref() {
+            Some((Load::Ready(raw), _)) => {
+                let digest = ceremony_digest(raw);
+                let named = if digest.name.is_empty() { pick.kumbaya.clone() } else { digest.name.clone() };
+                let run_version = self.teach_evidence.as_ref().and_then(|(load, _)| match load {
+                    Load::Ready(talk) if talk_matches(talk, pick) => Some(talk.version),
+                    _ => None,
+                });
+                let mut line = format!("{named} · saved version {}", digest.version);
+                if let Some(run_version) = run_version.filter(|v| *v > 0) {
+                    if run_version == digest.version {
+                        line.push_str(" · this is the version the run sang");
+                    } else {
+                        line.push_str(&format!(
+                            " · the run sang version {run_version}, so this is the definition as saved now"
+                        ));
+                    }
+                }
+                block = block.child(
+                    div()
+                        .text_size(px(10.5))
+                        .font_family(mono_font())
+                        .text_color(theme.text_muted)
+                        .whitespace_normal()
+                        .child(line),
+                );
+                if !digest.inputs.is_empty() {
+                    block = block.child(detail(theme, format!("inputs: {}", clipped(&digest.inputs.join(", "), 220))));
+                }
+                if !digest.steps.is_empty() {
+                    block = block.child(detail(theme, format!("verses: {}", clipped(&digest.steps.join(" → "), 420))));
+                }
+            }
+            Some((Load::Loading, _)) => block = block.child(detail(theme, "reading the ceremony's definition…")),
+            Some((Load::Failed(e), _)) => {
+                block = block.child(detail(theme, format!("The ceremony's definition is out of reach: {e}")))
+            }
+            None => block = block.child(detail(theme, "reading the ceremony's definition…")),
+        }
+        block
+    }
+
+    /// Hand a failed job to this page: the item is the subject, its claim run is
+    /// the evidence, and the review starts on the same path as a failed run.
+    /// WHY (Father, 21 Nov 2026: "job fails -> user surface alerts the user ->
+    /// user looks it over and offers steering to help fix the issue"): an alert
+    /// that does not lead to the steering surface in one press is only a
+    /// notification. The triage console's failed row calls this.
+    pub(super) fn teach_failed_job(&mut self, item_id: &str, title: &str, claim: &str, cx: &mut Context<Self>) {
+        self.teach_pick = Some(Failure {
+            run_id: claim.to_string(),
+            kumbaya: String::new(),
+            label: title.to_string(),
+            job_id: item_id.to_string(),
+            verse: String::new(),
+            kind: String::new(),
+            created_at: String::new(),
+            run_failed: true,
+        });
+        self.teach_armed = None;
+        self.teach_ceremony = None;
+        self.teach_run = None;
+        self.teach_run_id = None;
+        if let Some(input) = &self.teach_belief {
+            input.update(cx, |input, cx| input.set_text("", cx));
+        }
+        self.load_teach_evidence(claim, cx);
+        self.route = Route::Teach;
+        cx.notify();
+    }
+
     fn teach_armed_for(&self, run_id: &str) -> bool {
         self.teach_armed
             .as_ref()
@@ -542,6 +837,9 @@ impl Root {
             Some(pick) => {
                 self.teach_pick = Some(pick);
                 self.teach_armed = None;
+                // A new subject needs its own instructions; a definition cached
+                // for the previous pick would describe the wrong ceremony.
+                self.teach_ceremony = None;
                 self.load_teach_evidence(&run_id, cx);
                 cx.notify();
             }
@@ -552,6 +850,7 @@ impl Root {
     fn teach_clear(&mut self, cx: &mut Context<Self>) {
         self.teach_pick = None;
         self.teach_armed = None;
+        self.teach_ceremony = None;
         if let Some(input) = &self.teach_expected {
             input.update(cx, |input, cx| input.set_text("", cx));
         }
@@ -707,6 +1006,53 @@ impl Root {
         })
     }
 
+    /// Reads the failing ceremony's definition once per pick. A job pick has no
+    /// ceremony on the item, so the name comes from the run's own evidence.
+    fn maybe_load_teach_ceremony(&mut self, pick: &Failure, cx: &mut Context<Self>) {
+        let name = if !pick.kumbaya.trim().is_empty() {
+            pick.kumbaya.clone()
+        } else {
+            self.teach_evidence
+                .as_ref()
+                .and_then(|(load, _)| match load {
+                    Load::Ready(talk) if talk_matches(talk, pick) => Some(talk.kumbaya.clone()),
+                    _ => None,
+                })
+                .unwrap_or_default()
+        };
+        if name.trim().is_empty() {
+            return;
+        }
+        let loading = matches!(self.teach_ceremony, Some((Load::Loading, _)));
+        let fresh = self
+            .teach_ceremony
+            .as_ref()
+            .is_some_and(|(load, at)| matches!(load, Load::Ready(_)) && at.elapsed().as_secs() < CEREMONY_STALE_SECS);
+        if !loading && !fresh {
+            self.load_teach_ceremony(name, cx);
+        }
+    }
+
+    fn load_teach_ceremony(&mut self, name: String, cx: &mut Context<Self>) {
+        self.teach_ceremony = Some((Load::Loading, Instant::now()));
+        let valley = self.valley_client();
+        let job = self.engine.runtime().spawn(async move { valley.kumbaya_raw(&name).await });
+        let task = cx.spawn(async move |this, cx| {
+            let result = job.await.unwrap_or_else(|e| Err(e.to_string()));
+            let _ = this.update(cx, |this, cx| {
+                this.teach_ceremony = Some((
+                    match result {
+                        Ok(raw) => Load::Ready(raw),
+                        Err(e) => Load::Failed(e),
+                    },
+                    Instant::now(),
+                ));
+                cx.notify();
+            });
+        });
+        self.track(task);
+    }
+
     fn maybe_load_teach_evidence(&mut self, run_id: &str, cx: &mut Context<Self>) {
         let loading = matches!(self.teach_evidence, Some((Load::Loading, _)));
         let fresh = self
@@ -780,6 +1126,8 @@ impl Default for Failure {
         Failure {
             run_id: String::new(),
             kumbaya: String::new(),
+            label: String::new(),
+            job_id: String::new(),
             verse: String::new(),
             kind: String::new(),
             created_at: String::new(),
@@ -884,6 +1232,8 @@ mod tests {
         let failure = Failure {
             run_id: "run-1".into(),
             kumbaya: "work_board_worker".into(),
+            label: String::new(),
+            job_id: String::new(),
             verse: "verify".into(),
             kind: "llm".into(),
             created_at: String::new(),
@@ -893,5 +1243,69 @@ mod tests {
         assert!(behaviour.contains("run the focused test before claiming done"));
         assert!(behaviour.contains("verse 'verify'"));
         assert!(behaviour.contains("should have gone instead"));
+    }
+
+    #[test]
+    fn his_own_words_reach_the_ceremony() {
+        let failure = Failure {
+            run_id: "run-1".into(),
+            kumbaya: "work_board_worker".into(),
+            label: String::new(),
+            job_id: String::new(),
+            verse: "verify".into(),
+            kind: "llm".into(),
+            created_at: String::new(),
+            run_failed: false,
+        };
+        let talk: RunTalk = serde_json::from_str(
+            r#"{"id":"run-1","kumbaya":"work_board_worker","version":6,"status":"failed",
+                "report":"Per-verse contract review: verify claimed done without the focused test.",
+                "verses":[{"verse":"verify","kind":"llm","status":"failed",
+                           "intent":"claim done once the build compiles",
+                           "error":"skipped the focused test"}]}"#,
+        )
+        .expect("run talk");
+        let behaviour = compose_behaviour(&failure, Some(&talk), "run the focused test before claiming done");
+        assert!(behaviour.contains("claim done once the build compiles"), "{behaviour}");
+        assert!(behaviour.contains("Per-verse contract review"), "{behaviour}");
+        assert!(behaviour.contains("skipped the focused test"), "{behaviour}");
+        assert!(behaviour.contains("run the focused test before claiming done"), "{behaviour}");
+    }
+
+    #[test]
+    fn the_instructions_are_condensed_and_named() {
+        let raw: serde_json::Value = serde_json::from_str(
+            r#"{"name":"work_board_worker","version":7,
+                "inputs":[{"name":"item_id","required":true},{"name":"note","required":false}],
+                "steps":[{"name":"pick_item","kind":"mcp_tool"},{"name":"verify","kind":"llm"}]}"#,
+        )
+        .expect("ceremony");
+        let digest = ceremony_digest(&raw);
+        assert_eq!(digest.version, 7);
+        assert_eq!(digest.inputs, vec!["item_id*", "note"]);
+        assert_eq!(digest.steps, vec!["pick_item (mcp_tool)", "verify (llm)"]);
+    }
+
+    #[test]
+    fn a_failed_job_is_offered_with_its_claim_run_as_evidence() {
+        let item = |id: &str, status: &str, run: Option<&str>| crate::valley::WorkItem {
+            id: id.into(),
+            title: format!("Work {id}"),
+            status: status.into(),
+            priority: 0,
+            project: "campfire".into(),
+            created_at: String::new(),
+            started_at: None,
+            claim_run_id: run.map(str::to_string),
+        };
+        let rows = failure_rows_from_items(&[
+            item("work_1", "failed", Some("run-a")),
+            item("work_2", "failed", None),
+            item("work_3", "completed", Some("run-b")),
+        ]);
+        assert_eq!(rows.len(), 1, "only a failed job with a claim run can be taught");
+        assert_eq!(rows[0].job_id, "work_1");
+        assert_eq!(rows[0].run_id, "run-a");
+        assert!(rows[0].run_failed);
     }
 }
