@@ -74,7 +74,7 @@ pub(super) fn parse(line: &str) -> Verb {
 impl Root {
     /// The valley client the bar uses: the network valley in view, else the
     /// configured one — the same rule the page's own reads follow.
-    fn valley_client(&self) -> Valley {
+    pub(super) fn valley_client(&self) -> Valley {
         let mut cfg = self.engine.settings().valley.clone();
         if let Some(base) = self.valley_view.clone() {
             cfg.base_url = base;
@@ -434,7 +434,7 @@ fn help_text() -> String {
 }
 
 /// The preflight's verdict in one line: what it is, and the reason or warning.
-fn verdict_line(pre: &crate::valley::RunPreflight) -> String {
+pub(super) fn verdict_line(pre: &crate::valley::RunPreflight) -> String {
     let mut line = if pre.claimable {
         format!("claimable ({})", pre.state)
     } else if pre.reason.trim().is_empty() {
