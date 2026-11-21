@@ -294,6 +294,10 @@ pub enum Route {
     Andrew(String, u64),
     /// What the agents used, and what it'd cost.
     Usage,
+    /// Everything in the valley that is waiting on a person: checkpointed
+    /// runs, claims the board outlived, failures worth another go
+    /// (mission-control step 5).
+    Triage,
     /// Andrew's work board, read live from his valley.
     Valley,
     /// The whole valley as a living 3d scene (Father 13 Nov 2026).
@@ -523,6 +527,13 @@ pub struct Root {
     pub(super) command_input: Entity<TextInput>,
     pub(super) command_reply: Option<super::command::CommandReply>,
     pub(super) command_armed: Option<(String, Instant)>,
+    /// The Triage page (mission-control step 5): each claim run's health once
+    /// asked for, the answer boxes the waiting rows keep, which item's kick
+    /// is armed, and the page's last note.
+    pub(super) triage_health: HashMap<String, (super::github::Load<crate::valley::RunHealth>, Instant)>,
+    pub(super) triage_answer: HashMap<String, Entity<TextInput>>,
+    pub(super) triage_armed: Option<(String, Instant)>,
+    pub(super) triage_note: Option<(String, bool, Instant)>,
     /// Valleys on the local network, as last heard over mDNS.
     pub(super) valleys: Vec<crate::fleet::discover::ValleyHost>,
     pub(super) valleys_scanning: bool,
@@ -838,6 +849,10 @@ impl Root {
             command_input,
             command_reply: None,
             command_armed: None,
+            triage_health: HashMap::new(),
+            triage_answer: HashMap::new(),
+            triage_armed: None,
+            triage_note: None,
             run_picked: None,
             run_last: None,
             run_history: Vec::new(),
@@ -1190,6 +1205,7 @@ impl Root {
             "jobs" => self.navigate(Route::Jobs, window, cx),
             "usage" => self.navigate(Route::Usage, window, cx),
             "valley" => self.navigate(Route::Valley, window, cx),
+            "triage" => self.navigate(Route::Triage, window, cx),
             "valley-scene" => self.navigate(Route::ValleyScene, window, cx),
             // "schedules", or "schedules:<machine>/<id>" with that one's runs open.
             "schedules" => {
@@ -2807,6 +2823,10 @@ impl Root {
                     // review). 'list' is bundled. The visual valley scene
                     // takes the "Valley" name.
                     .child(self.nav_item("nav-valley", "list", super::valley::TILE, "Work Board", self.valley_badge(), Route::Valley, "valley", cx))
+                    // Triage is the "what needs me" page: it reads the same
+                    // two authorities the board and the strip do (mission
+                    // control step 5, Father 20 Nov 2026).
+                    .child(self.nav_item("nav-triage", "inbox", super::triage::TILE, "Triage", self.triage_badge(), Route::Triage, "triage", cx))
                     .child(self.nav_item("nav-scene", "layers", super::valley_scene::TILE, "Valley", None, Route::ValleyScene, "valley-scene", cx))
                     .child(self.nav_item("nav-campfires", "eye", super::campfires::TILE, "Campfires", self.campfires_badge(), Route::Campfires, "campfires", cx))
                     .child(self.nav_item("nav-run", "zap", kit::tiles::RUN, "Run", None, Route::Run, "run", cx))
@@ -4027,6 +4047,7 @@ impl Root {
             Route::Activity => self.render_activity(cx).into_any_element(),
             Route::Usage => self.render_usage(cx),
             Route::Valley => self.render_valley(cx),
+            Route::Triage => self.render_triage(cx),
             Route::ValleyScene => self.render_valley_scene(cx),
             Route::ValleyItem(id) => self.render_valley_item(&id, cx),
             Route::AndrewChat(key) => self.render_andrew_chat(&key, cx),
@@ -4293,6 +4314,7 @@ fn route_title(s: &Snapshot, route: &Route) -> (Option<&'static str>, String) {
         // Titles track the nav rename (Father 18 Nov 2026 screenshot review):
         // the work board says what it is; the scene is "the Valley".
         Route::Valley => (None, "Work Board".into()),
+        Route::Triage => (None, "Triage".into()),
         Route::ValleyScene => (None, "Valley".into()),
         Route::ValleyItem(id) => (Some("Valley"), format!("Item {id}")),
         Route::AndrewChat(_) => (Some("Andrew"), "Chat with Andrew".into()),
