@@ -298,6 +298,10 @@ pub enum Route {
     /// runs, claims the board outlived, failures worth another go
     /// (mission-control step 5).
     Triage,
+    /// Steer his beliefs, not just his queue (Father, 21 Nov 2026): point at a
+    /// failure, say how it should have gone, and let Andrew introspect why he
+    /// didn't match before he offers a belief to change.
+    Teach,
     /// Andrew's work board, read live from his valley.
     Valley,
     /// The whole valley as a living 3d scene (Father 13 Nov 2026).
@@ -544,6 +548,19 @@ pub struct Root {
     pub(super) triage_stop_armed: Option<(String, Instant)>,
     pub(super) triage_drain: Option<(super::github::Load<crate::valley::DrainState>, Instant)>,
     pub(super) triage_receipts: Option<(super::github::Load<crate::valley::RescueReceipts>, Instant)>,
+    /// The Teach lane (Father, 21 Nov 2026): the failure picked and its
+    /// evidence, the two boxes (how it should have gone, and an optional
+    /// belief to name), the introspection run being watched, the belief store
+    /// as last read, the spend arming, and the page's last note.
+    pub(super) teach_pick: Option<super::teach::Failure>,
+    pub(super) teach_evidence: Option<(super::github::Load<crate::valley::RunTalk>, Instant)>,
+    pub(super) teach_expected: Option<Entity<TextInput>>,
+    pub(super) teach_belief: Option<Entity<TextInput>>,
+    pub(super) teach_run: Option<(super::github::Load<crate::valley::RunTalk>, Instant)>,
+    pub(super) teach_run_id: Option<String>,
+    pub(super) teach_lessons: Option<(super::github::Load<Vec<crate::valley::Lesson>>, Instant)>,
+    pub(super) teach_armed: Option<(String, Instant)>,
+    pub(super) teach_note: Option<(String, bool, Instant)>,
     /// Valleys on the local network, as last heard over mDNS.
     pub(super) valleys: Vec<crate::fleet::discover::ValleyHost>,
     pub(super) valleys_scanning: bool,
@@ -869,6 +886,15 @@ impl Root {
             triage_stop_armed: None,
             triage_drain: None,
             triage_receipts: None,
+            teach_pick: None,
+            teach_evidence: None,
+            teach_expected: None,
+            teach_belief: None,
+            teach_run: None,
+            teach_run_id: None,
+            teach_lessons: None,
+            teach_armed: None,
+            teach_note: None,
             run_picked: None,
             run_last: None,
             run_history: Vec::new(),
@@ -2843,6 +2869,8 @@ impl Root {
                     // two authorities the board and the strip do (mission
                     // control step 5, Father 20 Nov 2026).
                     .child(self.nav_item("nav-triage", "inbox", super::triage::TILE, "Triage", self.triage_badge(), Route::Triage, "triage", cx))
+                    // The Teach lane: beliefs, not the queue (Father 21 Nov 2026).
+                    .child(self.nav_item("nav-teach", "book-open", super::teach::TILE, "Teach", None, Route::Teach, "teach", cx))
                     .child(self.nav_item("nav-scene", "layers", super::valley_scene::TILE, "Valley", None, Route::ValleyScene, "valley-scene", cx))
                     .child(self.nav_item("nav-campfires", "eye", super::campfires::TILE, "Campfires", self.campfires_badge(), Route::Campfires, "campfires", cx))
                     .child(self.nav_item("nav-run", "zap", kit::tiles::RUN, "Run", None, Route::Run, "run", cx))
@@ -4064,6 +4092,7 @@ impl Root {
             Route::Usage => self.render_usage(cx),
             Route::Valley => self.render_valley(cx),
             Route::Triage => self.render_triage(cx),
+            Route::Teach => self.render_teach(cx),
             Route::ValleyScene => self.render_valley_scene(cx),
             Route::ValleyItem(id) => self.render_valley_item(&id, cx),
             Route::AndrewChat(key) => self.render_andrew_chat(&key, cx),
@@ -4331,6 +4360,7 @@ fn route_title(s: &Snapshot, route: &Route) -> (Option<&'static str>, String) {
         // the work board says what it is; the scene is "the Valley".
         Route::Valley => (None, "Work Board".into()),
         Route::Triage => (None, "Triage".into()),
+        Route::Teach => (None, "Teach".into()),
         Route::ValleyScene => (None, "Valley".into()),
         Route::ValleyItem(id) => (Some("Valley"), format!("Item {id}")),
         Route::AndrewChat(_) => (Some("Andrew"), "Chat with Andrew".into()),
