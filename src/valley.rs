@@ -141,6 +141,60 @@ impl KickOutcome {
     }
 }
 
+/// The answer to the item stop control (`POST /work/{id}/stop`): the board
+/// flags the item and the engine halts it at the next verse boundary. A stop
+/// is terminal, not a requeue (judge_stop lesson, work_669f9b244b).
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct StopOut {
+    #[serde(default)]
+    pub stop_requested: bool,
+}
+
+/// The valley's drain state (`GET /admin/drain`): draining means the queue
+/// takes no new claims while in-flight work finishes. Read here so Triage can
+/// say why a kick would be declined before the operator presses it.
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct DrainState {
+    #[serde(default)]
+    pub draining: bool,
+    #[serde(default)]
+    pub active_runs: i64,
+    #[serde(default)]
+    pub running_items: i64,
+    #[serde(default)]
+    pub since: Option<String>,
+}
+
+/// One investigation report (`POST /work/{id}/investigate`): the judge's
+/// verdict on whether the item is healthy work, stalled, or dead, with the
+/// reasons it gave. The report is persisted on the valley; `report_file`
+/// names it.
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct Investigation {
+    #[serde(default)]
+    pub item_id: String,
+    #[serde(default)]
+    pub investigated_at: String,
+    #[serde(default)]
+    pub elapsed_hours: f64,
+    #[serde(default)]
+    pub verdict: InvestigationVerdict,
+    #[serde(default)]
+    pub report_file: String,
+}
+
+/// The judge's one-line verdict inside an investigation report.
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct InvestigationVerdict {
+    /// `healthy` | `stalled` | `dead` (empty when the judge could not parse).
+    #[serde(default)]
+    pub choice: String,
+    #[serde(default)]
+    pub reasons: Vec<String>,
+    #[serde(default)]
+    pub parsed: bool,
+}
+
 /// Andrew's `/ready` payload — service health at a glance.
 #[derive(Debug, Clone, Deserialize)]
 pub struct ReadyOut {
@@ -527,6 +581,121 @@ impl Valley {
         resp.json::<RunHealth>()
             .await
             .map_err(|e| format!("The health isn't the shape we expect: {e}"))
+    }
+
+    // --- Triage console actions (Father, 21 Nov 2026: "the triage console and
+    // the teach lane are next") ---
+    //
+    // WHY these four and not a fat "triage" endpoint: each is the operator
+    // action Andrew already publishes, called with the valley's own words as
+    // the answer. The page reads before it writes (preflight for kicks,
+    // evidence before requeue/stop), and nothing here invents a state the
+    // board does not have.
+
+    /// Requeue a stuck item: `PATCH /work/{id}` with `status=pending`. The note
+    /// carries who asked, so the board keeps the story instead of a bare status
+    /// flip. This is the honest alternative to a kick when the operator has
+    /// read the evidence and wants the item back in the queue.
+    pub async fn requeue_item(&self, item_id: &str, note: &str) -> Result<ItemDetail, String> {
+        if !self.configured() {
+            return Err("The valley isn't configured - set it in Settings > Valley.".into());
+        }
+        let body = serde_json::json!({ "status": "pending", "note": note });
+        let mut url = self.url_for(&format!("/work/{item_id}"));
+        let mut resp = self
+            .auth(self.http.patch(&url).json(&body))
+            .send()
+            .await
+            .map_err(|e| format!("Couldn't reach the valley at {url}: {e}"))?;
+        if self.can_learn() && Self::looks_like_html(&resp) {
+            let _ = self.prefix.set("/api".to_string());
+            url = self.url_for(&format!("/work/{item_id}"));
+            resp = self
+                .auth(self.http.patch(&url).json(&body))
+                .send()
+                .await
+                .map_err(|e| format!("Couldn't reach the valley at {url}: {e}"))?;
+        }
+        resp.error_for_status()
+            .map_err(|e| format!("The requeue failed: {e}"))?
+            .json::<ItemDetail>()
+            .await
+            .map_err(|e| format!("The requeued item isn't the shape we expect: {e}"))
+    }
+
+    /// Stop an item: `POST /work/{id}/stop` with the operator's reason. The
+    /// board records the receipt; the engine halts at the next verse boundary.
+    /// Terminal on purpose - revival is a separate operator act (requeue).
+    pub async fn stop_item(&self, item_id: &str, reason: &str) -> Result<StopOut, String> {
+        if !self.configured() {
+            return Err("The valley isn't configured - set it in Settings > Valley.".into());
+        }
+        let body = serde_json::json!({ "reason": reason });
+        let mut url = self.url_for(&format!("/work/{item_id}/stop"));
+        let mut resp = self
+            .auth(self.http.post(&url).json(&body))
+            .send()
+            .await
+            .map_err(|e| format!("Couldn't reach the valley at {url}: {e}"))?;
+        if self.can_learn() && Self::looks_like_html(&resp) {
+            let _ = self.prefix.set("/api".to_string());
+            url = self.url_for(&format!("/work/{item_id}/stop"));
+            resp = self
+                .auth(self.http.post(&url).json(&body))
+                .send()
+                .await
+                .map_err(|e| format!("Couldn't reach the valley at {url}: {e}"))?;
+        }
+        resp.error_for_status()
+            .map_err(|e| format!("The stop failed: {e}"))?
+            .json::<StopOut>()
+            .await
+            .map_err(|e| format!("The stop answer isn't the shape we expect: {e}"))
+    }
+
+    /// Investigate an item: `POST /work/{id}/investigate`. The valley gathers
+    /// its deterministic telemetry and asks a judge for a healthy / stalled /
+    /// dead verdict; that call can take a while because a model answers it.
+    pub async fn investigate_item(&self, item_id: &str) -> Result<Investigation, String> {
+        if !self.configured() {
+            return Err("The valley isn't configured - set it in Settings > Valley.".into());
+        }
+        let mut url = self.url_for(&format!("/work/{item_id}/investigate"));
+        let mut resp = self
+            .auth(self.http.post(&url))
+            .send()
+            .await
+            .map_err(|e| format!("Couldn't reach the valley at {url}: {e}"))?;
+        if self.can_learn() && Self::looks_like_html(&resp) {
+            let _ = self.prefix.set("/api".to_string());
+            url = self.url_for(&format!("/work/{item_id}/investigate"));
+            resp = self
+                .auth(self.http.post(&url))
+                .send()
+                .await
+                .map_err(|e| format!("Couldn't reach the valley at {url}: {e}"))?;
+        }
+        resp.error_for_status()
+            .map_err(|e| format!("The investigation failed: {e}"))?
+            .json::<Investigation>()
+            .await
+            .map_err(|e| format!("The report isn't the shape we expect: {e}"))
+    }
+
+    /// The valley's drain flag (`GET /admin/drain`): the queue takes no new
+    /// claims while in-flight work finishes. Cheap, and it explains a whole
+    /// class of declined kicks without asking the preflight per item.
+    pub async fn drain_state(&self) -> Result<DrainState, String> {
+        if !self.configured() {
+            return Err("The valley isn't configured - set it in Settings > Valley.".into());
+        }
+        let resp = self
+            .get("/admin/drain")
+            .await
+            .map_err(|e| format!("The drain state: {e}"))?;
+        resp.json::<DrainState>()
+            .await
+            .map_err(|e| format!("The drain state isn't the shape we expect: {e}"))
     }
 
     /// Shadow Rescue receipts (Father, 18 Nov 2026: "It won't be headless if

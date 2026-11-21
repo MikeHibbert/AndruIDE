@@ -534,6 +534,16 @@ pub struct Root {
     pub(super) triage_answer: HashMap<String, Entity<TextInput>>,
     pub(super) triage_armed: Option<(String, Instant)>,
     pub(super) triage_note: Option<(String, bool, Instant)>,
+    /// Triage console (Father, 21 Nov 2026): each item's own log once asked
+    /// for, any judge verdict it was investigated for, the two separate
+    /// armings for requeue and stop (a kick's arm must not authorise them),
+    /// and the page's two extra reads - the drain flag and the rescue feed.
+    pub(super) triage_evidence: HashMap<String, (super::github::Load<crate::valley::ItemDetail>, Instant)>,
+    pub(super) triage_investigation: HashMap<String, (super::github::Load<crate::valley::Investigation>, Instant)>,
+    pub(super) triage_requeue_armed: Option<(String, Instant)>,
+    pub(super) triage_stop_armed: Option<(String, Instant)>,
+    pub(super) triage_drain: Option<(super::github::Load<crate::valley::DrainState>, Instant)>,
+    pub(super) triage_receipts: Option<(super::github::Load<crate::valley::RescueReceipts>, Instant)>,
     /// Valleys on the local network, as last heard over mDNS.
     pub(super) valleys: Vec<crate::fleet::discover::ValleyHost>,
     pub(super) valleys_scanning: bool,
@@ -853,6 +863,12 @@ impl Root {
             triage_answer: HashMap::new(),
             triage_armed: None,
             triage_note: None,
+            triage_evidence: HashMap::new(),
+            triage_investigation: HashMap::new(),
+            triage_requeue_armed: None,
+            triage_stop_armed: None,
+            triage_drain: None,
+            triage_receipts: None,
             run_picked: None,
             run_last: None,
             run_history: Vec::new(),
