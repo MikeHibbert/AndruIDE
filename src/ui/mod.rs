@@ -7,6 +7,7 @@ mod boxes;
 mod campfires;
 mod command;
 mod triage;
+mod teach;
 mod activity;
 mod cloud_dialog;
 mod assets;

@@ -790,6 +790,61 @@ impl Valley {
             .map_err(|e| format!("The kick answer isn't the shape we expect: {e}"))
     }
 
+    // --- The teach lane (Father, 21 Nov 2026: "point at failures and offer
+    // suggestions of how we think it should have been handled then andrew can
+    // introspect to see why he didn't match and offer to update his beliefs") ---
+    //
+    // WHY this is two calls and no new ceremony: Andrew already carries
+    // `examine_belief` - behaviour in, belief + probe + revised belief out,
+    // gated by an apply / note_only / refine checkpoint - and the lessons
+    // store is what his prompt actually injects. The lane composes the failure
+    // and the operator's expectation into the behaviour input; the ceremony
+    // does the introspection; the checkpoint is where a belief may change.
+
+    /// Starts a ceremony by name with inputs: `POST /kumbayas/{name}/run`.
+    /// Returns the run record the valley created (an id to watch).
+    pub async fn run_kumbaya(&self, name: &str, inputs: serde_json::Value) -> Result<StartedRun, String> {
+        if !self.configured() {
+            return Err("The valley isn't configured — set it in Settings › Valley.".into());
+        }
+        let body = serde_json::json!({ "inputs": inputs, "autonomous": false });
+        let mut url = self.url_for(&format!("/kumbayas/{name}/run"));
+        let mut resp = self
+            .auth(self.http.post(&url).json(&body))
+            .send()
+            .await
+            .map_err(|e| format!("Couldn't reach Andrew at {url}: {e}"))?;
+        if self.can_learn() && Self::looks_like_html(&resp) {
+            let _ = self.prefix.set("/api".to_string());
+            url = self.url_for(&format!("/kumbayas/{name}/run"));
+            resp = self
+                .auth(self.http.post(&url).json(&body))
+                .send()
+                .await
+                .map_err(|e| format!("Couldn't reach Andrew at {url}: {e}"))?;
+        }
+        resp.error_for_status()
+            .map_err(|e| format!("The ceremony wouldn't start: {e}"))?
+            .json::<StartedRun>()
+            .await
+            .map_err(|e| format!("The run record isn't the shape we expect: {e}"))
+    }
+
+    /// What Andrew currently carries as lessons - the store `format_context()`
+    /// injects into his prompt. Newest first, capped by the valley.
+    pub async fn lessons(&self, limit: usize) -> Result<Vec<Lesson>, String> {
+        if !self.configured() {
+            return Err("The valley isn't configured — set it in Settings › Valley.".into());
+        }
+        let resp = self
+            .get(&format!("/lessons?limit={limit}"))
+            .await
+            .map_err(|e| format!("The lessons: {e}"))?;
+        resp.json::<Vec<Lesson>>()
+            .await
+            .map_err(|e| format!("The lessons aren't the shape we expect: {e}"))
+    }
+
     /// One run's conversation: every verse with what the camper said and
     /// did on the job (the item page's third level).
     pub async fn talk(&self, run_id: &str) -> Result<RunTalk, String> {
@@ -1247,6 +1302,84 @@ impl ScheduleEntry {
             .as_ref()
             .and_then(|r| r.summary.as_deref())
             .filter(|s| !s.trim().is_empty())
+    }
+}
+
+/// A ceremony run the valley just created (`POST /kumbayas/{name}/run`).
+/// Only the id, name and status matter to the teach lane - it watches the
+/// run's own detail read for the rest.
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct StartedRun {
+    #[serde(default)]
+    pub id: String,
+    #[serde(default)]
+    pub kumbaya: String,
+    #[serde(default)]
+    pub status: String,
+}
+
+/// One lesson from Andrew's store (`GET /lessons`): what his prompt injects.
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct Lesson {
+    #[serde(default)]
+    pub id: String,
+    #[serde(default)]
+    pub text: String,
+    #[serde(default)]
+    pub timestamp: f64,
+    #[serde(default)]
+    pub ceremony: String,
+    #[serde(default)]
+    pub category: String,
+    #[serde(default)]
+    pub source: String,
+}
+
+impl Lesson {
+    /// How long ago the valley recorded it, in words. A lesson learned today
+    /// outranks the same words learned last month; the page says which it is.
+    pub fn age(&self) -> String {
+        if self.timestamp <= 0.0 {
+            return String::new();
+        }
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs_f64())
+            .unwrap_or(0.0);
+        let days = ((now - self.timestamp).max(0.0) / 86400.0) as u64;
+        match days {
+            0 => "today".into(),
+            1 => "yesterday".into(),
+            d => format!("{d}d ago"),
+        }
+    }
+
+    /// A short line naming where this belief came from: its ceremony and
+    /// category, when it was learned, plus the id the valley can be asked to
+    /// retire.
+    pub fn provenance(&self) -> String {
+        let mut parts: Vec<String> = Vec::new();
+        if !self.ceremony.trim().is_empty() {
+            parts.push(self.ceremony.trim().to_string());
+        }
+        if !self.category.trim().is_empty() && self.category != "general" {
+            parts.push(self.category.trim().to_string());
+        }
+        if !self.source.trim().is_empty() {
+            parts.push(self.source.trim().to_string());
+        }
+        let age = self.age();
+        if !age.is_empty() {
+            parts.push(age);
+        }
+        let mut line = parts.join(" · ");
+        if !self.id.trim().is_empty() {
+            if !line.is_empty() {
+                line.push_str(" · ");
+            }
+            line.push_str(self.id.trim());
+        }
+        line
     }
 }
 
