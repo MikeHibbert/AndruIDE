@@ -110,23 +110,48 @@ impl Root {
             return;
         }
         let key = id.clone();
-        let job = self.engine.runtime().spawn(async move { valley.kick(&id).await });
+        let job = self.engine.runtime().spawn(async move {
+            // Ask before acting (mission-control step 2, Father 20 Nov 2026):
+            // the kick writes status=PENDING before it checks anything, so a
+            // kick that turns out to be refused has already moved the board.
+            // The preflight answers the same verdict and writes nothing, and
+            // its words are the ones the operator should read - "Not kicked -
+            // the board reports this item running (run fe55c2c6)" - rather
+            // than a kick that lands nowhere.
+            // WHY (21 Nov 2026, live on work_4473c23c97): the item read
+            // "running" while its run had already finished; this button sent
+            // the kick anyway and the valley answered "queued", which reads
+            // like the kick landed.
+            match valley.run_preflight(&id).await {
+                Ok(pre) if !pre.claimable => {
+                    Err(format!("Not kicked — {}", super::command::verdict_line(&pre)))
+                }
+                // An unreadable preflight is not permission to kick blind.
+                Err(e) => Err(format!("Not kicked — the preflight could not be read: {e}")),
+                Ok(_) => valley.kick(&id).await,
+            }
+        });
         let task = cx.spawn(async move |this, cx| {
             let result = job.await.unwrap_or_else(|e| Err(e.to_string()));
             let _ = this.update(cx, |this, cx| {
                 match result {
                     Ok(out) => {
-                        // Only a decline (drain/pause) reads red: "queued" is
-                        // a healthy answer and must not look like a failure.
+                        // Only a decline (drain/pause/running) reads red:
+                        // "queued" is a healthy answer and must not look like
+                        // a failure.
                         let declined = !out.kicked && out.state != "queued";
                         this.notify_user(SharedString::from(out.message()), declined, cx);
-                        // The kick changed the status server-side; drop the
-                        // cache so the page re-reads what the valley now says.
-                        this.valley_items.remove(&key);
-                        this.load_valley_item(&key, cx);
                     }
                     Err(e) => this.notify_user(SharedString::from(e), true, cx),
                 }
+                // Whatever the valley said - kicked, queued, or refused - the
+                // board is the truth, so re-read the item. Without this the
+                // page keeps the status it was opened with, and an item whose
+                // run has finished still reads "running" (21 Nov 2026,
+                // work_4473c23c97: the PR had landed and the page still said
+                // it was being worked on).
+                this.valley_items.remove(&key);
+                this.load_valley_item(&key, cx);
                 cx.notify();
             });
         });
